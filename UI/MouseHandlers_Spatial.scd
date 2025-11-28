@@ -188,23 +188,10 @@
     result.clip(0, 1);
 };
 
-// Update the existing startPlayback to use the spatial version if 8ch synthdefs are selected
-if(~nUPIC[\ui][\startPlayback].notNil) {
-    ~nUPIC[\ui][\startPlaybackOriginal] = ~nUPIC[\ui][\startPlayback];
-    
-    ~nUPIC[\ui][\startPlayback] = {
-        var defaults = ~nUPIC[\defaults];
-        var defaultSynthDef = defaults[\defaultSynthDef] ? \upicWavetable;
-        
-        // Check if using 8ch synthdefs
-        if(defaultSynthDef.asString.contains("8ch")) {
-            ~nUPIC[\ui][\startPlaybackWithSpatial].value;
-        } {
-            // Use original playback for non-8ch synthdefs
-            ~nUPIC[\ui][\startPlaybackOriginal].value;
-        };
-    };
-};
+// Note: The main playback in MainWindow.scd now handles spatial envelopes
+// directly via the pan parameter, so we don't need to override startPlayback.
+// The startPlaybackWithSpatial function is kept for backwards compatibility
+// but is no longer used by default.
 
-"✓ Spatial envelope support added to playback system".postln;
+"✓ Spatial envelope support loaded (spatial envelopes handled via pan in main playback)".postln;
 )
