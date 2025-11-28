@@ -275,8 +275,9 @@ fork {
                     doneAction: 2
                 );
 
-                // Single mono wavetable oscillator - Osc.ar is guaranteed mono
-                sig = Osc.ar(bufnum, finalFreq);
+                // OscOS with frequency (not phase) - produces mono output
+                // OscOS.ar(bufnum, freq, phase, mul, oversample)
+                sig = OscOS.ar(bufnum, finalFreq, 0, 1, 2);
 
                 // Distance-based amplitude
                 distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
