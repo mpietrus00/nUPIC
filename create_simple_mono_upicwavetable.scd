@@ -10,14 +10,14 @@ if(SynthDescLib.global.synthDescs[\upicWavetable].notNil) {
     "✓ Removed existing upicWavetable".postln;
 };
 
-// Create simple mono upicWavetable using standard Osc.ar (guaranteed mono)
+// Create simple mono upicWavetable using OscOS with Phasor
 SynthDef(\upicWavetable, {
     arg freq = 440, amp = 0.1, pan = 0, gate = 1,
         bufnum, // Wavetable buffer number
         mass = 1, velocity = 0, distance = 100, width = 0.5,
         radialVel = 0, dopplerSens = 0, numSynths = 1;
 
-    var sig, dopplerShift, finalFreq, distAmp, env;
+    var sig, phase, dopplerShift, finalFreq, distAmp, env;
 
     // Use the global wavetable buffer
     bufnum = \bufnum.kr(~nUPIC_wavetableBuffer.bufnum);
@@ -33,9 +33,12 @@ SynthDef(\upicWavetable, {
         doneAction: 2
     );
 
-    // OscOS with frequency (not phase) - produces mono output
-    // OscOS.ar(bufnum, freq, phase, mul, oversample)
-    sig = OscOS.ar(bufnum, finalFreq, 0, 1, 2);
+    // Phase from Phasor (0-1 range) based on frequency
+    phase = Phasor.ar(0, finalFreq / SampleRate.ir);
+
+    // OscOS.ar(bufnum, phase, numWavetables, waveIndex, oversample, mul)
+    // Single wavetable, index 0, 2x oversample, full amplitude
+    sig = OscOS.ar(bufnum, phase, 1, 0, 2, 1);
 
     // Distance-based amplitude
     distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
