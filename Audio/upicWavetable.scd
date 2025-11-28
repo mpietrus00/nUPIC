@@ -444,10 +444,134 @@ SynthDef(\upicWavetablePhase, {
     Out.ar(0, Pan2.ar(sig, pan));
 }).add;
 
-"✓ upicWavetable SynthDef loaded".postln;
+// ============================================================
+// MULTI-CHANNEL VERSIONS
+// ============================================================
+
+// 2-channel (stereo) version with Pan2
+SynthDef(\upicWavetable2ch, {
+    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
+        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        radialVel = 0, dopplerSens = 0, numSynths = 1,
+        bufnum = 0;
+
+    var sig, phase, env, dopplerShift, finalFreq, distAmp;
+
+    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
+    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
+
+    env = EnvGen.kr(
+        Env.asr(0.01, 1, 0.01),
+        gate,
+        doneAction: 2
+    );
+
+    phase = LFSaw.ar(finalFreq).range(0, 1);
+    sig = OscOS.ar(bufnum, phase, oversample: 1);
+
+    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
+    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
+    sig = sig.tanh * 0.9;
+
+    // Stereo output with panning
+    Out.ar(0, Pan2.ar(sig, pan));
+}).add;
+
+// 3-channel version with PanAz
+SynthDef(\upicWavetable3ch, {
+    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
+        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        radialVel = 0, dopplerSens = 0, numSynths = 1,
+        bufnum = 0;
+
+    var sig, phase, env, dopplerShift, finalFreq, distAmp;
+
+    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
+    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
+
+    env = EnvGen.kr(
+        Env.asr(0.01, 1, 0.01),
+        gate,
+        doneAction: 2
+    );
+
+    phase = LFSaw.ar(finalFreq).range(0, 1);
+    sig = OscOS.ar(bufnum, phase, oversample: 1);
+
+    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
+    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
+    sig = sig.tanh * 0.9;
+
+    // 3-channel output with azimuth panning (pan: -1 to 1 maps around ring)
+    Out.ar(0, PanAz.ar(3, sig, pan, 1, width));
+}).add;
+
+// 8-channel version with PanAz
+SynthDef(\upicWavetable8ch, {
+    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
+        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        radialVel = 0, dopplerSens = 0, numSynths = 1,
+        bufnum = 0;
+
+    var sig, phase, env, dopplerShift, finalFreq, distAmp;
+
+    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
+    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
+
+    env = EnvGen.kr(
+        Env.asr(0.01, 1, 0.01),
+        gate,
+        doneAction: 2
+    );
+
+    phase = LFSaw.ar(finalFreq).range(0, 1);
+    sig = OscOS.ar(bufnum, phase, oversample: 1);
+
+    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
+    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
+    sig = sig.tanh * 0.9;
+
+    // 8-channel output with azimuth panning
+    Out.ar(0, PanAz.ar(8, sig, pan, 1, width));
+}).add;
+
+// 12-channel version with PanAz
+SynthDef(\upicWavetable12ch, {
+    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
+        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        radialVel = 0, dopplerSens = 0, numSynths = 1,
+        bufnum = 0;
+
+    var sig, phase, env, dopplerShift, finalFreq, distAmp;
+
+    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
+    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
+
+    env = EnvGen.kr(
+        Env.asr(0.01, 1, 0.01),
+        gate,
+        doneAction: 2
+    );
+
+    phase = LFSaw.ar(finalFreq).range(0, 1);
+    sig = OscOS.ar(bufnum, phase, oversample: 1);
+
+    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
+    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
+    sig = sig.tanh * 0.9;
+
+    // 12-channel output with azimuth panning
+    Out.ar(0, PanAz.ar(12, sig, pan, 1, width));
+}).add;
+
+"✓ upicWavetable SynthDef loaded (mono)".postln;
+"✓ upicWavetable2ch SynthDef loaded (stereo)".postln;
+"✓ upicWavetable3ch SynthDef loaded".postln;
+"✓ upicWavetable8ch SynthDef loaded".postln;
+"✓ upicWavetable12ch SynthDef loaded".postln;
 "✓ upicWavetableAdditive SynthDef loaded".postln;
 "✓ upicWavetableHarmonic SynthDef loaded".postln;
 "✓ upicWavetableRing SynthDef loaded".postln;
 "✓ upicWavetablePhase SynthDef loaded".postln;
-"✓ All 5 wavetable variations loaded successfully!".postln;
+"✓ All wavetable variations loaded successfully!".postln;
 )
