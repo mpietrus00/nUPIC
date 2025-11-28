@@ -241,8 +241,9 @@ SynthDef(\upicWavetable, {
     // Very gentle soft limiting to prevent harsh digital clipping
     // Use a higher threshold for less coloration
     sig = sig.clip(-0.95, 0.95);
-    
-    Out.ar(0, Pan2.ar(sig, pan));
+
+    // Mono output to bus 0
+    Out.ar(0, sig);
 }).add;
 
 // Additive variation with multiple detuned oscillators

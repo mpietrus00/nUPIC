@@ -121,39 +121,36 @@ fork {
                     };
                     ~nUPIC_generateRandomWavetable.value;
 
-                    // Define the SynthDef inline
+                    // Define the SynthDef inline (mono version)
                     SynthDef(\upicWavetable, {
                         arg freq = 440, amp = 0.1, pan = 0, gate = 1,
                             mass = 1, velocity = 0, distance = 100, width = 0.5,
-                            radialVel = 0, dopplerSens = 0, numSynths = 1,
-                            detune = 1.0, filterFreq = 4000, resonance = 1;
+                            radialVel = 0, dopplerSens = 0, numSynths = 1;
 
-                        var sig, env, dopplerShift, finalFreq, distAmp, bufnum;
+                        var sig, phase, env, dopplerShift, finalFreq, distAmp, bufnum;
 
                         bufnum = ~nUPIC_wavetableBuffer.bufnum;
                         dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
                         finalFreq = freq * dopplerShift.clip(0.5, 2.0);
 
                         env = EnvGen.kr(
-                            Env.asr(0.01, 1, 0.1),
+                            Env.asr(0.01, 1, 0.01),
                             gate,
                             doneAction: 2
                         );
 
-                        sig = Mix.ar([
-                            Osc.ar(bufnum, finalFreq) * 0.5,
-                            Osc.ar(bufnum, finalFreq * detune) * 0.3,
-                            Osc.ar(bufnum, finalFreq * (2 - (detune - 1))) * 0.2
-                        ]);
+                        // Phase from LFSaw (0-1 range)
+                        phase = LFSaw.ar(finalFreq).range(0, 1);
 
-                        sig = sig * (1 + (SinOsc.kr(velocity.linlin(0, 20, 0.5, 5)) * 0.02));
-                        filterFreq = freq * mass.linlin(1, 10, 8, 2);
-                        sig = RLPF.ar(sig, filterFreq.clip(20, 20000), resonance.reciprocal);
+                        // OscOS mono wavetable
+                        sig = OscOS.ar(bufnum, phase, oversample: 1);
+
                         distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
                         sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
                         sig = sig.tanh * 0.9;
 
-                        Out.ar(0, Pan2.ar(sig, pan));
+                        // Mono output
+                        Out.ar(0, sig);
                     }).add;
 
                     "  ✓ upicWavetable loaded (inline)".postln;
