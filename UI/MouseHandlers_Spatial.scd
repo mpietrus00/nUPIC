@@ -32,7 +32,7 @@
     // Play each trajectory
     data[\trajectories].do { |trajectory, i|
         var synth, synthDef, ampEnvelope, spatialBuffer;
-        var params;
+        var params, viewWidth;
         
         if(trajectory.notNil and: { trajectory.size > 0 }) {
             // Get synthdef for this trajectory
@@ -41,7 +41,7 @@
             }) {
                 data[\trajectorySynthDefs][i]
             } {
-                defaults[\defaultSynthDef] ? \upicWavetablePrecise8chEnv
+                defaults[\defaultSynthDef] ? \upicWavetable8ch
             };
             
             // Create spatial envelope buffer if using 8ch synthdef
@@ -61,6 +61,11 @@
                 nil
             };
             
+            // Cache view width before fork to avoid Qt threading issues
+            viewWidth = if(state[\drawView].notNil) {
+                state[\drawView].bounds.width
+            } { 800 };
+
             // Create playback routine for this trajectory
             fork {
                 var startTime = Main.elapsedTime;
@@ -68,12 +73,12 @@
                 var lastPoint = trajectory.last;
                 var trajectoryDuration = playDuration;
                 var prevSynth = nil;
-                
+
                 trajectory.do { |point, j|
                     var nextPoint = if(j < (trajectory.size - 1)) { trajectory[j + 1] } { nil };
                     var timeToNextPoint, freq, amp, pan;
                     var playbackProgress;
-                    
+
                     // Calculate timing
                     if(nextPoint.notNil) {
                         var currentPos = (point.x - firstPoint.x) / (lastPoint.x - firstPoint.x);
@@ -82,10 +87,10 @@
                     } {
                         timeToNextPoint = 0.1; // Last point
                     };
-                    
+
                     // Get frequency
                     freq = point[\freq] ? point.y ? 440;
-                    
+
                     // Calculate amplitude from envelope
                     playbackProgress = (point.x - firstPoint.x) / (lastPoint.x - firstPoint.x);
                     amp = if(ampEnvelope.notNil) {
@@ -93,9 +98,9 @@
                     } {
                         0.1
                     };
-                    
-                    // Calculate pan from X position
-                    pan = point.x.linlin(0, state[\drawView].bounds.width, -1, 1);
+
+                    // Calculate pan from X position (using cached viewWidth)
+                    pan = point.x.linlin(0, viewWidth, -1, 1);
                     
                     // Stop previous synth
                     if(prevSynth.notNil) {
