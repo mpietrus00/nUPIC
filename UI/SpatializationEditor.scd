@@ -104,6 +104,23 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     ~nUPIC[\ui][\spatializationEditorWindow] = window;
 };
 
+// Helper function to get channel count from SynthDef name
+~nUPIC[\ui][\getChannelCountFromSynthDef] = { |synthDefName|
+    var name = synthDefName.asString;
+    var numChannels = 1;  // Default mono
+
+    if(name.contains("24ch")) { numChannels = 24 }
+    { if(name.contains("15ch")) { numChannels = 15 }
+    { if(name.contains("12ch")) { numChannels = 12 }
+    { if(name.contains("8ch")) { numChannels = 8 }
+    { if(name.contains("4ch")) { numChannels = 4 }
+    { if(name.contains("3ch")) { numChannels = 3 }
+    { if(name.contains("2ch")) { numChannels = 2 }
+    }}}}}};
+
+    numChannels;
+};
+
 // Create spatialization editor content for a single trajectory
 ~nUPIC[\ui][\createSpatializationEditorContent] = { |container, trajIndex|
     var spatialView, overlayView, controlView;
@@ -111,11 +128,30 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var viewHeight = winHeight - 100;  // Leave space for controls
     var data = ~nUPIC[\data];
     var colors = ~nUPIC[\colors];
+    var defaults = ~nUPIC[\defaults];
     var currentEnvelope, isDrawing = false;
     var trajectory = data[\trajectories][trajIndex];
     var trajectoryLength;
     var channelLabels;
-    var lastX = 0, lastChannel = 3.5;  // Start in middle
+    var numChannels, maxChannel;
+    var trajSynthDef;
+    var lastX = 0, lastChannel;
+
+    // Get SynthDef for this trajectory
+    trajSynthDef = if(data[\trajectorySynthDefs].notNil and: {
+        trajIndex < data[\trajectorySynthDefs].size and: {
+            data[\trajectorySynthDefs][trajIndex].notNil
+        }
+    }) {
+        data[\trajectorySynthDefs][trajIndex]
+    } {
+        defaults[\defaultSynthDef] ? \upicWavetable8ch
+    };
+
+    // Get channel count from SynthDef
+    numChannels = ~nUPIC[\ui][\getChannelCountFromSynthDef].value(trajSynthDef);
+    maxChannel = numChannels - 1;
+    lastChannel = maxChannel / 2;  // Start in middle
     
     // Calculate trajectory length
     if(trajectory.notNil and: { trajectory.size > 0 }) {
@@ -131,25 +167,25 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     if(currentEnvelope.isNil) {
         // Create default envelope (center position)
         currentEnvelope = List[
-            (x: 0, channel: 3.5),  // Start at center (between channels 3 and 4)
-            (x: trajectoryLength, channel: 3.5)  // End at center
+            (x: 0, channel: maxChannel / 2),  // Start at center
+            (x: trajectoryLength, channel: maxChannel / 2)  // End at center
         ];
         data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
     };
-    
+
     // Clear container
     container.children.do({ |child| child.remove });
-    
+
     // Channel labels on the left
     channelLabels = UserView(container, Rect(0, 30, 50, viewHeight - 30));
     channelLabels.drawFunc = {
-        8.do { |i|
-            var y = ((7 - i) / 7) * (viewHeight - 30);
+        numChannels.do { |i|
+            var y = ((maxChannel - i) / maxChannel.max(1)) * (viewHeight - 30);
             var label = "Ch " ++ (i + 1);
-            
+
             Pen.fillColor = Color.black;
             Pen.stringAtPoint(label, Point(10, y - 5), Font("Arial", 10));
-            
+
             // Draw horizontal guide line
             Pen.strokeColor = Color.gray(0.8);
             Pen.width = 0.5;
@@ -170,27 +206,27 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     spatialView.drawFunc = {
         var width = spatialView.bounds.width;
         var height = spatialView.bounds.height;
-        
+
         // Draw grid
         Pen.strokeColor = Color.gray(0.9);
         Pen.width = 0.5;
-        
+
         // Vertical grid lines (time)
         10.do { |i|
             var x = (i + 1) / 11 * width;
             Pen.line(Point(x, 0), Point(x, height));
             Pen.stroke;
         };
-        
+
         // Horizontal grid lines (channels)
-        8.do { |i|
-            var y = i / 7 * height;
-            Pen.strokeColor = if(i == 0 or: { i == 7 }) { Color.gray(0.6) } { Color.gray(0.85) };
-            Pen.width = if(i == 0 or: { i == 7 }) { 1 } { 0.5 };
+        numChannels.do { |i|
+            var y = (i / maxChannel.max(1)) * height;
+            Pen.strokeColor = if(i == 0 or: { i == maxChannel }) { Color.gray(0.6) } { Color.gray(0.85) };
+            Pen.width = if(i == 0 or: { i == maxChannel }) { 1 } { 0.5 };
             Pen.line(Point(0, y), Point(width, y));
             Pen.stroke;
         };
-        
+
         // Draw current spatialization envelope
         if(currentEnvelope.notNil and: { currentEnvelope.size > 1 }) {
             Pen.strokeColor = Color.blue;
@@ -199,7 +235,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             // Draw the curve as a solid line
             currentEnvelope.do { |point, i|
                 var x = (point.x / trajectoryLength) * width;
-                var y = ((7 - point.channel) / 7) * height;  // Invert Y so channel 7 is at top
+                var y = ((maxChannel - point.channel) / maxChannel.max(1)) * height;
 
                 if(i == 0) {
                     Pen.moveTo(Point(x, y));
@@ -213,7 +249,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         // Draw instructions
         Pen.fillColor = Color.black;
         Pen.font = Font("Arial", 11);
-        Pen.stringAtPoint("Draw spatialization curve: Vertical = Channels 1-8, Horizontal = Trajectory length", 
+        Pen.stringAtPoint("Draw spatialization curve: Vertical = Channels 1-" ++ numChannels ++ ", Horizontal = Trajectory length",
             Point(10, 5));
     };
     
@@ -227,8 +263,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
         // Calculate position
         timePos = (x / width) * trajectoryLength;
-        channel = 7 - ((y / height) * 7);  // Invert Y axis
-        channel = channel.clip(0, 7);
+        channel = maxChannel - ((y / height) * maxChannel);  // Invert Y axis
+        channel = channel.clip(0, maxChannel);
 
         // Always start fresh - clear existing envelope
         currentEnvelope = List.new;
@@ -241,16 +277,16 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         view.refresh;
         spatialView.refresh;
     };
-    
+
     overlayView.mouseMoveAction = { |view, x, y, modifiers|
         var width = view.bounds.width;
         var height = view.bounds.height;
         var timePos, channel;
-        
+
         if(isDrawing) {
             timePos = (x / width) * trajectoryLength;
-            channel = 7 - ((y / height) * 7);
-            channel = channel.clip(0, 7);
+            channel = maxChannel - ((y / height) * maxChannel);
+            channel = channel.clip(0, maxChannel);
             
             // Add point if moved enough
             if((x - lastX).abs > 5 or: { (channel - lastChannel).abs > 0.2 }) {
@@ -312,76 +348,80 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     Button(controlView, Rect(10, 10, 80, 25))
         .states_([["Center", Color.black, Color.gray(0.8)]])
         .action_({
+            var center = maxChannel / 2;
             currentEnvelope = List[
-                (x: 0, channel: 3.5),
-                (x: trajectoryLength, channel: 3.5)
+                (x: 0, channel: center),
+                (x: trajectoryLength, channel: center)
             ];
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
             spatialView.refresh;
         });
-    
+
     Button(controlView, Rect(100, 10, 80, 25))
         .states_([["Circle", Color.black, Color.cyan]])
         .action_({
-            var numPoints = 32;
+            var numPts = 32;
+            var center = maxChannel / 2;
+            var radius = maxChannel / 2;
             currentEnvelope = List.new;
-            numPoints.do { |i|
-                var phase = i / (numPoints - 1) * 2pi;
-                var channel = 3.5 + (3.5 * sin(phase));
-                var x = i / (numPoints - 1) * trajectoryLength;
-                currentEnvelope.add((x: x, channel: channel));
+            numPts.do { |i|
+                var phase = i / (numPts - 1) * 2pi;
+                var channel = center + (radius * sin(phase));
+                var xPos = i / (numPts - 1) * trajectoryLength;
+                currentEnvelope.add((x: xPos, channel: channel.clip(0, maxChannel)));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
             spatialView.refresh;
         });
-    
+
     Button(controlView, Rect(190, 10, 80, 25))
         .states_([["Spiral", Color.black, Color.green]])
         .action_({
-            var numPoints = 64;
+            var numPts = 64;
+            var center = maxChannel / 2;
             currentEnvelope = List.new;
-            numPoints.do { |i|
-                var t = i / (numPoints - 1);
+            numPts.do { |i|
+                var t = i / (numPts - 1);
                 var phase = t * 4pi;  // Two full rotations
-                var radius = t * 3.5;  // Expanding radius
-                var channel = 3.5 + (radius * sin(phase));
-                var x = t * trajectoryLength;
-                currentEnvelope.add((x: x, channel: channel.clip(0, 7)));
+                var radius = t * center;  // Expanding radius
+                var channel = center + (radius * sin(phase));
+                var xPos = t * trajectoryLength;
+                currentEnvelope.add((x: xPos, channel: channel.clip(0, maxChannel)));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
             spatialView.refresh;
         });
-    
+
     Button(controlView, Rect(280, 10, 80, 25))
         .states_([["Random", Color.black, Color.red]])
         .action_({
-            var numPoints = 20;
+            var numPts = 20;
             currentEnvelope = List.new;
-            numPoints.do { |i|
-                var x = i / (numPoints - 1) * trajectoryLength;
-                var channel = 7.0.rand;
-                currentEnvelope.add((x: x, channel: channel));
+            numPts.do { |i|
+                var xPos = i / (numPts - 1) * trajectoryLength;
+                var channel = (numChannels.asFloat).rand;
+                currentEnvelope.add((x: xPos, channel: channel.clip(0, maxChannel)));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
             spatialView.refresh;
         });
-    
+
     Button(controlView, Rect(370, 10, 80, 25))
-        .states_([["Front→Back", Color.black, Color.blue]])
+        .states_([["Ch1→Last", Color.black, Color.blue]])
         .action_({
             currentEnvelope = List[
                 (x: 0, channel: 0),
-                (x: trajectoryLength, channel: 7)
+                (x: trajectoryLength, channel: maxChannel)
             ];
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
             spatialView.refresh;
         });
-    
+
     Button(controlView, Rect(460, 10, 80, 25))
-        .states_([["Back→Front", Color.black, Color.blue]])
+        .states_([["Last→Ch1", Color.black, Color.blue]])
         .action_({
             currentEnvelope = List[
-                (x: 0, channel: 7),
+                (x: 0, channel: maxChannel),
                 (x: trajectoryLength, channel: 0)
             ];
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
@@ -411,12 +451,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         });
     
     // Info display
-    StaticText(controlView, Rect(10, 45, 300, 20))
-        .string_("Trajectory " ++ trajIndex ++ " - Length: " ++ trajectoryLength.round(0.1))
+    StaticText(controlView, Rect(10, 45, 500, 20))
+        .string_("Trajectory " ++ trajIndex ++ " - SynthDef: " ++ trajSynthDef ++ " (" ++ numChannels ++ " channels)")
         .font_(Font("Arial", 11));
-    
+
     StaticText(controlView, Rect(10, 65, 600, 20))
-        .string_("Click and drag to draw. Shift-click to clear and redraw. Channels 1-8 map to speaker positions.")
+        .string_("Click and drag to draw. Channels 1-" ++ numChannels ++ " map to speaker positions.")
         .font_(Font("Arial", 10))
         .stringColor_(Color.gray(0.5));
     

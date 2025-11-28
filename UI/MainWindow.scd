@@ -609,7 +609,30 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                     var spatialEnv = data[\spatializationEnvelopes][i];
                                     var spatialPoint1, spatialPoint2, spatialFound = false;
                                     var spatialRelativeX, spatialPixelLength, firstTimeForSpatial;
-                                    var channelValue, maxChannels = 8;  // Default to 8 channels
+                                    var channelValue, maxChannels;
+                                    var trajSynthDefName;
+
+                                    // Get channel count from trajectory's SynthDef
+                                    trajSynthDefName = if(data[\trajectorySynthDefs].notNil and: {
+                                        i < data[\trajectorySynthDefs].size and: {
+                                            data[\trajectorySynthDefs][i].notNil
+                                        }
+                                    }) {
+                                        data[\trajectorySynthDefs][i].asString
+                                    } {
+                                        (defaults[\defaultSynthDef] ? \upicWavetable8ch).asString
+                                    };
+
+                                    // Extract channel count from SynthDef name
+                                    maxChannels = case
+                                        { trajSynthDefName.contains("24ch") } { 24 }
+                                        { trajSynthDefName.contains("15ch") } { 15 }
+                                        { trajSynthDefName.contains("12ch") } { 12 }
+                                        { trajSynthDefName.contains("8ch") } { 8 }
+                                        { trajSynthDefName.contains("4ch") } { 4 }
+                                        { trajSynthDefName.contains("3ch") } { 3 }
+                                        { trajSynthDefName.contains("2ch") } { 2 }
+                                        { true } { 1 };  // mono
 
                                     // Calculate trajectory-relative position for spatial envelope lookup
                                     // Use same coordinate system as amplitude envelope
@@ -679,7 +702,30 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                         }
                                     }) {
                                         var startChannel = data[\spatializationEnvelopes][i].first.channel;
-                                        var maxChannels = 8;
+                                        var maxChannels;
+                                        var edgeSynthDefName;
+
+                                        // Get channel count from trajectory's SynthDef
+                                        edgeSynthDefName = if(data[\trajectorySynthDefs].notNil and: {
+                                            i < data[\trajectorySynthDefs].size and: {
+                                                data[\trajectorySynthDefs][i].notNil
+                                            }
+                                        }) {
+                                            data[\trajectorySynthDefs][i].asString
+                                        } {
+                                            (defaults[\defaultSynthDef] ? \upicWavetable8ch).asString
+                                        };
+
+                                        maxChannels = case
+                                            { edgeSynthDefName.contains("24ch") } { 24 }
+                                            { edgeSynthDefName.contains("15ch") } { 15 }
+                                            { edgeSynthDefName.contains("12ch") } { 12 }
+                                            { edgeSynthDefName.contains("8ch") } { 8 }
+                                            { edgeSynthDefName.contains("4ch") } { 4 }
+                                            { edgeSynthDefName.contains("3ch") } { 3 }
+                                            { edgeSynthDefName.contains("2ch") } { 2 }
+                                            { true } { 1 };
+
                                         edgePan = startChannel.linlin(0, maxChannels - 1, -1, 1);
                                     } {
                                         // No spatial envelope - use time-based pan
