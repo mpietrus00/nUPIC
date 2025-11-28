@@ -222,25 +222,22 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         var width = view.bounds.width;
         var height = view.bounds.height;
         var timePos, channel;
-        
+
         isDrawing = true;
-        
+
         // Calculate position
         timePos = (x / width) * trajectoryLength;
         channel = 7 - ((y / height) * 7);  // Invert Y axis
         channel = channel.clip(0, 7);
-        
-        // Start new envelope or add to existing
-        if(modifiers.isShift) {
-            // Shift-click: clear and start fresh
-            currentEnvelope = List.new;
-        };
-        
+
+        // Always start fresh - clear existing envelope
+        currentEnvelope = List.new;
+
         // Add first point
         currentEnvelope.add((x: timePos, channel: channel));
         lastX = x;
         lastChannel = channel;
-        
+
         view.refresh;
         spatialView.refresh;
     };
