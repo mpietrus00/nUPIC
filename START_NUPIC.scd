@@ -24,8 +24,8 @@ fork {
     Server.default.options.sampleRate = 44100;
     Server.default.options.blockSize = 64;
     Server.default.options.numBuffers = 1024;
-    Server.default.options.numInputBusChannels = 2;
-    Server.default.options.numOutputBusChannels = 2;
+    Server.default.options.numInputBusChannels = 0;
+    Server.default.options.numOutputBusChannels = 24;
 
     if(Server.default.serverRunning.not) {
         "Starting server...".postln;
