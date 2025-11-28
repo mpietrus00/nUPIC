@@ -600,6 +600,57 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                     amp = 0.2;  // Increased default amplitude
                                 };
 
+                                // Check if we have a spatial envelope
+                                if(data[\spatializationEnvelopes].notNil and: {
+                                    data[\spatializationEnvelopes][i].notNil and: {
+                                        data[\spatializationEnvelopes][i].size > 1
+                                    }
+                                }) {
+                                    var spatialEnv = data[\spatializationEnvelopes][i];
+                                    var spatialPoint1, spatialPoint2, spatialFound = false;
+                                    var spatialRelativeX, spatialPixelLength, firstTimeForSpatial;
+                                    var channelValue, maxChannels = 8;  // Default to 8 channels
+
+                                    // Calculate trajectory-relative position for spatial envelope lookup
+                                    // Use same coordinate system as amplitude envelope
+                                    firstTimeForSpatial = firstTime;
+                                    spatialRelativeX = (currentTime - firstTimeForSpatial) * (lastPoint.x - firstPoint.x).max(1) / (lastTime - firstTimeForSpatial);
+
+                                    // Find spatial points to interpolate
+                                    block { |break|
+                                        (spatialEnv.size - 1).do { |j|
+                                            if((spatialEnv[j].x <= spatialRelativeX) and: { (spatialEnv[j + 1].x >= spatialRelativeX) }) {
+                                                spatialPoint1 = spatialEnv[j];
+                                                spatialPoint2 = spatialEnv[j + 1];
+                                                spatialFound = true;
+                                                break.value;
+                                            };
+                                        };
+                                    };
+
+                                    if(spatialFound) {
+                                        var spatialInterpFactor = (spatialRelativeX - spatialPoint1.x) / (spatialPoint2.x - spatialPoint1.x).max(0.001);
+                                        channelValue = spatialPoint1.channel.blend(spatialPoint2.channel, spatialInterpFactor);
+                                    } {
+                                        // Check edges
+                                        if(spatialRelativeX <= spatialEnv.first.x) {
+                                            channelValue = spatialEnv.first.channel;
+                                        } {
+                                            if(spatialRelativeX >= spatialEnv.last.x) {
+                                                channelValue = spatialEnv.last.channel;
+                                            } {
+                                                // Default to center
+                                                channelValue = (maxChannels - 1) / 2;
+                                            };
+                                        };
+                                    };
+
+                                    // Convert channel (0 to maxChannels-1) to pan (-1 to 1)
+                                    // Channel 0 = pan -1, Channel maxChannels-1 = pan 1
+                                    pan = channelValue.linlin(0, maxChannels - 1, -1, 1);
+                                };
+                                // If no spatial envelope, pan keeps its time-based value from above
+
                                 // Check if synth is still running before updating
                                 if(state[\synths][i].notNil) {
                                     state[\synths][i].set(
@@ -619,11 +670,23 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                             } {
                                 // Edge case: exactly on first point
                                 if(currentTime == firstTime) {
+                                    var edgePan;
                                     freq = firstPoint.freq ?? { firstPoint.y.linlin(0, height, state[\zoomFreqMax], state[\zoomFreqMin]) };
-                                    // Pan based on actual time position in playback
-                                    pan = currentTime.linlin(0, state[\playDuration], -1, 1);
+                                    // Check for spatial envelope at start
+                                    if(data[\spatializationEnvelopes].notNil and: {
+                                        data[\spatializationEnvelopes][i].notNil and: {
+                                            data[\spatializationEnvelopes][i].size > 0
+                                        }
+                                    }) {
+                                        var startChannel = data[\spatializationEnvelopes][i].first.channel;
+                                        var maxChannels = 8;
+                                        edgePan = startChannel.linlin(0, maxChannels - 1, -1, 1);
+                                    } {
+                                        // No spatial envelope - use time-based pan
+                                        edgePan = currentTime.linlin(0, state[\playDuration], -1, 1);
+                                    };
                                     if(state[\synths][i].notNil) {
-                                        state[\synths][i].set(\freq, freq, \pan, pan, \amp, 0.2);
+                                        state[\synths][i].set(\freq, freq, \pan, edgePan, \amp, 0.2);
                                         activeSynthCount = activeSynthCount + 1;
                                     };
                                 };
