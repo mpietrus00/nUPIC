@@ -195,12 +195,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         if(currentEnvelope.notNil and: { currentEnvelope.size > 1 }) {
             Pen.strokeColor = Color.blue;
             Pen.width = 2;
-            
-            // Draw the curve
+
+            // Draw the curve as a solid line
             currentEnvelope.do { |point, i|
                 var x = (point.x / trajectoryLength) * width;
                 var y = ((7 - point.channel) / 7) * height;  // Invert Y so channel 7 is at top
-                
+
                 if(i == 0) {
                     Pen.moveTo(Point(x, y));
                 } {
@@ -208,29 +208,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 };
             };
             Pen.stroke;
-            
-            // Draw control points
-            Pen.fillColor = Color.red;
-            currentEnvelope.do { |point|
-                var x = (point.x / trajectoryLength) * width;
-                var y = ((7 - point.channel) / 7) * height;
-                Pen.fillOval(Rect(x - 4, y - 4, 8, 8));
-            };
-            
-            // Draw channel position indicators
-            Pen.font = Font("Arial", 9);
-            currentEnvelope.do { |point, i|
-                if(i % 5 == 0 or: { i == (currentEnvelope.size - 1) }) {  // Show every 5th point
-                    var x = (point.x / trajectoryLength) * width;
-                    var y = ((7 - point.channel) / 7) * height;
-                    var channelText = point.channel.round(0.1).asString;
-                    
-                    Pen.fillColor = Color.blue.alpha_(0.8);
-                    Pen.stringAtPoint(channelText, Point(x + 5, y - 10));
-                };
-            };
         };
-        
+
         // Draw instructions
         Pen.fillColor = Color.black;
         Pen.font = Font("Arial", 11);
