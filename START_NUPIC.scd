@@ -315,16 +315,15 @@ fork {
 
     // Dynamically detect which SynthDefs are loaded
     candidates = [
-        \upicWavetable,           // Our simple mono version (included above)
-        \upicWavetablePrecise, \upicWavetableAdditive, \upicWavetableHarmonic,
-        \upicWavetableRing, \upicWavetablePhase,
-        // 8-channel versions (random oscillator based)
-        \upicWavetable8ch, \upicWavetablePrecise8ch, \simpleGravObject8ch,
-        // 8-channel envelope-based versions (drawn spatialization curves)
-        \upicWavetable8chEnv, \upicWavetablePrecise8chEnv, \simpleGravObject8chEnv,
-        \pulsarTrain, \grainBank, \fmCascade, \fmOrgan, \simpleOrgan,
-        \percussiveGravObject, \metallicGravObject, \drumGravObject,
-        \additiveOS, \simpleOS, \simpleGravObject, \trajectoryVarSaw, \testOrbit
+        // Channel variants only
+        \upicWavetable,           // mono
+        \upicWavetable2ch,        // stereo
+        \upicWavetable3ch,        // 3 channels
+        \upicWavetable4ch,        // 4 channels
+        \upicWavetable8ch,        // 8 channels
+        \upicWavetable12ch,       // 12 channels
+        \upicWavetable15ch,       // 15 channels
+        \upicWavetable24ch        // 24 channels
     ];
     available = List.new;
     candidates.do { |sym|
