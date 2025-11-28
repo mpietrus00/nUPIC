@@ -1,0 +1,205 @@
+// MouseHandlers extension for spatial envelope support
+// This adds spatialization envelope buffer creation to the playback system
+
+(
+// Override or extend the startPlayback function to include spatial envelopes
+~nUPIC[\ui][\startPlaybackWithSpatial] = {
+    var state = ~nUPIC[\ui][\state];
+    var data = ~nUPIC[\data];
+    var constants = ~nUPIC[\constants];
+    var defaults = ~nUPIC[\defaults];
+    var playDuration = state[\playDuration] ? 10;
+    var synthGroup;
+    
+    // Stop any existing playback
+    ~nUPIC[\ui][\stopPlayback].value;
+    
+    if(data[\trajectories].isNil or: { data[\trajectories].size == 0 }) {
+        "No trajectories to play".postln;
+        ^nil;
+    };
+    
+    // Create synth group
+    synthGroup = Group.new;
+    state[\synthGroup] = synthGroup;
+    
+    // Initialize synth list
+    state[\synths] = List.new;
+    
+    // Create spatial envelope buffers for each trajectory
+    state[\spatialBuffers] = List.new;
+    
+    // Play each trajectory
+    data[\trajectories].do { |trajectory, i|
+        var synth, synthDef, ampEnvelope, spatialBuffer;
+        var params;
+        
+        if(trajectory.notNil and: { trajectory.size > 0 }) {
+            // Get synthdef for this trajectory
+            synthDef = if(data[\trajectorySynthDefs].notNil and: { 
+                i < data[\trajectorySynthDefs].size 
+            }) {
+                data[\trajectorySynthDefs][i]
+            } {
+                defaults[\defaultSynthDef] ? \upicWavetablePrecise8chEnv
+            };
+            
+            // Create spatial envelope buffer if using 8ch synthdef
+            if(synthDef.asString.contains("8ch")) {
+                spatialBuffer = ~nUPIC[\createSpatialEnvelopeBuffer].value(i);
+                state[\spatialBuffers].add(spatialBuffer);
+                
+                "Created spatial buffer for trajectory % with % channels".format(i, 8).postln;
+            };
+            
+            // Get amplitude envelope
+            ampEnvelope = if(data[\amplitudeEnvelopes].notNil and: {
+                i < data[\amplitudeEnvelopes].size
+            }) {
+                data[\amplitudeEnvelopes][i]
+            } {
+                nil
+            };
+            
+            // Create playback routine for this trajectory
+            fork {
+                var startTime = Main.elapsedTime;
+                var firstPoint = trajectory[0];
+                var lastPoint = trajectory.last;
+                var trajectoryDuration = playDuration;
+                var prevSynth = nil;
+                
+                trajectory.do { |point, j|
+                    var nextPoint = if(j < (trajectory.size - 1)) { trajectory[j + 1] } { nil };
+                    var timeToNextPoint, freq, amp, pan;
+                    var playbackProgress;
+                    
+                    // Calculate timing
+                    if(nextPoint.notNil) {
+                        var currentPos = (point.x - firstPoint.x) / (lastPoint.x - firstPoint.x);
+                        var nextPos = (nextPoint.x - firstPoint.x) / (lastPoint.x - firstPoint.x);
+                        timeToNextPoint = (nextPos - currentPos) * trajectoryDuration;
+                    } {
+                        timeToNextPoint = 0.1; // Last point
+                    };
+                    
+                    // Get frequency
+                    freq = point[\freq] ? point.y ? 440;
+                    
+                    // Calculate amplitude from envelope
+                    playbackProgress = (point.x - firstPoint.x) / (lastPoint.x - firstPoint.x);
+                    amp = if(ampEnvelope.notNil) {
+                        ~nUPIC[\ui][\getAmplitudeAtPosition].value(ampEnvelope, playbackProgress)
+                    } {
+                        0.1
+                    };
+                    
+                    // Calculate pan from X position
+                    pan = point.x.linlin(0, state[\drawView].bounds.width, -1, 1);
+                    
+                    // Stop previous synth
+                    if(prevSynth.notNil) {
+                        prevSynth.set(\gate, 0);
+                    };
+                    
+                    // Create basic parameters
+                    params = [
+                        \freq, freq,
+                        \amp, amp,
+                        \pan, pan,
+                        \gate, 1,
+                        \numSynths, data[\trajectories].size,
+                        \mass, point[\mass] ? 1,
+                        \velocity, point[\velocity] ? 0,
+                        \distance, point[\distance] ? 100,
+                        \width, point[\width] ? 0.5,
+                        \radialVel, point[\radialVel] ? 0,
+                        \dopplerSens, state[\dopplerSensitivity] ? 0
+                    ];
+                    
+                    // Add spatial buffer if available
+                    if(spatialBuffer.notNil) {
+                        params = params ++ [
+                            \spatialEnvBuf, spatialBuffer.bufnum,
+                            \playbackRate, 1
+                        ];
+                    };
+                    
+                    // Create synth
+                    synth = Synth(synthDef, params, synthGroup);
+                    prevSynth = synth;
+                    state[\synths].add(synth);
+                    
+                    // Wait for next point
+                    if(timeToNextPoint > 0) {
+                        timeToNextPoint.wait;
+                    };
+                };
+                
+                // Release last synth
+                if(prevSynth.notNil) {
+                    prevSynth.set(\gate, 0);
+                };
+            };
+        };
+    };
+    
+    state[\isPlaying] = true;
+    "Playback started with spatial envelopes".postln;
+};
+
+// Function to get amplitude at a specific position in the envelope
+~nUPIC[\ui][\getAmplitudeAtPosition] = { |envelope, position|
+    var result = 0.1; // Default amplitude
+    var x = position;
+    
+    if(envelope.notNil and: { envelope.size > 0 }) {
+        // Find surrounding points
+        var prevPoint, nextPoint;
+        var prevIdx = 0;
+        
+        envelope.do { |point, i|
+            if(point.x <= x) {
+                prevIdx = i;
+            };
+        };
+        
+        prevPoint = envelope[prevIdx];
+        nextPoint = if(prevIdx < (envelope.size - 1)) {
+            envelope[prevIdx + 1]
+        } {
+            envelope.last
+        };
+        
+        // Interpolate
+        if(prevPoint.x == nextPoint.x) {
+            result = prevPoint.amp;
+        } {
+            var alpha = (x - prevPoint.x) / (nextPoint.x - prevPoint.x);
+            result = prevPoint.amp + (alpha * (nextPoint.amp - prevPoint.amp));
+        };
+    };
+    
+    result.clip(0, 1);
+};
+
+// Update the existing startPlayback to use the spatial version if 8ch synthdefs are selected
+if(~nUPIC[\ui][\startPlayback].notNil) {
+    ~nUPIC[\ui][\startPlaybackOriginal] = ~nUPIC[\ui][\startPlayback];
+    
+    ~nUPIC[\ui][\startPlayback] = {
+        var defaults = ~nUPIC[\defaults];
+        var defaultSynthDef = defaults[\defaultSynthDef] ? \upicWavetable;
+        
+        // Check if using 8ch synthdefs
+        if(defaultSynthDef.asString.contains("8ch")) {
+            ~nUPIC[\ui][\startPlaybackWithSpatial].value;
+        } {
+            // Use original playback for non-8ch synthdefs
+            ~nUPIC[\ui][\startPlaybackOriginal].value;
+        };
+    };
+};
+
+"✓ Spatial envelope support added to playback system".postln;
+)

@@ -1,0 +1,452 @@
+// upicWavetable SynthDef - Custom wavetable synthesizer for nUPIC
+// Uses a buffer to store the wavetable that can be edited in real-time
+
+(
+// Global buffer for the wavetable (2048 samples for better quality)
+// OscOS uses standard buffers, NOT wavetable format
+fork {
+    var initialWave;
+    
+    // Wait for server
+    if(s.serverRunning.not) { 
+        "Waiting for server to boot...".postln;
+        s.waitForBoot;
+    };
+    
+    // Check if buffer already exists
+    if(~nUPIC_wavetableBuffer.isNil) {
+        // Create initial sine wave - NO wavetable conversion for OscOS!
+        initialWave = Signal.sineFill(2048, [1], [0]);
+        
+        // Allocate and load buffer with standard signal data
+        ~nUPIC_wavetableBuffer = Buffer.loadCollection(s, initialWave);
+        "Wavetable buffer created with sine wave (size: 2048)".postln;
+    } {
+        "Wavetable buffer already exists".postln;
+    };
+};
+
+// Function to generate a random wavetable
+~nUPIC_generateRandomWavetable = {
+    if(~nUPIC_wavetableBuffer.notNil) {
+        var signal;
+        
+        // Create truly random/noisy wavetable
+        signal = Signal.fill(2048, { rrand(-1.0, 1.0) });
+        
+        // Optional: very light smoothing to prevent extreme spikes
+        // Comment out for completely raw noise
+        /*
+        signal = signal.collect { |val, i|
+            var prev = signal[(i - 1) % 2048];
+            var next = signal[(i + 1) % 2048];
+            (prev + (val * 4) + next) / 6;  // Mostly preserves original
+        };
+        */
+        
+        // Normalize to prevent clipping
+        signal = signal.normalize;
+        
+        // Send to buffer
+        ~nUPIC_wavetableBuffer.loadCollection(signal);
+        
+        "Generated random/noise wavetable with 2048 samples".postln;
+    } {
+        "WARNING: Buffer not initialized".postln;
+    };
+};
+
+// Generate harmonic series wavetable
+~nUPIC_generateHarmonicWavetable = { |numHarmonics = 8|
+    if(~nUPIC_wavetableBuffer.notNil) {
+        var signal;
+        var harmonics = Array.fill(numHarmonics, { |i| 1.0 / (i + 1) });
+        
+        signal = Signal.sineFill(2048, harmonics);
+        signal = signal.normalize;
+        
+        ~nUPIC_wavetableBuffer.loadCollection(signal);
+        ("Generated harmonic wavetable with " ++ numHarmonics ++ " harmonics").postln;
+    } {
+        "WARNING: Buffer not initialized".postln;
+    };
+};
+
+// Generate Chebyshev polynomial wavetable
+~nUPIC_generateChebyshevWavetable = { |coeffs|
+    if(~nUPIC_wavetableBuffer.notNil) {
+        var signal;
+        
+        // Default Chebyshev coefficients if none provided
+        coeffs = coeffs ?? [1, 0.5, 0.3, 0.2, 0.1];
+        
+        // Use Signal.chebyFill for Chebyshev polynomials
+        signal = Signal.chebyFill(2048, coeffs);
+        signal = signal.normalize;
+        
+        ~nUPIC_wavetableBuffer.loadCollection(signal);
+        ("Generated Chebyshev wavetable with coefficients: " ++ coeffs).postln;
+    } {
+        "WARNING: Buffer not initialized".postln;
+    };
+};
+
+// Generate formant-like wavetable
+~nUPIC_generateFormantWavetable = { |freq1 = 700, freq2 = 1220, freq3 = 2600|
+    if(~nUPIC_wavetableBuffer.notNil) {
+        var signal = Signal.newClear(2048);
+        var formants = [freq1, freq2, freq3];
+        var amps = [1, 0.5, 0.3];
+        var fundamental = 100; // Base frequency for formant ratios
+        
+        formants.do { |formant, i|
+            var harmonic = (formant / fundamental).round;
+            if(harmonic < 1024) {
+                signal = signal + Signal.sineFill(2048, 
+                    Array.fill(harmonic, 0) ++ [amps[i]]
+                );
+            };
+        };
+        
+        signal = signal.normalize;
+        ~nUPIC_wavetableBuffer.loadCollection(signal);
+        ("Generated formant wavetable with formants at " ++ formants).postln;
+    } {
+        "WARNING: Buffer not initialized".postln;
+    };
+};
+
+// Generate pulse width modulated wavetable
+~nUPIC_generatePulseWavetable = { |width = 0.5|
+    if(~nUPIC_wavetableBuffer.notNil) {
+        var signal;
+        var pulsePos = (2048 * width).asInteger;
+        
+        signal = Signal.fill(2048, { |i|
+            if(i < pulsePos, 1, -1)
+        });
+        
+        ~nUPIC_wavetableBuffer.loadCollection(signal);
+        ("Generated pulse wavetable with width " ++ width).postln;
+    } {
+        "WARNING: Buffer not initialized".postln;
+    };
+};
+
+// Generate FM synthesis-like wavetable
+~nUPIC_generateFMWavetable = { |carrier = 1, modulator = 3.7, index = 4|
+    if(~nUPIC_wavetableBuffer.notNil) {
+        var signal = Signal.fill(2048, { |i|
+            var phase = i / 2048 * 2pi;
+            sin(carrier * phase + (index * sin(modulator * phase)))
+        });
+        
+        signal = signal.normalize;
+        ~nUPIC_wavetableBuffer.loadCollection(signal);
+        ("Generated FM wavetable - carrier:" ++ carrier ++ " modulator:" ++ modulator ++ " index:" ++ index).postln;
+    } {
+        "WARNING: Buffer not initialized".postln;
+    };
+};
+
+// Generate waveshaping wavetable (transfer function)
+~nUPIC_generateWaveshapeWavetable = { |type = \tanh|
+    if(~nUPIC_wavetableBuffer.notNil) {
+        var signal = Signal.fill(2048, { |i|
+            var x = i.linlin(0, 2047, -1, 1);
+            type.switch(
+                \tanh, { x.tanh },
+                \clip, { x.clip(-0.5, 0.5) * 2 },
+                \fold, { x.fold(-0.7, 0.7) * 1.4 },
+                \wrap, { x.wrap(-0.5, 0.5) * 2 },
+                \asymmetric, { if(x > 0, x.sqrt, x.cubed.neg) },
+                \polynomial, { (3 * x) - x.cubed }, // Chebyshev T3
+                { x } // Linear default
+            )
+        });
+        
+        signal = signal.normalize;
+        ~nUPIC_wavetableBuffer.loadCollection(signal);
+        ("Generated waveshaping wavetable: " ++ type).postln;
+    } {
+        "WARNING: Buffer not initialized".postln;
+    };
+};
+
+// Function to set a custom wavetable from an array
+~nUPIC_setWavetable = { |array|
+    if(~nUPIC_wavetableBuffer.notNil) {
+        var signal;
+        
+        if(array.size != 2048) {
+            ("Warning: Wavetable should be 2048 samples, got " ++ array.size ++ ". Resampling...").postln;
+            array = array.resamp1(2048);
+        };
+        
+        // Convert to Signal - NO wavetable format for OscOS
+        signal = Signal.newFrom(array);
+        
+        ~nUPIC_wavetableBuffer.loadCollection(signal);
+        "Custom wavetable loaded".postln;
+    } {
+        "WARNING: Buffer not initialized".postln;
+    };
+};
+
+// Generate a random wavetable after buffer is ready
+fork {
+    1.wait;  // Wait for buffer allocation
+    ~nUPIC_generateRandomWavetable.value;
+};
+
+// The upicWavetable SynthDef with 4x oversampling for anti-aliasing
+SynthDef(\upicWavetable, {
+    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
+        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        radialVel = 0, dopplerSens = 0, numSynths = 1,
+        bufnum = 0,  // Buffer number for wavetable - default to 0
+        detune = 1.0, filterFreq = 4000, resonance = 1;
+    
+    var sig, env, dopplerShift, finalFreq, distAmp;
+    var phase;
+    
+    // Calculate frequency with optional Doppler
+    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
+    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
+    
+    // Very short envelope just to prevent clicks
+    env = EnvGen.kr(
+        Env.asr(0.002, 1, 0.002),  // Super short attack/release
+        gate,
+        doneAction: 2
+    );
+    
+    // Single phase for raw sound
+    phase = Phasor.ar(0, finalFreq / SampleRate.ir, 0, 1);
+    
+    // Raw oscillator output - no filtering, no processing
+    // Use OscOS with 4x oversampling (oversample: 2 = 4x)
+    sig = OscOS.ar(bufnum, phase, 1, 0, 2, 1.0);
+    
+    // Optional: Add very subtle detuning for richness without filtering
+    // Uncomment if you want some stereo width
+    // sig = sig + (OscOS.ar(bufnum, Phasor.ar(0, (finalFreq * 1.001) / SampleRate.ir, 0, 1), 1, 0, 2, 0.3));
+    
+    // Distance amplitude (keep this for spatial positioning)
+    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
+    
+    // Apply amplitude with voice scaling
+    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
+    
+    // Very gentle soft limiting to prevent harsh digital clipping
+    // Use a higher threshold for less coloration
+    sig = sig.clip(-0.95, 0.95);
+    
+    Out.ar(0, Pan2.ar(sig, pan));
+}).add;
+
+// Additive variation with multiple detuned oscillators
+SynthDef(\upicWavetableAdditive, {
+    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
+        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        radialVel = 0, dopplerSens = 0, numSynths = 1,
+        bufnum = 0,
+        spread = 0.01;  // Detuning spread factor
+    
+    var sig, env, dopplerShift, finalFreq, distAmp;
+    var phases, detunes, amps;
+    
+    // Calculate frequency with optional Doppler
+    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
+    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
+    
+    // Very short envelope
+    env = EnvGen.kr(
+        Env.asr(0.002, 1, 0.002),
+        gate,
+        doneAction: 2
+    );
+    
+    // Create 5 detuned oscillators
+    detunes = [1, 1 + spread, 1 - spread, 1 + (spread * 2), 1 - (spread * 1.5)];
+    amps = [0.4, 0.25, 0.25, 0.15, 0.15];  // Different amplitudes for each voice
+    
+    // Generate phases for each oscillator
+    phases = detunes.collect { |det|
+        Phasor.ar(0, (finalFreq * det) / SampleRate.ir, 0, 1)
+    };
+    
+    // Sum the oscillators
+    sig = Mix.ar(
+        phases.collect { |phase, i|
+            OscOS.ar(bufnum, phase, 1, 0, 2, amps[i])
+        }
+    );
+    
+    // Use mass parameter to control detuning spread
+    sig = sig * (1 + (mass - 1 * 0.1));  // Slight amplitude modulation based on mass
+    
+    // Distance amplitude
+    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
+    
+    // Apply amplitude
+    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
+    
+    // Soft limiting
+    sig = sig.clip(-0.9, 0.9);
+    
+    Out.ar(0, Pan2.ar(sig, pan));
+}).add;
+
+// Harmonic stack variation - uses mass parameter to control harmonic emphasis
+SynthDef(\upicWavetableHarmonic, {
+    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
+        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        radialVel = 0, dopplerSens = 0, numSynths = 1,
+        bufnum = 0;
+    
+    var sig, env, dopplerShift, finalFreq, distAmp;
+    var harmonics, harmAmps;
+    
+    // Calculate frequency with optional Doppler
+    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
+    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
+    
+    // Very short envelope
+    env = EnvGen.kr(
+        Env.asr(0.002, 1, 0.002),
+        gate,
+        doneAction: 2
+    );
+    
+    // Create harmonic series - mass controls which harmonics are emphasized
+    harmonics = [1, 2, 3, 4, 5];
+    harmAmps = harmonics.collect { |h|
+        // Use mass to shape harmonic amplitudes
+        (1.0 / h) * (1 + ((mass - h).abs.reciprocal.min(1) * 0.5))
+    };
+    
+    // Generate harmonically related oscillators
+    sig = Mix.ar(
+        harmonics.collect { |harm, i|
+            var phase = Phasor.ar(0, (finalFreq * harm) / SampleRate.ir, 0, 1);
+            OscOS.ar(bufnum, phase, 1, 0, 2, harmAmps[i] * 0.3)
+        }
+    );
+    
+    // Distance amplitude
+    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
+    
+    // Apply amplitude
+    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
+    
+    // Soft limiting
+    sig = sig.clip(-0.9, 0.9);
+    
+    Out.ar(0, Pan2.ar(sig, pan));
+}).add;
+
+// Ring modulation variation - velocity controls modulation frequency
+SynthDef(\upicWavetableRing, {
+    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
+        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        radialVel = 0, dopplerSens = 0, numSynths = 1,
+        bufnum = 0;
+    
+    var sig, env, dopplerShift, finalFreq, distAmp;
+    var carrierPhase, modPhase, modFreq;
+    
+    // Calculate frequency with optional Doppler
+    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
+    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
+    
+    // Very short envelope
+    env = EnvGen.kr(
+        Env.asr(0.002, 1, 0.002),
+        gate,
+        doneAction: 2
+    );
+    
+    // Carrier oscillator
+    carrierPhase = Phasor.ar(0, finalFreq / SampleRate.ir, 0, 1);
+    sig = OscOS.ar(bufnum, carrierPhase, 1, 0, 2, 1.0);
+    
+    // Ring modulation using velocity parameter
+    modFreq = finalFreq * velocity.linlin(0, 20, 0.1, 7.3);  // Modulator frequency ratio
+    modPhase = Phasor.ar(0, modFreq / SampleRate.ir, 0, 1);
+    sig = sig * OscOS.ar(bufnum, modPhase, 1, 0, 2, 1.0);
+    
+    // Add dry signal mixed with ring mod based on mass
+    sig = (sig * mass.linlin(1, 10, 0.3, 1)) + 
+          (OscOS.ar(bufnum, carrierPhase, 1, 0, 2, 0.3) * mass.linlin(1, 10, 0.7, 0));
+    
+    // Distance amplitude
+    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
+    
+    // Apply amplitude
+    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
+    
+    // Soft limiting
+    sig = sig.clip(-0.9, 0.9);
+    
+    Out.ar(0, Pan2.ar(sig, pan));
+}).add;
+
+// Phase modulation variation - width controls modulation depth
+SynthDef(\upicWavetablePhase, {
+    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
+        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        radialVel = 0, dopplerSens = 0, numSynths = 1,
+        bufnum = 0;
+    
+    var sig, env, dopplerShift, finalFreq, distAmp;
+    var basePhase, modPhase, modulatedPhase;
+    
+    // Calculate frequency with optional Doppler
+    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
+    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
+    
+    // Very short envelope
+    env = EnvGen.kr(
+        Env.asr(0.002, 1, 0.002),
+        gate,
+        doneAction: 2
+    );
+    
+    // Base phase
+    basePhase = Phasor.ar(0, finalFreq / SampleRate.ir, 0, 1);
+    
+    // Modulator for phase modulation - use width parameter
+    modPhase = Phasor.ar(0, (finalFreq * 3.7) / SampleRate.ir, 0, 1);
+    
+    // Phase modulation - width controls depth
+    modulatedPhase = (basePhase + (OscOS.ar(bufnum, modPhase, 1, 0, 0, width * 0.3))).wrap(0, 1);
+    
+    // Main oscillator with modulated phase
+    sig = OscOS.ar(bufnum, modulatedPhase, 1, 0, 2, 1.0);
+    
+    // Add slight sub-octave based on mass
+    sig = sig + OscOS.ar(bufnum, 
+        Phasor.ar(0, (finalFreq * 0.5) / SampleRate.ir, 0, 1), 
+        1, 0, 2, mass.linlin(1, 10, 0, 0.3)
+    );
+    
+    // Distance amplitude
+    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
+    
+    // Apply amplitude
+    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
+    
+    // Soft limiting
+    sig = sig.clip(-0.9, 0.9);
+    
+    Out.ar(0, Pan2.ar(sig, pan));
+}).add;
+
+"✓ upicWavetable SynthDef loaded".postln;
+"✓ upicWavetableAdditive SynthDef loaded".postln;
+"✓ upicWavetableHarmonic SynthDef loaded".postln;
+"✓ upicWavetableRing SynthDef loaded".postln;
+"✓ upicWavetablePhase SynthDef loaded".postln;
+"✓ All 5 wavetable variations loaded successfully!".postln;
+)
