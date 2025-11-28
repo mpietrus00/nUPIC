@@ -202,7 +202,7 @@ fork {
 // The upicWavetable SynthDef with 4x oversampling for anti-aliasing
 SynthDef(\upicWavetable, {
     arg freq = 440, amp = 0.1, pan = 0, gate = 1,
-        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        mass = 1, velocity = 0, distance = 100, width = 2,
         radialVel = 0, dopplerSens = 0, numSynths = 1,
         bufnum = 0,  // Buffer number for wavetable - default to 0
         detune = 1.0, filterFreq = 4000, resonance = 1;
@@ -253,7 +253,7 @@ SynthDef(\upicWavetable, {
 // 2-channel (stereo) version with Pan2
 SynthDef(\upicWavetable2ch, {
     arg freq = 440, amp = 0.1, pan = 0, gate = 1,
-        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        mass = 1, velocity = 0, distance = 100, width = 2,
         radialVel = 0, dopplerSens = 0, numSynths = 1,
         bufnum = 0;
 
@@ -281,7 +281,7 @@ SynthDef(\upicWavetable2ch, {
 // 3-channel version with PanAz
 SynthDef(\upicWavetable3ch, {
     arg freq = 440, amp = 0.1, pan = 0, gate = 1,
-        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        mass = 1, velocity = 0, distance = 100, width = 2,
         radialVel = 0, dopplerSens = 0, numSynths = 1,
         bufnum = 0;
 
@@ -309,7 +309,7 @@ SynthDef(\upicWavetable3ch, {
 // 4-channel version with PanAz
 SynthDef(\upicWavetable4ch, {
     arg freq = 440, amp = 0.1, pan = 0, gate = 1,
-        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        mass = 1, velocity = 0, distance = 100, width = 2,
         radialVel = 0, dopplerSens = 0, numSynths = 1,
         bufnum = 0;
 
@@ -337,7 +337,7 @@ SynthDef(\upicWavetable4ch, {
 // 8-channel version with PanAz
 SynthDef(\upicWavetable8ch, {
     arg freq = 440, amp = 0.1, pan = 0, gate = 1,
-        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        mass = 1, velocity = 0, distance = 100, width = 2,
         radialVel = 0, dopplerSens = 0, numSynths = 1,
         bufnum = 0;
 
@@ -365,7 +365,7 @@ SynthDef(\upicWavetable8ch, {
 // 12-channel version with PanAz
 SynthDef(\upicWavetable12ch, {
     arg freq = 440, amp = 0.1, pan = 0, gate = 1,
-        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        mass = 1, velocity = 0, distance = 100, width = 2,
         radialVel = 0, dopplerSens = 0, numSynths = 1,
         bufnum = 0;
 
@@ -393,7 +393,7 @@ SynthDef(\upicWavetable12ch, {
 // 15-channel version with PanAz
 SynthDef(\upicWavetable15ch, {
     arg freq = 440, amp = 0.1, pan = 0, gate = 1,
-        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        mass = 1, velocity = 0, distance = 100, width = 2,
         radialVel = 0, dopplerSens = 0, numSynths = 1,
         bufnum = 0;
 
@@ -421,7 +421,7 @@ SynthDef(\upicWavetable15ch, {
 // 24-channel version with PanAz
 SynthDef(\upicWavetable24ch, {
     arg freq = 440, amp = 0.1, pan = 0, gate = 1,
-        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        mass = 1, velocity = 0, distance = 100, width = 2,
         radialVel = 0, dopplerSens = 0, numSynths = 1,
         bufnum = 0;
 
