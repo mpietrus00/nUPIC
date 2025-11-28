@@ -275,12 +275,11 @@ fork {
                     doneAction: 2
                 );
 
-                // Phase from Phasor (0-1 range) based on frequency
-                phase = Phasor.ar(0, finalFreq / SampleRate.ir);
+                // Phase from LFSaw (0-1 range) - matches OscOS documentation
+                phase = LFSaw.ar(finalFreq).range(0, 1);
 
-                // OscOS.ar(bufnum, phase, numWavetables, waveIndex, oversample, mul)
-                // Single wavetable, index 0, 2x oversample, full amplitude
-                sig = OscOS.ar(bufnum, phase, 1, 0, 2, 1);
+                // OscOS with named args for clarity (single wavetable buffer)
+                sig = OscOS.ar(bufnum, phase, oversample: 1);
 
                 // Distance-based amplitude
                 distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
