@@ -402,16 +402,16 @@ fork {
                     // Wait a bit for UI to be fully initialized
                     0.5.wait;
 
-                    // Re-scan for all available SynthDefs
+                    // Re-scan for all available SynthDefs - channel variants only
                     allCandidates = [
-                        \upicWavetable, \upicWavetablePrecise, \upicWavetableAdditive, \upicWavetableHarmonic,
-                        \upicWavetableRing, \upicWavetablePhase,
-                        // 8-channel versions
-                        \upicWavetable8ch, \upicWavetablePrecise8ch, \simpleGravObject8ch,
-                        \upicWavetable8chEnv, \upicWavetablePrecise8chEnv, \simpleGravObject8chEnv,
-                        \pulsarTrain, \grainBank, \fmCascade, \fmOrgan, \simpleOrgan,
-                        \percussiveGravObject, \metallicGravObject, \drumGravObject,
-                        \additiveOS, \simpleOS, \simpleGravObject, \trajectoryVarSaw, \testOrbit
+                        \upicWavetable,           // mono
+                        \upicWavetable2ch,        // stereo
+                        \upicWavetable3ch,        // 3 channels
+                        \upicWavetable4ch,        // 4 channels
+                        \upicWavetable8ch,        // 8 channels
+                        \upicWavetable12ch,       // 12 channels
+                        \upicWavetable15ch,       // 15 channels
+                        \upicWavetable24ch        // 24 channels
                     ];
 
                     actuallyAvailable = List.new;
@@ -430,14 +430,13 @@ fork {
                         var menuItems = ~nUPIC_SynthDefs[\available].collect { |name|
                             case
                             { name == \upicWavetable } { "UPIC Wavetable (Mono)" }
-                            { name == \upicWavetablePrecise } { "UPIC Wavetable Precise" }
-                            { name == \upicWavetableAdditive } { "UPIC Wavetable Additive" }
-                            { name == \upicWavetableHarmonic } { "UPIC Wavetable Harmonic" }
-                            { name == \upicWavetableRing } { "UPIC Wavetable Ring" }
-                            { name == \upicWavetablePhase } { "UPIC Wavetable Phase" }
-                            { name == \simpleGravObject } { "Simple Grav Object" }
-                            { name == \testOrbit } { "Test Orbit" }
-                            { name == \trajectoryVarSaw } { "Trajectory VarSaw" }
+                            { name == \upicWavetable2ch } { "UPIC Wavetable (2ch)" }
+                            { name == \upicWavetable3ch } { "UPIC Wavetable (3ch)" }
+                            { name == \upicWavetable4ch } { "UPIC Wavetable (4ch)" }
+                            { name == \upicWavetable8ch } { "UPIC Wavetable (8ch)" }
+                            { name == \upicWavetable12ch } { "UPIC Wavetable (12ch)" }
+                            { name == \upicWavetable15ch } { "UPIC Wavetable (15ch)" }
+                            { name == \upicWavetable24ch } { "UPIC Wavetable (24ch)" }
                             { true } { name.asString }
                         };
 
@@ -448,22 +447,22 @@ fork {
                                 "✓ SynthDef menu auto-updated with " ++ menuItems.size ++ " items".postln;
                                 menuItems.do { |item| ("  - " ++ item).postln };
 
-                                // Set default to upicWavetablePrecise8chEnv if available
-                                if(~nUPIC_SynthDefs[\available].includes(\upicWavetablePrecise8chEnv)) {
-                                    var preciseIndex = ~nUPIC_SynthDefs[\available].indexOf(\upicWavetablePrecise8chEnv);
-                                    if(preciseIndex.notNil) {
-                                        controls[\synthDefMenu].value = preciseIndex;
-                                        ~nUPIC[\defaults][\defaultSynthDef] = \upicWavetablePrecise8chEnv;
-                                        "  Default set to upicWavetablePrecise8chEnv (8ch envelope-based)".postln;
+                                // Set default to 8ch if available, else mono
+                                if(~nUPIC_SynthDefs[\available].includes(\upicWavetable8ch)) {
+                                    var idx = ~nUPIC_SynthDefs[\available].indexOf(\upicWavetable8ch);
+                                    if(idx.notNil) {
+                                        controls[\synthDefMenu].value = idx;
+                                        ~nUPIC[\defaults][\defaultSynthDef] = \upicWavetable8ch;
+                                        "  Default set to upicWavetable8ch".postln;
                                     };
                                 } {
-                                    // Fallback to upicWavetablePrecise if no 8ch version
-                                    if(~nUPIC_SynthDefs[\available].includes(\upicWavetablePrecise)) {
-                                        var preciseIndex = ~nUPIC_SynthDefs[\available].indexOf(\upicWavetablePrecise);
-                                        if(preciseIndex.notNil) {
-                                            controls[\synthDefMenu].value = preciseIndex;
-                                            ~nUPIC[\defaults][\defaultSynthDef] = \upicWavetablePrecise;
-                                            "  Default set to upicWavetablePrecise".postln;
+                                    // Fallback to mono
+                                    if(~nUPIC_SynthDefs[\available].includes(\upicWavetable)) {
+                                        var idx = ~nUPIC_SynthDefs[\available].indexOf(\upicWavetable);
+                                        if(idx.notNil) {
+                                            controls[\synthDefMenu].value = idx;
+                                            ~nUPIC[\defaults][\defaultSynthDef] = \upicWavetable;
+                                            "  Default set to upicWavetable (mono)".postln;
                                         };
                                     };
                                 };
