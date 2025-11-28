@@ -246,204 +246,6 @@ SynthDef(\upicWavetable, {
     Out.ar(0, sig);
 }).add;
 
-// Additive variation with multiple detuned oscillators
-SynthDef(\upicWavetableAdditive, {
-    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
-        mass = 1, velocity = 0, distance = 100, width = 0.5,
-        radialVel = 0, dopplerSens = 0, numSynths = 1,
-        bufnum = 0,
-        spread = 0.01;  // Detuning spread factor
-    
-    var sig, env, dopplerShift, finalFreq, distAmp;
-    var phases, detunes, amps;
-    
-    // Calculate frequency with optional Doppler
-    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
-    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
-    
-    // Very short envelope
-    env = EnvGen.kr(
-        Env.asr(0.002, 1, 0.002),
-        gate,
-        doneAction: 2
-    );
-    
-    // Create 5 detuned oscillators
-    detunes = [1, 1 + spread, 1 - spread, 1 + (spread * 2), 1 - (spread * 1.5)];
-    amps = [0.4, 0.25, 0.25, 0.15, 0.15];  // Different amplitudes for each voice
-    
-    // Generate phases for each oscillator
-    phases = detunes.collect { |det|
-        Phasor.ar(0, (finalFreq * det) / SampleRate.ir, 0, 1)
-    };
-    
-    // Sum the oscillators
-    sig = Mix.ar(
-        phases.collect { |phase, i|
-            OscOS.ar(bufnum, phase, 1, 0, 2, amps[i])
-        }
-    );
-    
-    // Use mass parameter to control detuning spread
-    sig = sig * (1 + (mass - 1 * 0.1));  // Slight amplitude modulation based on mass
-    
-    // Distance amplitude
-    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
-    
-    // Apply amplitude
-    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
-    
-    // Soft limiting
-    sig = sig.clip(-0.9, 0.9);
-    
-    Out.ar(0, Pan2.ar(sig, pan));
-}).add;
-
-// Harmonic stack variation - uses mass parameter to control harmonic emphasis
-SynthDef(\upicWavetableHarmonic, {
-    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
-        mass = 1, velocity = 0, distance = 100, width = 0.5,
-        radialVel = 0, dopplerSens = 0, numSynths = 1,
-        bufnum = 0;
-    
-    var sig, env, dopplerShift, finalFreq, distAmp;
-    var harmonics, harmAmps;
-    
-    // Calculate frequency with optional Doppler
-    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
-    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
-    
-    // Very short envelope
-    env = EnvGen.kr(
-        Env.asr(0.002, 1, 0.002),
-        gate,
-        doneAction: 2
-    );
-    
-    // Create harmonic series - mass controls which harmonics are emphasized
-    harmonics = [1, 2, 3, 4, 5];
-    harmAmps = harmonics.collect { |h|
-        // Use mass to shape harmonic amplitudes
-        (1.0 / h) * (1 + ((mass - h).abs.reciprocal.min(1) * 0.5))
-    };
-    
-    // Generate harmonically related oscillators
-    sig = Mix.ar(
-        harmonics.collect { |harm, i|
-            var phase = Phasor.ar(0, (finalFreq * harm) / SampleRate.ir, 0, 1);
-            OscOS.ar(bufnum, phase, 1, 0, 2, harmAmps[i] * 0.3)
-        }
-    );
-    
-    // Distance amplitude
-    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
-    
-    // Apply amplitude
-    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
-    
-    // Soft limiting
-    sig = sig.clip(-0.9, 0.9);
-    
-    Out.ar(0, Pan2.ar(sig, pan));
-}).add;
-
-// Ring modulation variation - velocity controls modulation frequency
-SynthDef(\upicWavetableRing, {
-    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
-        mass = 1, velocity = 0, distance = 100, width = 0.5,
-        radialVel = 0, dopplerSens = 0, numSynths = 1,
-        bufnum = 0;
-    
-    var sig, env, dopplerShift, finalFreq, distAmp;
-    var carrierPhase, modPhase, modFreq;
-    
-    // Calculate frequency with optional Doppler
-    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
-    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
-    
-    // Very short envelope
-    env = EnvGen.kr(
-        Env.asr(0.002, 1, 0.002),
-        gate,
-        doneAction: 2
-    );
-    
-    // Carrier oscillator
-    carrierPhase = Phasor.ar(0, finalFreq / SampleRate.ir, 0, 1);
-    sig = OscOS.ar(bufnum, carrierPhase, 1, 0, 2, 1.0);
-    
-    // Ring modulation using velocity parameter
-    modFreq = finalFreq * velocity.linlin(0, 20, 0.1, 7.3);  // Modulator frequency ratio
-    modPhase = Phasor.ar(0, modFreq / SampleRate.ir, 0, 1);
-    sig = sig * OscOS.ar(bufnum, modPhase, 1, 0, 2, 1.0);
-    
-    // Add dry signal mixed with ring mod based on mass
-    sig = (sig * mass.linlin(1, 10, 0.3, 1)) + 
-          (OscOS.ar(bufnum, carrierPhase, 1, 0, 2, 0.3) * mass.linlin(1, 10, 0.7, 0));
-    
-    // Distance amplitude
-    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
-    
-    // Apply amplitude
-    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
-    
-    // Soft limiting
-    sig = sig.clip(-0.9, 0.9);
-    
-    Out.ar(0, Pan2.ar(sig, pan));
-}).add;
-
-// Phase modulation variation - width controls modulation depth
-SynthDef(\upicWavetablePhase, {
-    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
-        mass = 1, velocity = 0, distance = 100, width = 0.5,
-        radialVel = 0, dopplerSens = 0, numSynths = 1,
-        bufnum = 0;
-    
-    var sig, env, dopplerShift, finalFreq, distAmp;
-    var basePhase, modPhase, modulatedPhase;
-    
-    // Calculate frequency with optional Doppler
-    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
-    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
-    
-    // Very short envelope
-    env = EnvGen.kr(
-        Env.asr(0.002, 1, 0.002),
-        gate,
-        doneAction: 2
-    );
-    
-    // Base phase
-    basePhase = Phasor.ar(0, finalFreq / SampleRate.ir, 0, 1);
-    
-    // Modulator for phase modulation - use width parameter
-    modPhase = Phasor.ar(0, (finalFreq * 3.7) / SampleRate.ir, 0, 1);
-    
-    // Phase modulation - width controls depth
-    modulatedPhase = (basePhase + (OscOS.ar(bufnum, modPhase, 1, 0, 0, width * 0.3))).wrap(0, 1);
-    
-    // Main oscillator with modulated phase
-    sig = OscOS.ar(bufnum, modulatedPhase, 1, 0, 2, 1.0);
-    
-    // Add slight sub-octave based on mass
-    sig = sig + OscOS.ar(bufnum, 
-        Phasor.ar(0, (finalFreq * 0.5) / SampleRate.ir, 0, 1), 
-        1, 0, 2, mass.linlin(1, 10, 0, 0.3)
-    );
-    
-    // Distance amplitude
-    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
-    
-    // Apply amplitude
-    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
-    
-    // Soft limiting
-    sig = sig.clip(-0.9, 0.9);
-    
-    Out.ar(0, Pan2.ar(sig, pan));
-}).add;
-
 // ============================================================
 // MULTI-CHANNEL VERSIONS
 // ============================================================
@@ -473,7 +275,6 @@ SynthDef(\upicWavetable2ch, {
     sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
     sig = sig.tanh * 0.9;
 
-    // Stereo output with panning
     Out.ar(0, Pan2.ar(sig, pan));
 }).add;
 
@@ -502,8 +303,35 @@ SynthDef(\upicWavetable3ch, {
     sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
     sig = sig.tanh * 0.9;
 
-    // 3-channel output with azimuth panning (pan: -1 to 1 maps around ring)
     Out.ar(0, PanAz.ar(3, sig, pan, 1, width));
+}).add;
+
+// 4-channel version with PanAz
+SynthDef(\upicWavetable4ch, {
+    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
+        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        radialVel = 0, dopplerSens = 0, numSynths = 1,
+        bufnum = 0;
+
+    var sig, phase, env, dopplerShift, finalFreq, distAmp;
+
+    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
+    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
+
+    env = EnvGen.kr(
+        Env.asr(0.01, 1, 0.01),
+        gate,
+        doneAction: 2
+    );
+
+    phase = LFSaw.ar(finalFreq).range(0, 1);
+    sig = OscOS.ar(bufnum, phase, oversample: 1);
+
+    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
+    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
+    sig = sig.tanh * 0.9;
+
+    Out.ar(0, PanAz.ar(4, sig, pan, 1, width));
 }).add;
 
 // 8-channel version with PanAz
@@ -531,7 +359,6 @@ SynthDef(\upicWavetable8ch, {
     sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
     sig = sig.tanh * 0.9;
 
-    // 8-channel output with azimuth panning
     Out.ar(0, PanAz.ar(8, sig, pan, 1, width));
 }).add;
 
@@ -560,18 +387,72 @@ SynthDef(\upicWavetable12ch, {
     sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
     sig = sig.tanh * 0.9;
 
-    // 12-channel output with azimuth panning
     Out.ar(0, PanAz.ar(12, sig, pan, 1, width));
+}).add;
+
+// 15-channel version with PanAz
+SynthDef(\upicWavetable15ch, {
+    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
+        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        radialVel = 0, dopplerSens = 0, numSynths = 1,
+        bufnum = 0;
+
+    var sig, phase, env, dopplerShift, finalFreq, distAmp;
+
+    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
+    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
+
+    env = EnvGen.kr(
+        Env.asr(0.01, 1, 0.01),
+        gate,
+        doneAction: 2
+    );
+
+    phase = LFSaw.ar(finalFreq).range(0, 1);
+    sig = OscOS.ar(bufnum, phase, oversample: 1);
+
+    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
+    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
+    sig = sig.tanh * 0.9;
+
+    Out.ar(0, PanAz.ar(15, sig, pan, 1, width));
+}).add;
+
+// 24-channel version with PanAz
+SynthDef(\upicWavetable24ch, {
+    arg freq = 440, amp = 0.1, pan = 0, gate = 1,
+        mass = 1, velocity = 0, distance = 100, width = 0.5,
+        radialVel = 0, dopplerSens = 0, numSynths = 1,
+        bufnum = 0;
+
+    var sig, phase, env, dopplerShift, finalFreq, distAmp;
+
+    dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
+    finalFreq = freq * dopplerShift.clip(0.5, 2.0);
+
+    env = EnvGen.kr(
+        Env.asr(0.01, 1, 0.01),
+        gate,
+        doneAction: 2
+    );
+
+    phase = LFSaw.ar(finalFreq).range(0, 1);
+    sig = OscOS.ar(bufnum, phase, oversample: 1);
+
+    distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
+    sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
+    sig = sig.tanh * 0.9;
+
+    Out.ar(0, PanAz.ar(24, sig, pan, 1, width));
 }).add;
 
 "✓ upicWavetable SynthDef loaded (mono)".postln;
 "✓ upicWavetable2ch SynthDef loaded (stereo)".postln;
 "✓ upicWavetable3ch SynthDef loaded".postln;
+"✓ upicWavetable4ch SynthDef loaded".postln;
 "✓ upicWavetable8ch SynthDef loaded".postln;
 "✓ upicWavetable12ch SynthDef loaded".postln;
-"✓ upicWavetableAdditive SynthDef loaded".postln;
-"✓ upicWavetableHarmonic SynthDef loaded".postln;
-"✓ upicWavetableRing SynthDef loaded".postln;
-"✓ upicWavetablePhase SynthDef loaded".postln;
-"✓ All wavetable variations loaded successfully!".postln;
+"✓ upicWavetable15ch SynthDef loaded".postln;
+"✓ upicWavetable24ch SynthDef loaded".postln;
+"✓ All channel variants loaded successfully!".postln;
 )
