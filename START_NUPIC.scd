@@ -302,9 +302,12 @@ fork {
                 
                 // Simple soft limiting to prevent clipping
                 sig = sig.tanh * 0.9;
-                
-                // TRUE MONO OUTPUT - single channel
-                Out.ar(0, sig); // Single channel output
+
+                // Force mono by summing any multi-channel signal
+                sig = Mix.ar(sig);
+
+                // TRUE MONO OUTPUT - single channel to bus 0
+                Out.ar(0, sig);
             }).add;
             
             "  ✓ upicWavetable (mono) loaded".postln;
