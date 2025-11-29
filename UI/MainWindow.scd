@@ -668,10 +668,16 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                         };
                                     };
 
-                                    // Convert channel (0 to maxChannels-1) to PanAz position
-                                    // PanAz: pos=0 is channel 0, pos=2/n is channel 1, etc.
-                                    // Range is 0 to 2 (cyclic), so channel c maps to pos = c * 2 / n
-                                    pan = channelValue * 2 / maxChannels;
+                                    // Convert channel to pan based on SynthDef type
+                                    // Pan2 (2ch): uses range -1 to 1
+                                    // PanAz (3ch+): uses range 0 to 2
+                                    if(maxChannels == 2) {
+                                        // 2ch uses Pan2: map channel 0→-1, channel 1→1
+                                        pan = channelValue * 2 - 1;
+                                    } {
+                                        // 3ch+ uses PanAz: pos=0 is channel 0, pos=2/n is channel 1
+                                        pan = channelValue * 2 / maxChannels;
+                                    };
                                 };
                                 // If no spatial envelope, pan keeps its time-based value from above
 
@@ -727,7 +733,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                             { edgeSynthDefName.contains("2ch") } { 2 }
                                             { true } { 1 };
 
-                                        edgePan = startChannel * 2 / maxChannels;
+                                        // Pan2 (2ch) vs PanAz (3ch+) use different ranges
+                                        if(maxChannels == 2) {
+                                            edgePan = startChannel * 2 - 1;
+                                        } {
+                                            edgePan = startChannel * 2 / maxChannels;
+                                        };
                                     } {
                                         // No spatial envelope - use time-based pan
                                         edgePan = currentTime.linlin(0, state[\playDuration], -1, 1);
