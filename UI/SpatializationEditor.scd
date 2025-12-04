@@ -29,29 +29,55 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var colors = ~nUPIC[\colors];
     var winWidth = 800, winHeight = 500;
     var tabHeight = 30;
-    
+    var existingWindow;
+
     if(trajIndices.isNil or: { trajIndices.size == 0 }) {
         "No trajectories to edit".postln;
         ^nil;
     };
-    
+
+    // Check if spatial editor already open for any of these trajectories
+    existingWindow = ~nUPIC[\ui][\spatializationEditorWindow];
+    if(existingWindow.notNil and: { existingWindow.isClosed.not }) {
+        var existingIndices = ~nUPIC[\ui][\spatializationEditorTrajIndices];
+        if(existingIndices.notNil) {
+            trajIndices.do { |idx|
+                if(existingIndices.asArray.includes(idx)) {
+                    ("Spatial editor already open for trajectory " ++ idx ++ " - bringing to front").postln;
+                    existingWindow.front;
+                    ^nil;
+                };
+            };
+        };
+        // Close existing and open new one
+        existingWindow.close;
+    };
+
     // Initialize spatialization envelopes storage if needed
     if(data[\spatializationEnvelopes].isNil) {
         data[\spatializationEnvelopes] = List.new;
     };
-    
+
     // Ensure we have envelope for each trajectory
     data[\trajectories].size.do { |i|
         if(i >= data[\spatializationEnvelopes].size) {
             data[\spatializationEnvelopes].add(nil);
         };
     };
-    
+
     // Create window
-    window = Window("Spatialization Envelope Editor - " ++ trajIndices.size ++ " trajectories", 
+    window = Window("Spatialization Envelope Editor - " ++ trajIndices.size ++ " trajectories",
         Rect(400, 200, winWidth, winHeight));
     window.background = Color.new(205/255, 250/255, 205/255); // B&K green
-    
+
+    // Clean up references when window closes
+    window.onClose = {
+        ~nUPIC[\ui][\spatializationEditorWindow] = nil;
+        ~nUPIC[\ui][\spatializationEditorTrajIndices] = nil;
+        ~nUPIC[\ui][\spatializationEditorContentViews] = nil;
+        ~nUPIC[\ui][\spatializationEditorContainer] = nil;
+    };
+
     // Create tab buttons if multiple trajectories
     if(trajIndices.size > 1) {
         tabButtons = List.new;
@@ -113,14 +139,17 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var contentViews = ~nUPIC[\ui][\spatializationEditorContentViews];
     var container = ~nUPIC[\ui][\spatializationEditorContainer];
     var window = ~nUPIC[\ui][\spatializationEditorWindow];
+    var trajIndicesArray;
 
-    // Only refresh if editor is open and showing the changed trajectory
+    // Only refresh if editor is open
     if(window.notNil and: { window.isClosed.not } and: { trajIndices.notNil }) {
-        {
-            if(trajIndices.includes(changedTrajIndex)) {
-                if(contentViews.notNil and: { contentViews.size > 1 }) {
-                    // Multiple trajectories - find and refresh the changed one
-                    var tabIndex = trajIndices.indexOf(changedTrajIndex);
+        trajIndicesArray = trajIndices.asArray;
+
+        if(trajIndicesArray.includes(changedTrajIndex)) {
+            {
+                // Multiple trajectories case
+                if(contentViews.notNil and: { contentViews.size > 0 }) {
+                    var tabIndex = trajIndicesArray.indexOf(changedTrajIndex);
                     if(tabIndex.notNil and: { tabIndex < contentViews.size }) {
                         ~nUPIC[\ui][\createSpatializationEditorContent].value(
                             contentViews[tabIndex], changedTrajIndex
@@ -128,16 +157,16 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         ("Spatial editor refreshed for trajectory " ++ changedTrajIndex).postln;
                     };
                 } {
-                    // Single trajectory
-                    if(container.notNil and: { trajIndices[0] == changedTrajIndex }) {
+                    // Single trajectory case
+                    if(container.notNil) {
                         ~nUPIC[\ui][\createSpatializationEditorContent].value(
                             container, changedTrajIndex
                         );
                         ("Spatial editor refreshed for trajectory " ++ changedTrajIndex).postln;
                     };
                 };
-            };
-        }.defer;  // Ensure GUI updates happen on AppClock
+            }.defer;  // Ensure GUI updates happen on AppClock
+        };
     };
 };
 
