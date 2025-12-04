@@ -324,8 +324,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 data[\trajectories].add(sortedTrajectory);
                 data[\amplitudeEnvelopes].add(nil);  // Add placeholder for amplitude envelope
                 
-                // Use currently selected SynthDef or default
-                synthDef = defaults[\defaultSynthDef] ? \upicWavetable8ch;
+                // Use currently selected SynthDef or default - read fresh from ~nUPIC[\defaults]
+                synthDef = if(~nUPIC[\defaults].notNil) {
+                    ~nUPIC[\defaults][\defaultSynthDef] ? \upicWavetable8ch
+                } {
+                    \upicWavetable8ch
+                };
+                ("DEBUG: ~nUPIC[\\defaults][\\defaultSynthDef] = " ++ ~nUPIC[\defaults][\defaultSynthDef]).postln;
                 data[\trajectorySynthDefs].add(synthDef);
             };
             

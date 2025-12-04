@@ -2113,6 +2113,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 // Always use fresh reference to ~nUPIC[\defaults]
                 if(~nUPIC[\defaults].notNil) {
                     ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
+                    ("DEBUG MENU: Set ~nUPIC[\\defaults][\\defaultSynthDef] = " ++ selectedSynth).postln;
+                    ("DEBUG MENU: Verify read back: " ++ ~nUPIC[\defaults][\defaultSynthDef]).postln;
+                } {
+                    "WARNING: ~nUPIC[\\defaults] is nil! Cannot set default SynthDef".postln;
                 };
                 ("Default SynthDef set to " ++ selectedSynth ++ " for new trajectories").postln;
             };
