@@ -179,19 +179,24 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Clear container
     container.children.do({ |child| child.remove });
 
+    // Vertical padding so top and bottom labels are visible
+    ~nUPIC[\ui][\spatialVerticalPadding] = 15;
+
     // Channel labels view on the left (styled like frequency labels in main UI)
     channelLabelView = UserView(container, Rect(0, 0, channelLabelWidth, viewHeight));
     channelLabelView.background = Color.white;
     channelLabelView.drawFunc = {
         var labelHeight = viewHeight;
+        var vPad = ~nUPIC[\ui][\spatialVerticalPadding];
+        var drawableHeight = labelHeight - (2 * vPad);  // Area for drawing channels
 
         // Clear background
         Pen.fillColor = Color.white;
         Pen.fillRect(Rect(0, 0, channelLabelWidth, labelHeight));
 
-        // Draw channel labels
+        // Draw channel labels with padding
         numChannels.do { |i|
-            var y = ((maxChannel - i) / maxChannel.max(1)) * labelHeight;
+            var y = vPad + (((maxChannel - i) / maxChannel.max(1)) * drawableHeight);
             var label = "Ch" ++ i;
 
             // Draw label text
@@ -223,10 +228,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     spatialView.drawFunc = {
         var width = spatialView.bounds.width;
         var height = spatialView.bounds.height;
+        var vPad = ~nUPIC[\ui][\spatialVerticalPadding];
+        var drawableHeight = height - (2 * vPad);
 
-        // Draw dotted horizontal grid lines for each channel
+        // Draw dotted horizontal grid lines for each channel (with padding)
         numChannels.do { |i|
-            var y = ((maxChannel - i) / maxChannel.max(1)) * height;
+            var y = vPad + (((maxChannel - i) / maxChannel.max(1)) * drawableHeight);
             var dashLength = 4;
             var gapLength = 4;
             var x = 0;
@@ -265,43 +272,39 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
         };
 
-        // Draw current spatialization envelope
+        // Draw current spatialization envelope (with padding)
         if(currentEnvelope.notNil and: { currentEnvelope.size > 1 }) {
             Pen.strokeColor = Color.blue;
             Pen.width = 2;
 
             // Draw the curve as a solid line
             currentEnvelope.do { |point, i|
-                var x = (point.x / trajectoryLength) * width;
-                var y = ((maxChannel - point.channel) / maxChannel.max(1)) * height;
+                var ptX = (point.x / trajectoryLength) * width;
+                var ptY = vPad + (((maxChannel - point.channel) / maxChannel.max(1)) * drawableHeight);
 
                 if(i == 0) {
-                    Pen.moveTo(Point(x, y));
+                    Pen.moveTo(Point(ptX, ptY));
                 } {
-                    Pen.lineTo(Point(x, y));
+                    Pen.lineTo(Point(ptX, ptY));
                 };
             };
             Pen.stroke;
         };
-
-        // Draw instructions
-        Pen.fillColor = Color.black;
-        Pen.font = Font("Arial", 11);
-        Pen.stringAtPoint("Draw spatialization curve: Vertical = Channels 1-" ++ numChannels ++ ", Horizontal = Trajectory length",
-            Point(10, 5));
     };
-    
+
     // Mouse interaction for drawing
     overlayView.mouseDownAction = { |view, x, y, modifiers, buttonNumber, clickCount|
         var width = view.bounds.width;
         var height = view.bounds.height;
+        var vPad = ~nUPIC[\ui][\spatialVerticalPadding];
+        var drawableHeight = height - (2 * vPad);
         var timePos, channel;
 
         isDrawing = true;
 
-        // Calculate position
+        // Calculate position (accounting for vertical padding)
         timePos = (x / width) * trajectoryLength;
-        channel = maxChannel - ((y / height) * maxChannel);  // Invert Y axis
+        channel = maxChannel - (((y - vPad) / drawableHeight) * maxChannel);  // Invert Y axis with padding
         channel = channel.clip(0, maxChannel);
 
         // Always start fresh - clear existing envelope
@@ -319,13 +322,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     overlayView.mouseMoveAction = { |view, x, y, modifiers|
         var width = view.bounds.width;
         var height = view.bounds.height;
+        var vPad = ~nUPIC[\ui][\spatialVerticalPadding];
+        var drawableHeight = height - (2 * vPad);
         var timePos, channel;
 
         if(isDrawing) {
             timePos = (x / width) * trajectoryLength;
-            channel = maxChannel - ((y / height) * maxChannel);
+            channel = maxChannel - (((y - vPad) / drawableHeight) * maxChannel);
             channel = channel.clip(0, maxChannel);
-            
+
             // Add point if moved enough
             if((x - lastX).abs > 5 or: { (channel - lastChannel).abs > 0.2 }) {
                 currentEnvelope.add((x: timePos, channel: channel));
@@ -333,6 +338,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 lastChannel = channel;
                 view.refresh;
                 spatialView.refresh;
+                channelLabelView.refresh;
             };
         };
     };
