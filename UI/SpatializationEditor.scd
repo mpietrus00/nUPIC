@@ -123,16 +123,19 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
 // Create spatialization editor content for a single trajectory
 ~nUPIC[\ui][\createSpatializationEditorContent] = { |container, trajIndex|
-    var spatialView, overlayView, controlView;
+    var spatialView, overlayView, controlView, channelLabelView;
     var winWidth = container.bounds.width, winHeight = container.bounds.height;
+    var channelLabelWidth = 60;  // Width for channel labels (like freq labels in main UI)
+    var channelLabelGap = 5;     // Gap between labels and drawing area
     var viewHeight = winHeight - 100;  // Leave space for controls
+    var editorLeft = channelLabelWidth + channelLabelGap;
+    var editorWidth = winWidth - editorLeft - 10;
     var data = ~nUPIC[\data];
     var colors = ~nUPIC[\colors];
     var defaults = ~nUPIC[\defaults];
     var currentEnvelope, isDrawing = false;
     var trajectory = data[\trajectories][trajIndex];
     var trajectoryLength;
-    var channelLabels;
     var numChannels, maxChannel;
     var trajSynthDef;
     var lastX = 0, lastChannel;
@@ -152,16 +155,16 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     numChannels = ~nUPIC[\ui][\getChannelCountFromSynthDef].value(trajSynthDef);
     maxChannel = numChannels - 1;
     lastChannel = maxChannel / 2;  // Start in middle
-    
+
     // Calculate trajectory length
     if(trajectory.notNil and: { trajectory.size > 0 }) {
         var firstX = trajectory[0].x;
-        var lastX = trajectory.last.x;
-        trajectoryLength = lastX - firstX;
+        var lastXVal = trajectory.last.x;
+        trajectoryLength = lastXVal - firstX;
     } {
         trajectoryLength = 600;  // Default
     };
-    
+
     // Get existing envelope or create default
     currentEnvelope = data[\spatializationEnvelopes][trajIndex];
     if(currentEnvelope.isNil) {
@@ -176,55 +179,90 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Clear container
     container.children.do({ |child| child.remove });
 
-    // Channel labels on the left
-    channelLabels = UserView(container, Rect(0, 30, 50, viewHeight - 30));
-    channelLabels.drawFunc = {
+    // Channel labels view on the left (styled like frequency labels in main UI)
+    channelLabelView = UserView(container, Rect(0, 0, channelLabelWidth, viewHeight));
+    channelLabelView.background = Color.white;
+    channelLabelView.drawFunc = {
+        var labelHeight = viewHeight;
+
+        // Clear background
+        Pen.fillColor = Color.white;
+        Pen.fillRect(Rect(0, 0, channelLabelWidth, labelHeight));
+
+        // Draw channel labels
         numChannels.do { |i|
-            var y = ((maxChannel - i) / maxChannel.max(1)) * (viewHeight - 30);
-            var label = "Ch " ++ (i + 1);
+            var y = ((maxChannel - i) / maxChannel.max(1)) * labelHeight;
+            var label = "Ch" ++ i;
 
-            Pen.fillColor = Color.black;
-            Pen.stringAtPoint(label, Point(10, y - 5), Font("Arial", 10));
+            // Draw label text
+            Pen.fillColor = Color.gray(0.3);
+            Pen.stringAtPoint(
+                label,
+                Point(8, y - 6),
+                Font("Arial", 9, true),
+                Color.gray(0.3)
+            );
 
-            // Draw horizontal guide line
-            Pen.strokeColor = Color.gray(0.8);
-            Pen.width = 0.5;
-            Pen.line(Point(45, y), Point(winWidth, y));
+            // Draw tick mark extending to right edge
+            Pen.strokeColor = Color.gray(0.4);
+            Pen.width = 1.5;
+            Pen.line(Point(channelLabelWidth - 12, y), Point(channelLabelWidth, y));
             Pen.stroke;
         };
     };
-    
+
     // Main spatialization drawing view
-    spatialView = UserView(container, Rect(50, 30, winWidth - 60, viewHeight - 30));
+    spatialView = UserView(container, Rect(editorLeft, 0, editorWidth, viewHeight));
     spatialView.background = Color.white;
-    
+
     // Overlay for interactive elements
-    overlayView = UserView(container, Rect(50, 30, winWidth - 60, viewHeight - 30));
+    overlayView = UserView(container, Rect(editorLeft, 0, editorWidth, viewHeight));
     overlayView.background = Color.clear;
-    
-    // Drawing function
+
+    // Drawing function for spatial view
     spatialView.drawFunc = {
         var width = spatialView.bounds.width;
         var height = spatialView.bounds.height;
 
-        // Draw grid
-        Pen.strokeColor = Color.gray(0.9);
-        Pen.width = 0.5;
+        // Draw dotted horizontal grid lines for each channel
+        numChannels.do { |i|
+            var y = ((maxChannel - i) / maxChannel.max(1)) * height;
+            var dashLength = 4;
+            var gapLength = 4;
+            var x = 0;
 
-        // Vertical grid lines (time)
-        10.do { |i|
-            var x = (i + 1) / 11 * width;
-            Pen.line(Point(x, 0), Point(x, height));
-            Pen.stroke;
+            // Thicker lines for first and last channels
+            if(i == 0 or: { i == maxChannel }) {
+                Pen.strokeColor = Color.gray(0.5);
+                Pen.width = 1;
+            } {
+                Pen.strokeColor = Color.gray(0.7);
+                Pen.width = 0.5;
+            };
+
+            // Draw dotted line
+            while { x < width } {
+                Pen.line(Point(x, y), Point((x + dashLength).min(width), y));
+                Pen.stroke;
+                x = x + dashLength + gapLength;
+            };
         };
 
-        // Horizontal grid lines (channels)
-        numChannels.do { |i|
-            var y = (i / maxChannel.max(1)) * height;
-            Pen.strokeColor = if(i == 0 or: { i == maxChannel }) { Color.gray(0.6) } { Color.gray(0.85) };
-            Pen.width = if(i == 0 or: { i == maxChannel }) { 1 } { 0.5 };
-            Pen.line(Point(0, y), Point(width, y));
-            Pen.stroke;
+        // Draw vertical grid lines (time divisions) - lighter, also dotted
+        10.do { |i|
+            var x = (i + 1) / 11 * width;
+            var y = 0;
+            var dashLength = 3;
+            var gapLength = 5;
+
+            Pen.strokeColor = Color.gray(0.85);
+            Pen.width = 0.5;
+
+            while { y < height } {
+                Pen.line(Point(x, y), Point(x, (y + dashLength).min(height)));
+                Pen.stroke;
+                y = y + dashLength + gapLength;
+            };
         };
 
         // Draw current spatialization envelope
