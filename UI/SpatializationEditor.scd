@@ -141,15 +141,24 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var window = ~nUPIC[\ui][\spatializationEditorWindow];
     var trajIndicesArray;
 
+    // Debug output
+    ("DEBUG refresh called for traj: " ++ changedTrajIndex).postln;
+    ("DEBUG window: " ++ window ++ " isClosed: " ++ if(window.notNil) { window.isClosed } { "nil" }).postln;
+    ("DEBUG trajIndices: " ++ trajIndices).postln;
+    ("DEBUG contentViews: " ++ contentViews).postln;
+    ("DEBUG container: " ++ container).postln;
+
     // Only refresh if editor is open
     if(window.notNil and: { window.isClosed.not } and: { trajIndices.notNil }) {
         trajIndicesArray = trajIndices.asArray;
+        ("DEBUG trajIndicesArray: " ++ trajIndicesArray ++ " includes " ++ changedTrajIndex ++ "? " ++ trajIndicesArray.includes(changedTrajIndex)).postln;
 
         if(trajIndicesArray.includes(changedTrajIndex)) {
             {
                 // Multiple trajectories case
                 if(contentViews.notNil and: { contentViews.size > 0 }) {
                     var tabIndex = trajIndicesArray.indexOf(changedTrajIndex);
+                    ("DEBUG multi-traj case, tabIndex: " ++ tabIndex).postln;
                     if(tabIndex.notNil and: { tabIndex < contentViews.size }) {
                         ~nUPIC[\ui][\createSpatializationEditorContent].value(
                             contentViews[tabIndex], changedTrajIndex
@@ -158,6 +167,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     };
                 } {
                     // Single trajectory case
+                    ("DEBUG single-traj case, container: " ++ container).postln;
                     if(container.notNil) {
                         ~nUPIC[\ui][\createSpatializationEditorContent].value(
                             container, changedTrajIndex
@@ -166,7 +176,11 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     };
                 };
             }.defer;  // Ensure GUI updates happen on AppClock
+        } {
+            ("DEBUG trajIndex " ++ changedTrajIndex ++ " not found in " ++ trajIndicesArray).postln;
         };
+    } {
+        ("DEBUG refresh skipped - window nil or closed or no trajIndices").postln;
     };
 };
 
