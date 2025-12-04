@@ -127,7 +127,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var winWidth = container.bounds.width, winHeight = container.bounds.height;
     var channelLabelWidth = 60;  // Width for channel labels (like freq labels in main UI)
     var channelLabelGap = 5;     // Gap between labels and drawing area
-    var viewHeight = winHeight - 100;  // Leave space for controls
+    var viewHeight = winHeight - 40;  // Compact control area
     var editorLeft = channelLabelWidth + channelLabelGap;
     var editorWidth = winWidth - editorLeft - 10;
     var data = ~nUPIC[\data];
@@ -309,6 +309,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
             Pen.stroke;
         };
+
+        // Info text inside drawing area
+        Pen.fillColor = Color.gray(0.4);
+        Pen.stringAtPoint(
+            "Traj " ++ trajIndex ++ " | " ++ trajSynthDef ++ " | Ch0-Ch" ++ maxChannel,
+            Point(5, height - 15),
+            Font("Arial", 9),
+            Color.gray(0.4)
+        );
     };
 
     // Store for partial drawing (editing sections)
@@ -480,13 +489,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         };
     };
     
-    // Control area
-    controlView = CompositeView(container, Rect(0, viewHeight, winWidth, 100));
+    // Control area - compact single row
+    controlView = CompositeView(container, Rect(0, viewHeight, winWidth, 40));
     controlView.background = Color.new(190/255, 240/255, 190/255); // Light B&K green
-    
-    // Preset buttons (60x25 to match main UI)
-    Button(controlView, Rect(10, 10, 60, 25))
-        .states_([["Center", Color.black, Color.gray(0.8)]])
+
+    // Preset buttons (60x25, all gray for single-state)
+    Button(controlView, Rect(10, 8, 60, 25))
+        .states_([["Center", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             var center = maxChannel / 2;
@@ -500,8 +509,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             spatialView.refresh;
         });
 
-    Button(controlView, Rect(80, 10, 60, 25))
-        .states_([["Circle", Color.black, Color.cyan]])
+    Button(controlView, Rect(75, 8, 60, 25))
+        .states_([["Circle", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             var numPts = 2048;
@@ -518,8 +527,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             spatialView.refresh;
         });
 
-    Button(controlView, Rect(150, 10, 60, 25))
-        .states_([["Spiral", Color.black, Color.green]])
+    Button(controlView, Rect(140, 8, 60, 25))
+        .states_([["Spiral", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             var numPts = 2048;
@@ -527,8 +536,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             currentEnvelope = List.new;
             numPts.do { |i|
                 var t = i / (numPts - 1);
-                var phase = t * 4pi;  // Two full rotations
-                var radius = t * center;  // Expanding radius
+                var phase = t * 4pi;
+                var radius = t * center;
                 var channel = center + (radius * sin(phase));
                 var xPos = t * trajectoryLength;
                 currentEnvelope.add((x: xPos, channel: channel.clip(0, maxChannel)));
@@ -537,8 +546,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             spatialView.refresh;
         });
 
-    Button(controlView, Rect(220, 10, 60, 25))
-        .states_([["Random", Color.black, Color.red]])
+    Button(controlView, Rect(205, 8, 60, 25))
+        .states_([["Random", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             var numPts = 2048;
@@ -546,7 +555,6 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             currentEnvelope = List.new;
             numPts.do { |i|
                 var xPos = i / (numPts - 1) * trajectoryLength;
-                // Smooth random walk instead of pure random
                 var delta = rrand(-0.1, 0.1) * maxChannel;
                 prevChannel = (prevChannel + delta).clip(0, maxChannel);
                 currentEnvelope.add((x: xPos, channel: prevChannel));
@@ -555,8 +563,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             spatialView.refresh;
         });
 
-    Button(controlView, Rect(290, 10, 60, 25))
-        .states_([["0→Max", Color.black, Color.blue]])
+    Button(controlView, Rect(270, 8, 60, 25))
+        .states_([["0→Max", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             var numPts = 2048;
@@ -571,8 +579,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             spatialView.refresh;
         });
 
-    Button(controlView, Rect(360, 10, 60, 25))
-        .states_([["Max→0", Color.black, Color.blue]])
+    Button(controlView, Rect(335, 8, 60, 25))
+        .states_([["Max→0", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             var numPts = 2048;
@@ -586,15 +594,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
             spatialView.refresh;
         });
-    
-    // Smoothing button
-    Button(controlView, Rect(430, 10, 60, 25))
-        .states_([["Smooth", Color.white, Color.gray(0.5)]])
+
+    Button(controlView, Rect(400, 8, 60, 25))
+        .states_([["Smooth", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             if(currentEnvelope.size > 2) {
                 var smoothed = List.new;
-                // Apply multiple passes for smoother result
                 3.do {
                     smoothed = List.new;
                     currentEnvelope.do { |point, i|
@@ -613,16 +619,6 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 spatialView.refresh;
             };
         });
-
-    // Info display
-    StaticText(controlView, Rect(10, 45, 500, 20))
-        .string_("Trajectory " ++ trajIndex ++ " - SynthDef: " ++ trajSynthDef ++ " (" ++ numChannels ++ " ch) - 2048 point resolution")
-        .font_(Font("Arial", 11));
-
-    StaticText(controlView, Rect(10, 65, 600, 20))
-        .string_("Click and drag to draw spatial curve. Ch0-Ch" ++ maxChannel ++ " map to speaker positions.")
-        .font_(Font("Arial", 10))
-        .stringColor_(Color.gray(0.5));
 };
 
 "✓ Spatialization Envelope Editor loaded".postln;
