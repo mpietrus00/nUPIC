@@ -854,20 +854,22 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 ~nUPIC_SynthDefs[\available]
             } { [\upicWavetable] };
             var selectedSynth = synthDefNames[menu.value];
-            if(data.notNil and: { data[\selectedTrajectories].notNil } and: { 
-                data[\selectedTrajectories].size > 0 
+            if(data.notNil and: { data[\selectedTrajectories].notNil } and: {
+                data[\selectedTrajectories].size > 0
             }) {
                 if(data[\trajectorySynthDefs].isNil) {
                     data[\trajectorySynthDefs] = List.new;
                 };
                 data[\selectedTrajectories].do { |idx|
-                    if(idx < data[\trajectorySynthDefs].size) {
-                        data[\trajectorySynthDefs][idx] = selectedSynth;
-                        ("Trajectory " ++ idx ++ " set to use " ++ selectedSynth).postln;
-                        // Refresh spatial editor if open
-                        if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
-                            ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
-                        };
+                    // Expand list if needed
+                    while { idx >= data[\trajectorySynthDefs].size } {
+                        data[\trajectorySynthDefs].add(nil);
+                    };
+                    data[\trajectorySynthDefs][idx] = selectedSynth;
+                    ("Trajectory " ++ idx ++ " set to use " ++ selectedSynth).postln;
+                    // Refresh spatial editor if open
+                    if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
+                        ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
                     };
                 };
             } {
@@ -1526,20 +1528,22 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 ~nUPIC_SynthDefs[\available]
             } { [\simpleGravObject, \percNoise, \auditoryDistortion, \richTexture] };
             var selectedSynth = synthDefNames[menu.value];
-            if(data.notNil and: { data[\selectedTrajectories].notNil } and: { 
-                data[\selectedTrajectories].size > 0 
+            if(data.notNil and: { data[\selectedTrajectories].notNil } and: {
+                data[\selectedTrajectories].size > 0
             }) {
                 if(data[\trajectorySynthDefs].isNil) {
                     data[\trajectorySynthDefs] = List.new;
                 };
                 data[\selectedTrajectories].do { |idx|
-                    if(idx < data[\trajectorySynthDefs].size) {
-                        data[\trajectorySynthDefs][idx] = selectedSynth;
-                        ("Trajectory " ++ idx ++ " → " ++ selectedSynth).postln;
-                        // Refresh spatial editor if open
-                        if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
-                            ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
-                        };
+                    // Expand list if needed
+                    while { idx >= data[\trajectorySynthDefs].size } {
+                        data[\trajectorySynthDefs].add(nil);
+                    };
+                    data[\trajectorySynthDefs][idx] = selectedSynth;
+                    ("Trajectory " ++ idx ++ " → " ++ selectedSynth).postln;
+                    // Refresh spatial editor if open
+                    if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
+                        ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
                     };
                 };
             } {
