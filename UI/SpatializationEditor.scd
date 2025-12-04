@@ -310,11 +310,11 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             Pen.stroke;
         };
 
-        // Info text inside drawing area
+        // Info text inside drawing area - upper right corner
         Pen.fillColor = Color.gray(0.4);
         Pen.stringAtPoint(
             "Traj " ++ trajIndex ++ " | " ++ trajSynthDef ++ " | Ch0-Ch" ++ maxChannel,
-            Point(5, height - 15),
+            Point(width - 180, 5),
             Font("Arial", 9),
             Color.gray(0.4)
         );
