@@ -6,6 +6,9 @@ var basePath = PathName(thisProcess.nowExecutingPath).pathOnly;
 
 "Loading Spatial System...".postln;
 
+// Load Utils
+(basePath +/+ "Utils/SpatialHelpers.scd").load;
+
 // Load Model
 (basePath +/+ "Model/SpatialModel.scd").load;
 

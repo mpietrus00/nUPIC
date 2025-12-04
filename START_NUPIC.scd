@@ -396,6 +396,11 @@ fork {
             "✓ nUPIC_Main.scd loaded".postln;
             nupicLoaded = true;
 
+            // Load spatial helpers for consistent pan calculations
+            if(File.exists(dir +/+ "Core/Utils/SpatialHelpers.scd")) {
+                (dir +/+ "Core/Utils/SpatialHelpers.scd").load;
+            };
+
             // Set up auto-update function for synthdef menus
             ~nUPIC[\ui][\updateSynthDefMenusAfterLoad] = {
                 fork {

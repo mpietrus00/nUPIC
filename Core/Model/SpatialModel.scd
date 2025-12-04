@@ -54,19 +54,15 @@ if(\NumericControlValue.asClass.isNil) {
 
     // Convert channel to pan for synth
     spatial[\toPan] = {
-        var numCh = spatial[\numChannels];
-        var ch = spatial[\channel];
-
-        if(numCh == 1) {
-            0  // Mono
+        if(~nUPIC[\utils].notNil and: { ~nUPIC[\utils][\channelToPan].notNil }) {
+            ~nUPIC[\utils][\channelToPan].value(spatial[\channel], spatial[\numChannels]);
         } {
-            if(numCh == 2) {
-                // Pan2: -1 to 1
-                ch * 2 - 1
-            } {
-                // PanAz: 0 to 2
-                ch * 2 / numCh
-            }
+            // Fallback if utils not loaded
+            var numCh = spatial[\numChannels];
+            var ch = spatial[\channel];
+            if(numCh == 1) { 0 }
+            { if(numCh == 2) { ch * 2 - 1 }
+            { ch * 2 / numCh }};
         };
     };
 
@@ -132,12 +128,17 @@ if(\NumericControlValue.asClass.isNil) {
 
     // Get pan value at normalized time
     env[\getPanAt] = { |timeNorm|
-        var numCh = env[\numChannels];
         var ch = env[\getChannelAt].value(timeNorm);
 
-        if(numCh == 1) { 0 }
-        { if(numCh == 2) { ch * 2 - 1 }
-        { ch * 2 / numCh }};
+        if(~nUPIC[\utils].notNil and: { ~nUPIC[\utils][\channelToPan].notNil }) {
+            ~nUPIC[\utils][\channelToPan].value(ch, env[\numChannels]);
+        } {
+            // Fallback if utils not loaded
+            var numCh = env[\numChannels];
+            if(numCh == 1) { 0 }
+            { if(numCh == 2) { ch * 2 - 1 }
+            { ch * 2 / numCh }};
+        };
     };
 
     // Notify dependants
