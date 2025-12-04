@@ -868,8 +868,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     data[\trajectorySynthDefs][idx] = selectedSynth;
                     ("Trajectory " ++ idx ++ " set to use " ++ selectedSynth).postln;
                     // Refresh spatial editor if open
+                    ("DEBUG Controls: refresh func exists? " ++ ~nUPIC[\ui][\refreshSpatializationEditor].notNil).postln;
                     if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
+                        ("DEBUG Controls: calling refresh(" ++ idx ++ ")").postln;
                         ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
+                    } {
+                        "DEBUG Controls: refresh func is nil!".postln;
                     };
                 };
             } {
@@ -1542,8 +1546,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     data[\trajectorySynthDefs][idx] = selectedSynth;
                     ("Trajectory " ++ idx ++ " → " ++ selectedSynth).postln;
                     // Refresh spatial editor if open
+                    ("DEBUG Controls2: refresh func exists? " ++ ~nUPIC[\ui][\refreshSpatializationEditor].notNil).postln;
                     if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
+                        ("DEBUG Controls2: calling refresh(" ++ idx ++ ")").postln;
                         ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
+                    } {
+                        "DEBUG Controls2: refresh func is nil!".postln;
                     };
                 };
             } {
