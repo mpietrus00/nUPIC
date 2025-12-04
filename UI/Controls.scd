@@ -2106,9 +2106,19 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     data[\trajectorySynthDefs] = List.new;
                 };
                 data[\selectedTrajectories].do { |idx|
-                    if(idx < data[\trajectorySynthDefs].size) {
-                        data[\trajectorySynthDefs][idx] = selectedSynth;
-                        ("Trajectory " ++ idx ++ " set to use " ++ selectedSynth).postln;
+                    // Expand list if needed
+                    while { idx >= data[\trajectorySynthDefs].size } {
+                        data[\trajectorySynthDefs].add(nil);
+                    };
+                    data[\trajectorySynthDefs][idx] = selectedSynth;
+                    ("Trajectory " ++ idx ++ " set to use " ++ selectedSynth).postln;
+                    // Refresh spatial editor if open
+                    ("DEBUG Controls3: refresh func exists? " ++ ~nUPIC[\ui][\refreshSpatializationEditor].notNil).postln;
+                    if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
+                        ("DEBUG Controls3: calling refresh(" ++ idx ++ ")").postln;
+                        ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
+                    } {
+                        "DEBUG Controls3: refresh func is nil!".postln;
                     };
                 };
             } {
