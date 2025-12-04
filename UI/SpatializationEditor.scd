@@ -530,9 +530,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     controlView = CompositeView(container, Rect(0, viewHeight, winWidth, 40));
     controlView.background = Color.new(190/255, 240/255, 190/255); // Light B&K green
 
-    // Preset buttons (60x25, all gray for single-state)
-    Button(controlView, Rect(10, 8, 60, 25))
-        .states_([["Center", Color.black, Color.gray(0.9)]])
+    // Preset buttons (60x25, all gray for single-state, y=5 for proper centering)
+    Button(controlView, Rect(10, 5, 60, 25))
+        .states_([["_center", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             var center = maxChannel / 2;
@@ -546,8 +546,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             spatialView.refresh;
         });
 
-    Button(controlView, Rect(75, 8, 60, 25))
-        .states_([["Circle", Color.black, Color.gray(0.9)]])
+    Button(controlView, Rect(75, 5, 60, 25))
+        .states_([["_circle", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             var numPts = 2048;
@@ -564,8 +564,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             spatialView.refresh;
         });
 
-    Button(controlView, Rect(140, 8, 60, 25))
-        .states_([["Spiral", Color.black, Color.gray(0.9)]])
+    Button(controlView, Rect(140, 5, 60, 25))
+        .states_([["_spiral", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             var numPts = 2048;
@@ -583,8 +583,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             spatialView.refresh;
         });
 
-    Button(controlView, Rect(205, 8, 60, 25))
-        .states_([["Random", Color.black, Color.gray(0.9)]])
+    Button(controlView, Rect(205, 5, 60, 25))
+        .states_([["_random", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             var numPts = 2048;
@@ -600,8 +600,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             spatialView.refresh;
         });
 
-    Button(controlView, Rect(270, 8, 60, 25))
-        .states_([["0→Max", Color.black, Color.gray(0.9)]])
+    Button(controlView, Rect(270, 5, 60, 25))
+        .states_([["_0tomax", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             var numPts = 2048;
@@ -616,8 +616,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             spatialView.refresh;
         });
 
-    Button(controlView, Rect(335, 8, 60, 25))
-        .states_([["Max→0", Color.black, Color.gray(0.9)]])
+    Button(controlView, Rect(335, 5, 60, 25))
+        .states_([["_maxto0", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             var numPts = 2048;
@@ -632,8 +632,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             spatialView.refresh;
         });
 
-    Button(controlView, Rect(400, 8, 60, 25))
-        .states_([["Smooth", Color.black, Color.gray(0.9)]])
+    Button(controlView, Rect(400, 5, 60, 25))
+        .states_([["_smooth", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
             if(currentEnvelope.size > 2) {

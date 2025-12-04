@@ -449,7 +449,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Preview button
     Button(container, Rect(5, 5, 60, 20))
-        .states_([["Preview", Color.black, Color.gray(0.9)]])
+        .states_([["_preview", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 9))
         .action_({
             ~nUPIC[\ui][\previewTrajectoryAmplitude].value(trajIndex);
@@ -463,14 +463,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
     // Undo/Redo buttons
     Button(container, Rect(container.bounds.width - 100, 5, 45, 20))
-        .states_([["Undo", Color.black, Color.gray(0.9)]])
+        .states_([["_undo", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 9))
         .action_({
             ~nUPIC[\ui][\undoAmplitudeEdit].value(trajIndex);
         });
 
     Button(container, Rect(container.bounds.width - 50, 5, 45, 20))
-        .states_([["Redo", Color.black, Color.gray(0.9)]])
+        .states_([["_redo", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 9))
         .action_({
             ~nUPIC[\ui][\redoAmplitudeEdit].value(trajIndex);
@@ -482,10 +482,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var data = ~nUPIC[\data];
     var xPos = 10;
 
-    // Preset buttons (60x25, all gray for single-state)
+    // Preset buttons (60x25, all gray for single-state, y=5 for proper centering)
     [\fadeIn, \fadeOut, \constant, \pulse, \adsr].do { |preset, i|
-        Button(container, Rect(xPos, 8, 55, 25))
-            .states_([[preset.asString, Color.black, Color.gray(0.9)]])
+        Button(container, Rect(xPos, 5, 55, 25))
+            .states_([["_" ++ preset.asString.toLower, Color.black, Color.gray(0.9)]])
             .font_(Font("Arial", 9))
             .action_({
                 ~nUPIC[\ui][\saveAmplitudeState].value(trajIndex);
@@ -495,8 +495,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
 
     // Operations
-    Button(container, Rect(xPos, 8, 60, 25))
-        .states_([["Normalize", Color.black, Color.gray(0.9)]])
+    Button(container, Rect(xPos, 5, 60, 25))
+        .states_([["_normalize", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 9))
         .action_({
             ~nUPIC[\ui][\saveAmplitudeState].value(trajIndex);
@@ -504,8 +504,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         });
     xPos = xPos + 65;
 
-    Button(container, Rect(xPos, 8, 55, 25))
-        .states_([["Smooth", Color.black, Color.gray(0.9)]])
+    Button(container, Rect(xPos, 5, 55, 25))
+        .states_([["_smooth", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 9))
         .action_({
             ~nUPIC[\ui][\saveAmplitudeState].value(trajIndex);
@@ -513,8 +513,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         });
     xPos = xPos + 60;
 
-    Button(container, Rect(xPos, 8, 50, 25))
-        .states_([["Clear", Color.black, Color.gray(0.9)]])
+    Button(container, Rect(xPos, 5, 50, 25))
+        .states_([["_clear", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 9))
         .action_({
             ~nUPIC[\ui][\saveAmplitudeState].value(trajIndex);
