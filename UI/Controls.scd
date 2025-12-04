@@ -867,14 +867,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     };
                 };
             } {
-                // Set default for new trajectories
-                if(defaults.notNil) {
-                    defaults[\defaultSynthDef] = selectedSynth;
+                // Set default for new trajectories - always use fresh reference
+                if(~nUPIC[\defaults].notNil) {
+                    ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
                 };
                 ("Default SynthDef set to " ++ selectedSynth ++ " for new trajectories").postln;
             };
         });
-    
+
     // Help text
     StaticText(window, Rect(540, yStart, 300, 20))
         .string_("(Select trajectories then choose SynthDef)")
@@ -1535,13 +1535,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     };
                 };
             } {
-                if(defaults.notNil) {
-                    defaults[\defaultSynthDef] = selectedSynth;
+                // Always use fresh reference to ~nUPIC[\defaults]
+                if(~nUPIC[\defaults].notNil) {
+                    ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
                 };
                 ("Default SynthDef: " ++ selectedSynth).postln;
             };
         });
-    
+
     // Store references
     state[\controls][\eraseModeButton] = eraseModeButton;
     state[\controls][\gridButton] = gridButton;
@@ -1747,13 +1748,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     };
                 };
             } {
-                if(defaults.notNil) {
-                    defaults[\defaultSynthDef] = selectedSynth;
+                // Always use fresh reference to ~nUPIC[\defaults]
+                if(~nUPIC[\defaults].notNil) {
+                    ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
                 };
                 ("Default: " ++ selectedSynth).postln;
             };
         });
-    
+
     // Status displays
     StaticText(window, Rect(x, y + 100, sidebarWidth, 15))
         .string_("View Status:")
@@ -2090,8 +2092,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     };
                 };
             } {
-                if(defaults.notNil) {
-                    defaults[\defaultSynthDef] = selectedSynth;
+                // Always use fresh reference to ~nUPIC[\defaults]
+                if(~nUPIC[\defaults].notNil) {
+                    ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
                 };
                 ("Default SynthDef set to " ++ selectedSynth ++ " for new trajectories").postln;
             };
