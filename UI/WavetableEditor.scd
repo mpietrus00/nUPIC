@@ -41,14 +41,15 @@
     drawView.drawFunc = {
         var step = (width - 20) / numSamples;
         var centerY = (height - 20) / 2;
+        var dashLen = 4, gapLen = 4;
+        var x = 0;
 
         // Draw grid - dotted lines
         Pen.strokeColor = Color.gray(0.8);
         Pen.width = 1;
 
         // Horizontal center line (dotted)
-        var dashLen = 4, gapLen = 4;
-        var x = 0;
+        x = 0;
         while { x < (width - 20) } {
             Pen.line(Point(x, centerY), Point((x + dashLen).min(width - 20), centerY));
             Pen.stroke;
@@ -96,14 +97,15 @@
     };
 
     drawView.mouseMoveAction = { |view, x, y|
+        var startIndex, endIndex, startValue, endValue, numSteps;
         if(isDrawing) {
-            var startIndex = (lastX / ((width - 20) / numSamples)).asInteger.clip(0, numSamples - 1);
-            var endIndex = (x / ((width - 20) / numSamples)).asInteger.clip(0, numSamples - 1);
-            var startValue = ((((height - 20) / 2) - lastY) / ((height - 20) / 2) / 0.9).clip(-1, 1);
-            var endValue = ((((height - 20) / 2) - y) / ((height - 20) / 2) / 0.9).clip(-1, 1);
+            startIndex = (lastX / ((width - 20) / numSamples)).asInteger.clip(0, numSamples - 1);
+            endIndex = (x / ((width - 20) / numSamples)).asInteger.clip(0, numSamples - 1);
+            startValue = ((((height - 20) / 2) - lastY) / ((height - 20) / 2) / 0.9).clip(-1, 1);
+            endValue = ((((height - 20) / 2) - y) / ((height - 20) / 2) / 0.9).clip(-1, 1);
 
             if(startIndex != endIndex) {
-                var numSteps = (endIndex - startIndex).abs;
+                numSteps = (endIndex - startIndex).abs;
                 (numSteps + 1).do { |i|
                     var index = if(startIndex < endIndex,
                         { startIndex + i },
