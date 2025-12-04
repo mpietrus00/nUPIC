@@ -50,7 +50,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Create window
     window = Window("Spatialization Envelope Editor - " ++ trajIndices.size ++ " trajectories", 
         Rect(400, 200, winWidth, winHeight));
-    window.background = Color.gray(0.95);
+    window.background = Color.new(205/255, 250/255, 205/255); // B&K green
     
     // Create tab buttons if multiple trajectories
     if(trajIndices.size > 1) {
@@ -63,7 +63,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 .states_([[
                     "Traj " ++ trajIdx, 
                     Color.black, 
-                    if(i == 0) { Color.white } { Color.gray(0.85) }
+                    if(i == 0) { Color.white } { Color.new(180/255, 230/255, 180/255) }
                 ]])
                 .action_({ |btn|
                     // Hide all content views
@@ -75,7 +75,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         b.states_([[
                             b.states[0][0],
                             Color.black,
-                            if(i == j) { Color.white } { Color.gray(0.85) }
+                            if(i == j) { Color.white } { Color.new(180/255, 230/255, 180/255) }
                         ]]);
                     };
                     currentTab = i;
@@ -342,7 +342,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Control area
     controlView = CompositeView(container, Rect(0, viewHeight, winWidth, 100));
-    controlView.background = Color.gray(0.9);
+    controlView.background = Color.new(190/255, 240/255, 190/255); // Light B&K green
     
     // Preset buttons
     Button(controlView, Rect(10, 10, 80, 25))

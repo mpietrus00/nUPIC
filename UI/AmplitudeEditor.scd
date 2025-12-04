@@ -73,7 +73,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         // Create new window
         ampWin = Window("nUPIC Amplitude Editor", 
             Rect(200, 100, winWidth, winHeight));
-        ampWin.background = Color.gray(0.95);
+        ampWin.background = Color.new(205/255, 250/255, 205/255); // B&K green
         // Window created with fixed size
         ("Amplitude editor opened with " ++ tabs.size ++ " trajectory tabs").postln;
     };
@@ -122,7 +122,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Create tab buttons (if multiple trajectories)
     if(tabs.size > 1) {
         tabContainer = CompositeView(ampWin, Rect(0, 0, winWidth, 30));
-        tabContainer.background = Color.gray(0.8);
+        tabContainer.background = Color.new(180/255, 230/255, 180/255); // Darker B&K green for tabs
         
         tabs.do { |trajIndex, i|
             var tabBtn = Button(tabContainer, 
@@ -353,7 +353,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Create level meter container on the right side (initially hidden)
     levelMeterContainer = CompositeView(container, Rect(editorWidth + 5, 0, meterWidth, viewHeight));
-    levelMeterContainer.background = Color.gray(0.9);
+    levelMeterContainer.background = Color.new(190/255, 240/255, 190/255); // Light B&K green
     levelMeterContainer.visible = true;  // Always visible now
     
     // Create vertical level meter
@@ -372,7 +372,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Create toolbar area (above main editor)
     toolbarContainer = CompositeView(container, Rect(0, 0, winWidth, 30));
-    toolbarContainer.background = Color.gray(0.85);
+    toolbarContainer.background = Color.new(180/255, 230/255, 180/255); // Darker B&K green for toolbar
     ~nUPIC[\ui][\createAmplitudeToolbar].value(toolbarContainer, trajIndex);
     
     // Adjust editor position to account for toolbar
@@ -382,7 +382,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Create control area
     presetContainer = CompositeView(container, Rect(0, viewHeight, winWidth, winHeight - viewHeight));
-    presetContainer.background = Color.gray(0.9);
+    presetContainer.background = Color.new(190/255, 240/255, 190/255); // Light B&K green
     
     // Add enhanced controls
     ~nUPIC[\ui][\createAmplitudeControls].value(presetContainer, trajIndex, ampZoomMin, ampZoomMax);
