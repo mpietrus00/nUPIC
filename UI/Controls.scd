@@ -864,6 +864,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     if(idx < data[\trajectorySynthDefs].size) {
                         data[\trajectorySynthDefs][idx] = selectedSynth;
                         ("Trajectory " ++ idx ++ " set to use " ++ selectedSynth).postln;
+                        // Refresh spatial editor if open
+                        if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
+                            ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
+                        };
                     };
                 };
             } {
@@ -1532,6 +1536,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     if(idx < data[\trajectorySynthDefs].size) {
                         data[\trajectorySynthDefs][idx] = selectedSynth;
                         ("Trajectory " ++ idx ++ " → " ++ selectedSynth).postln;
+                        // Refresh spatial editor if open
+                        if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
+                            ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
+                        };
                     };
                 };
             } {

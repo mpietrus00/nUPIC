@@ -99,9 +99,46 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
     
     window.front;
-    
-    // Store window reference
+
+    // Store window reference and trajectory indices for refresh
     ~nUPIC[\ui][\spatializationEditorWindow] = window;
+    ~nUPIC[\ui][\spatializationEditorTrajIndices] = trajIndices;
+    ~nUPIC[\ui][\spatializationEditorContentViews] = contentViews;
+    ~nUPIC[\ui][\spatializationEditorContainer] = container;  // For single trajectory case
+};
+
+// Refresh spatialization editor when SynthDef changes
+~nUPIC[\ui][\refreshSpatializationEditor] = { |changedTrajIndex|
+    var trajIndices = ~nUPIC[\ui][\spatializationEditorTrajIndices];
+    var contentViews = ~nUPIC[\ui][\spatializationEditorContentViews];
+    var container = ~nUPIC[\ui][\spatializationEditorContainer];
+    var window = ~nUPIC[\ui][\spatializationEditorWindow];
+
+    // Only refresh if editor is open and showing the changed trajectory
+    if(window.notNil and: { window.isClosed.not } and: { trajIndices.notNil }) {
+        {
+            if(trajIndices.includes(changedTrajIndex)) {
+                if(contentViews.notNil and: { contentViews.size > 1 }) {
+                    // Multiple trajectories - find and refresh the changed one
+                    var tabIndex = trajIndices.indexOf(changedTrajIndex);
+                    if(tabIndex.notNil and: { tabIndex < contentViews.size }) {
+                        ~nUPIC[\ui][\createSpatializationEditorContent].value(
+                            contentViews[tabIndex], changedTrajIndex
+                        );
+                        ("Spatial editor refreshed for trajectory " ++ changedTrajIndex).postln;
+                    };
+                } {
+                    // Single trajectory
+                    if(container.notNil and: { trajIndices[0] == changedTrajIndex }) {
+                        ~nUPIC[\ui][\createSpatializationEditorContent].value(
+                            container, changedTrajIndex
+                        );
+                        ("Spatial editor refreshed for trajectory " ++ changedTrajIndex).postln;
+                    };
+                };
+            };
+        }.defer;  // Ensure GUI updates happen on AppClock
+    };
 };
 
 // Helper function to get channel count from SynthDef name
