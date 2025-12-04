@@ -290,7 +290,31 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
             Pen.stroke;
         };
+
+        // Draw active drawing buffer (while user is drawing) in different color
+        if(~nUPIC[\ui][\spatialDrawingBuffer].notNil and: { ~nUPIC[\ui][\spatialDrawingBuffer].size > 1 }) {
+            var drawBuf = ~nUPIC[\ui][\spatialDrawingBuffer];
+            Pen.strokeColor = Color.red;  // Red for active drawing
+            Pen.width = 2.5;
+
+            drawBuf.do { |point, i|
+                var ptX = (point.x / trajectoryLength) * width;
+                var ptY = vPad + (((maxChannel - point.channel) / maxChannel.max(1)) * drawableHeight);
+
+                if(i == 0) {
+                    Pen.moveTo(Point(ptX, ptY));
+                } {
+                    Pen.lineTo(Point(ptX, ptY));
+                };
+            };
+            Pen.stroke;
+        };
     };
+
+    // Store for partial drawing (editing sections)
+    ~nUPIC[\ui][\spatialDrawingBuffer] = List.new;
+    ~nUPIC[\ui][\spatialDrawingStartX] = nil;
+    ~nUPIC[\ui][\spatialDrawingEndX] = nil;
 
     // Mouse interaction for drawing
     overlayView.mouseDownAction = { |view, x, y, modifiers, buttonNumber, clickCount|
@@ -307,11 +331,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         channel = maxChannel - (((y - vPad) / drawableHeight) * maxChannel);  // Invert Y axis with padding
         channel = channel.clip(0, maxChannel);
 
-        // Always start fresh - clear existing envelope
-        currentEnvelope = List.new;
+        // Start new drawing buffer (keep existing envelope)
+        ~nUPIC[\ui][\spatialDrawingBuffer] = List.new;
+        ~nUPIC[\ui][\spatialDrawingStartX] = timePos;
+        ~nUPIC[\ui][\spatialDrawingEndX] = timePos;
 
-        // Add first point
-        currentEnvelope.add((x: timePos, channel: channel));
+        // Add first point to drawing buffer
+        ~nUPIC[\ui][\spatialDrawingBuffer].add((x: timePos, channel: channel));
         lastX = x;
         lastChannel = channel;
 
@@ -331,9 +357,17 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             channel = maxChannel - (((y - vPad) / drawableHeight) * maxChannel);
             channel = channel.clip(0, maxChannel);
 
+            // Update drawing range
+            if(timePos < ~nUPIC[\ui][\spatialDrawingStartX]) {
+                ~nUPIC[\ui][\spatialDrawingStartX] = timePos;
+            };
+            if(timePos > ~nUPIC[\ui][\spatialDrawingEndX]) {
+                ~nUPIC[\ui][\spatialDrawingEndX] = timePos;
+            };
+
             // Add point if moved enough (very sensitive for detailed curves)
             if((x - lastX).abs > 2 or: { (channel - lastChannel).abs > 0.05 }) {
-                currentEnvelope.add((x: timePos, channel: channel));
+                ~nUPIC[\ui][\spatialDrawingBuffer].add((x: timePos, channel: channel));
                 lastX = x;
                 lastChannel = channel;
                 view.refresh;
@@ -347,36 +381,55 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         if(isDrawing) {
             isDrawing = false;
 
-            // Ensure envelope spans full trajectory and interpolate to high resolution
-            if(currentEnvelope.size > 0) {
+            // Merge drawing buffer with existing envelope
+            if(~nUPIC[\ui][\spatialDrawingBuffer].size > 0) {
+                var drawingBuffer = ~nUPIC[\ui][\spatialDrawingBuffer];
+                var startX = ~nUPIC[\ui][\spatialDrawingStartX];
+                var endX = ~nUPIC[\ui][\spatialDrawingEndX];
+                var mergedEnvelope = List.new;
                 var interpolated;
-                var numOutputPoints = 2048;  // High resolution spatial curve
+                var numOutputPoints = 2048;
+
+                // Keep points from existing envelope that are OUTSIDE the drawn range
+                if(currentEnvelope.notNil and: { currentEnvelope.size > 0 }) {
+                    currentEnvelope.do { |point|
+                        if(point.x < startX or: { point.x > endX }) {
+                            mergedEnvelope.add(point);
+                        };
+                    };
+                };
+
+                // Add all points from the drawing buffer
+                drawingBuffer.do { |point|
+                    mergedEnvelope.add(point);
+                };
+
+                // Sort by x position
+                mergedEnvelope = mergedEnvelope.sort({ |a, b| a.x < b.x });
 
                 // Add start point if needed
-                if(currentEnvelope[0].x > 0) {
-                    currentEnvelope = List[(x: 0, channel: currentEnvelope[0].channel)] ++ currentEnvelope;
+                if(mergedEnvelope.size == 0 or: { mergedEnvelope[0].x > 0 }) {
+                    var startChannel = if(mergedEnvelope.size > 0) { mergedEnvelope[0].channel } { maxChannel / 2 };
+                    mergedEnvelope = List[(x: 0, channel: startChannel)] ++ mergedEnvelope;
                 };
 
                 // Add end point if needed
-                if(currentEnvelope.last.x < trajectoryLength) {
-                    currentEnvelope.add((x: trajectoryLength, channel: currentEnvelope.last.channel));
+                if(mergedEnvelope.last.x < trajectoryLength) {
+                    mergedEnvelope.add((x: trajectoryLength, channel: mergedEnvelope.last.channel));
                 };
-                
-                // Sort by x position
-                currentEnvelope = currentEnvelope.sort({ |a, b| a.x < b.x });
 
                 // Remove duplicates at same x position (keep last)
-                currentEnvelope = currentEnvelope.inject(List.new, { |result, point|
+                mergedEnvelope = mergedEnvelope.inject(List.new, { |result, point|
                     if(result.size == 0 or: { result.last.x != point.x }) {
                         result.add(point);
                     } {
-                        result[result.size - 1] = point;  // Replace with newer point
+                        result[result.size - 1] = point;
                     };
                     result;
                 });
 
                 // Interpolate to 2048 points for super detailed curve
-                if(currentEnvelope.size >= 2) {
+                if(mergedEnvelope.size >= 2) {
                     interpolated = List.new;
                     numOutputPoints.do { |i|
                         var t = i / (numOutputPoints - 1);
@@ -384,14 +437,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         var channel = 0;
                         var foundSegment = false;
 
-                        // Find segment and interpolate
                         block { |break|
-                            (currentEnvelope.size - 1).do { |j|
-                                if(currentEnvelope[j].x <= targetX and: { currentEnvelope[j + 1].x >= targetX }) {
-                                    var segmentT = (targetX - currentEnvelope[j].x) /
-                                        (currentEnvelope[j + 1].x - currentEnvelope[j].x).max(0.001);
-                                    channel = currentEnvelope[j].channel.blend(
-                                        currentEnvelope[j + 1].channel, segmentT);
+                            (mergedEnvelope.size - 1).do { |j|
+                                if(mergedEnvelope[j].x <= targetX and: { mergedEnvelope[j + 1].x >= targetX }) {
+                                    var segmentT = (targetX - mergedEnvelope[j].x) /
+                                        (mergedEnvelope[j + 1].x - mergedEnvelope[j].x).max(0.001);
+                                    channel = mergedEnvelope[j].channel.blend(
+                                        mergedEnvelope[j + 1].channel, segmentT);
                                     foundSegment = true;
                                     break.value;
                                 };
@@ -399,17 +451,18 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         };
 
                         if(foundSegment.not) {
-                            // Edge cases
-                            if(targetX <= currentEnvelope.first.x) {
-                                channel = currentEnvelope.first.channel;
+                            if(targetX <= mergedEnvelope.first.x) {
+                                channel = mergedEnvelope.first.channel;
                             } {
-                                channel = currentEnvelope.last.channel;
+                                channel = mergedEnvelope.last.channel;
                             };
                         };
 
                         interpolated.add((x: targetX, channel: channel.clip(0, maxChannel)));
                     };
                     currentEnvelope = interpolated;
+                } {
+                    currentEnvelope = mergedEnvelope;
                 };
 
                 // Store the envelope
@@ -418,7 +471,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 ("Spatialization envelope saved for trajectory " ++ trajIndex).postln;
                 ("Points: " ++ currentEnvelope.size ++ " (interpolated to 2048)").postln;
             };
-            
+
+            // Clear drawing buffer
+            ~nUPIC[\ui][\spatialDrawingBuffer] = List.new;
+
             view.refresh;
             spatialView.refresh;
         };
