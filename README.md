@@ -136,6 +136,14 @@ You can register your own functions to be notified when values change:
 ### Available Reactive Keys
 
 - `\playDuration` - Total duration in seconds (updates duration NumberBox)
+- `\defaultSynthDef` - Current SynthDef selection (updates SynthDef menu)
+
+### Example: Programmatically Select SynthDef
+
+```supercollider
+// Switch to 8-channel output
+~nUPIC[\defaults][\setValue].value(\defaultSynthDef, \upicWavetable8ch)
+```
 
 ## Workflow
 

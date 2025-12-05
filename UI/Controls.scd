@@ -1571,13 +1571,35 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     };
                 };
             } {
-                // Always use fresh reference to ~nUPIC[\defaults]
-                if(~nUPIC[\defaults].notNil) {
-                    ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
+                // Use reactive setValue for defaultSynthDef
+                if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\setValue].notNil }) {
+                    ~nUPIC[\defaults][\setValue].value(\defaultSynthDef, selectedSynth);
+                } {
+                    // Fallback to direct assignment
+                    if(~nUPIC[\defaults].notNil) {
+                        ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
+                    };
                 };
                 ("Default SynthDef: " ++ selectedSynth).postln;
             };
         });
+
+    // Register for reactive updates to defaultSynthDef
+    if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
+        ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
+            if(what == \defaultSynthDef) {
+                {
+                    var synthDefNames = if(~nUPIC_SynthDefs.notNil and: { ~nUPIC_SynthDefs[\available].notNil }) {
+                        ~nUPIC_SynthDefs[\available]
+                    } { [] };
+                    var idx = synthDefNames.indexOf(value);
+                    if(idx.notNil and: { synthDefMenu.notNil }) {
+                        synthDefMenu.value = idx;
+                    };
+                }.defer;
+            };
+        });
+    };
 
     // Store references
     state[\controls][\eraseModeButton] = eraseModeButton;
