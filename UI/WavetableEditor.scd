@@ -1,11 +1,12 @@
 // Wavetable Editor UI for nUPIC
 // Visual editor for creating and modifying wavetables
+// Each trajectory has its own wavetable
 
 (
 ~nUPIC = ~nUPIC ?? ();
 ~nUPIC[\wavetableEditor] = ~nUPIC[\wavetableEditor] ?? ();
 
-~nUPIC[\wavetableEditor][\open] = {
+~nUPIC[\wavetableEditor][\open] = { |trajectoryIndex = nil|
     var win, drawView, controlView, wavetableData, isDrawing = false;
     var width = 700, height = 400;
     var controlHeight = 110;
@@ -13,24 +14,44 @@
     var lastX, lastY;
     var buttons = ();
     var xPos;
+    var currentIndex;
+    var titleText;
+    var data = ~nUPIC[\data];
+    var manager = ~nUPIC[\trajectoryData][\manager];
 
-    // Initialize wavetable data (512 samples)
-    wavetableData = Array.fill(numSamples, { |i|
-        sin(2pi * i / numSamples)
-    });
-
-    // If buffer exists, get current wavetable
-    if(~nUPIC_wavetableBuffer.notNil) {
-        ~nUPIC_wavetableBuffer.getToFloatArray(action: { |array|
-            {
-                wavetableData = array;
-                drawView.refresh;
-            }.defer;
-        });
+    // Determine which trajectory to edit
+    if(trajectoryIndex.notNil) {
+        currentIndex = trajectoryIndex;
+    } {
+        // Use first selected trajectory, or nil if none
+        if(data.notNil and: { data[\selectedTrajectories].notNil } and: { data[\selectedTrajectories].size > 0 }) {
+            currentIndex = data[\selectedTrajectories].asArray.sort[0];
+        } {
+            currentIndex = nil;
+        };
     };
 
+    // Check if we have a valid trajectory
+    if(currentIndex.isNil or: { manager[\trajectories].size == 0 } or: { currentIndex >= manager[\trajectories].size }) {
+        "No trajectory selected. Draw a trajectory first, select it, then open the wavetable editor.".warn;
+        ^nil;
+    };
+
+    // Get wavetable data for this trajectory
+    wavetableData = manager[\getWavetable].value(currentIndex);
+    if(wavetableData.isNil) {
+        // Create default sine wavetable
+        wavetableData = Array.fill(numSamples, { |i|
+            sin(2pi * i / numSamples)
+        });
+        manager[\setWavetable].value(currentIndex, wavetableData);
+    };
+
+    // Create title
+    titleText = "nUPIC Wavetable Editor - Trajectory " ++ currentIndex;
+
     // Create window with B&K green
-    win = Window("nUPIC Wavetable Editor", Rect(100, 100, width, height + controlHeight));
+    win = Window(titleText, Rect(100, 100, width, height + controlHeight));
     win.background = Color.new(205/255, 250/255, 205/255); // B&K green
 
     // Drawing area
@@ -82,6 +103,11 @@
         Pen.stroke;
     };
 
+    // Helper function to update wavetable in manager
+    ~nUPIC[\wavetableEditor][\updateWavetable] = {
+        manager[\setWavetable].value(currentIndex, wavetableData);
+    };
+
     // Mouse interaction for drawing
     drawView.mouseDownAction = { |view, x, y|
         var index, value;
@@ -126,9 +152,8 @@
 
     drawView.mouseUpAction = { |view, x, y|
         isDrawing = false;
-        if(~nUPIC_wavetableBuffer.notNil) {
-            ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-        };
+        // Update the trajectory's wavetable
+        manager[\setWavetable].value(currentIndex, wavetableData);
     };
 
     // Control area with light B&K green
@@ -145,9 +170,7 @@
                 (i / (numSamples - 1) * 2 * pi).sin
             });
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -159,9 +182,7 @@
                 (2 * (i / numSamples)) - 1
             });
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -173,9 +194,7 @@
                 if(i < (numSamples / 2), 1, -1)
             });
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -191,9 +210,7 @@
                 )
             });
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -208,9 +225,7 @@
                 wavetableData = wavetableData / maxVal;
             };
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -228,9 +243,7 @@
             };
             wavetableData = smoothed;
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -242,9 +255,7 @@
             if(maxVal > 0) {
                 wavetableData = wavetableData / maxVal;
                 drawView.refresh;
-                if(~nUPIC_wavetableBuffer.notNil) {
-                    ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-                };
+                manager[\setWavetable].value(currentIndex, wavetableData);
             };
         });
     xPos = xPos + 65;
@@ -255,9 +266,7 @@
         .action_({
             wavetableData = wavetableData.neg;
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -267,9 +276,7 @@
         .action_({
             wavetableData = wavetableData.reverse;
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
 
     // Row 2: Advanced synthesis (y=35)
@@ -281,9 +288,7 @@
             wavetableData = Signal.sineFill(numSamples, Array.fill(8, { |i| 1.0 / (i + 1) }));
             wavetableData = wavetableData.normalize;
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -295,9 +300,7 @@
             wavetableData = Signal.chebyFill(numSamples, coeffs);
             wavetableData = wavetableData.normalize;
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -317,9 +320,7 @@
 
             wavetableData = signal.normalize;
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -333,9 +334,7 @@
             });
             wavetableData = wavetableData.normalize;
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -349,9 +348,7 @@
             });
             wavetableData = wavetableData.normalize;
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -368,29 +365,47 @@
             wavetableData = Signal.sineFill(numSamples, harmonics, phases);
             wavetableData = wavetableData.normalize;
             drawView.refresh;
-            if(~nUPIC_wavetableBuffer.notNil) {
-                ~nUPIC_wavetableBuffer.loadCollection(wavetableData);
-            };
+            manager[\setWavetable].value(currentIndex, wavetableData);
         });
 
-    // Row 3: Test and Close (y=70)
+    // Row 3: Test, Copy, and Close (y=70)
     buttons[\test] = Button(controlView, Rect(10, 75, 60, 25))
         .states_([["_test", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
-            fork {
-                var synth = Synth(\upicWavetable, [
-                    \freq, 440,
-                    \amp, 0.2,
-                    \gate, 1,
-                    \bufnum, ~nUPIC_wavetableBuffer.bufnum
-                ]);
-                0.5.wait;
-                synth.set(\freq, 550);
-                0.5.wait;
-                synth.set(\freq, 330);
-                0.5.wait;
-                synth.set(\gate, 0);
+            var buffer = manager[\getWavetableBuffer].value(currentIndex);
+            if(buffer.notNil) {
+                fork {
+                    var synth = Synth(\upicWavetable, [
+                        \freq, 440,
+                        \amp, 0.2,
+                        \gate, 1,
+                        \bufnum, buffer.bufnum
+                    ]);
+                    0.5.wait;
+                    synth.set(\freq, 550);
+                    0.5.wait;
+                    synth.set(\freq, 330);
+                    0.5.wait;
+                    synth.set(\gate, 0);
+                };
+            } {
+                "No wavetable buffer available".warn;
+            };
+        });
+
+    // Copy wavetable to other selected trajectories
+    buttons[\copyToSelected] = Button(controlView, Rect(75, 75, 100, 25))
+        .states_([["_copy to sel", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 10))
+        .action_({
+            if(data.notNil and: { data[\selectedTrajectories].notNil }) {
+                data[\selectedTrajectories].do { |idx|
+                    if(idx != currentIndex) {
+                        manager[\setWavetable].value(idx, wavetableData.copy);
+                    };
+                };
+                ("Wavetable copied to " ++ (data[\selectedTrajectories].size - 1) ++ " other trajectories").postln;
             };
         });
 
@@ -401,13 +416,15 @@
 
     // Store window reference
     ~nUPIC[\wavetableEditor][\window] = win;
+    ~nUPIC[\wavetableEditor][\currentIndex] = currentIndex;
 
     win.onClose = {
         ~nUPIC[\wavetableEditor][\window] = nil;
+        ~nUPIC[\wavetableEditor][\currentIndex] = nil;
     };
 
     win.front;
 };
 
-"✓ Wavetable Editor loaded".postln;
+"Wavetable Editor loaded (per-trajectory)".postln;
 )

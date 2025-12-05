@@ -42,7 +42,7 @@
 
 // Get all data for a trajectory
 ~nUPIC[\trajectories][\get].value(0);
-// Returns: (index, points, synthDef, amplitudeEnvelope, spatialEnvelope, isSelected)
+// Returns: (index, points, synthDef, amplitudeEnvelope, spatialEnvelope, wavetable, isSelected)
 
 // --- SynthDef ---
 
@@ -66,6 +66,26 @@
     (x: 0, channel: 0),
     (x: 600, channel: 7)
 ]);
+
+// --- Wavetable (per-trajectory) ---
+
+// Get wavetable data (512 samples, -1 to 1)
+~nUPIC[\trajectories][\getWavetable].value(0);
+
+// Set wavetable data
+~nUPIC[\trajectories][\setWavetable].value(0, Array.fill(512, { |i| sin(2pi * i / 512) }));
+
+// Get the server buffer reference
+~nUPIC[\trajectories][\getWavetableBuffer].value(0);
+
+// Open wavetable editor for trajectory
+~nUPIC[\trajectories][\editWavetable].value(0);
+
+// Copy wavetable from one trajectory to another
+~nUPIC[\trajectories][\copyWavetable].value(0, 1);  // Copy from trajectory 0 to 1
+
+// Or open editor for selected trajectory (uses first selected)
+~nUPIC[\wavetableEditor][\open].value;
 
 
 // ============================================================================

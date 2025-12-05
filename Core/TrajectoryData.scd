@@ -11,15 +11,20 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 // Trajectory data structure
 ~nUPIC[\trajectoryData][\manager] = {
     var trajectories, amplitudeEnvelopes, spatialEnvelopes, trajectorySynthDefs;
+    var wavetables, wavetableBuffers;  // Per-trajectory wavetable data and server buffers
     var selectedTrajectories, copiedTrajectories;
     var undoStack, redoStack;
     var maxSynths, maxUndoSteps, maxChannels;
+    var numWavetableSamples = 512;  // Standard wavetable size
+    var defaultWavetable;  // Default sine wave
 
     // Initialize with safe defaults (will be updated when constants are available)
     trajectories = List.new;
     amplitudeEnvelopes = List.new;
     spatialEnvelopes = List.new;  // Spatial envelope per trajectory: List of (x: time, channel: 0-maxChannels)
     trajectorySynthDefs = List.new;
+    wavetables = List.new;  // Per-trajectory wavetable data (Array of 512 floats)
+    wavetableBuffers = List.new;  // Per-trajectory Buffer references
     selectedTrajectories = Set.new;
     copiedTrajectories = List.new;
     undoStack = List.new;
@@ -28,6 +33,11 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     maxUndoSteps = 50;  // Default value
     maxChannels = 12;  // Maximum channel count for spatial envelopes (supports up to 12ch)
 
+    // Default wavetable (sine wave)
+    defaultWavetable = Array.fill(numWavetableSamples, { |i|
+        sin(2pi * i / numWavetableSamples)
+    });
+
     // Public interface
     (
         // Data access
@@ -35,20 +45,32 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         amplitudeEnvelopes: amplitudeEnvelopes,
         spatialEnvelopes: spatialEnvelopes,
         trajectorySynthDefs: trajectorySynthDefs,
+        wavetables: wavetables,
+        wavetableBuffers: wavetableBuffers,
         selectedTrajectories: selectedTrajectories,
         copiedTrajectories: copiedTrajectories,
         maxChannels: maxChannels,
+        numWavetableSamples: numWavetableSamples,
+        defaultWavetable: defaultWavetable,
 
         // Trajectory management
-        addTrajectory: { |trajectory, synthDef = nil, amplitudeEnv = nil, spatialEnv = nil|
+        addTrajectory: { |trajectory, synthDef = nil, amplitudeEnv = nil, spatialEnv = nil, wavetableData = nil|
             var actualSynthDef = synthDef ?? { \upicWavetable };  // Safe default - mono wavetable
+            var actualWavetable = wavetableData ?? { defaultWavetable.copy };
+            var newBuffer;
 
             // Check if we need to remove old trajectory
             if(trajectories.size >= maxSynths) {
+                // Free the oldest buffer before removing
+                if(wavetableBuffers[0].notNil) {
+                    wavetableBuffers[0].free;
+                };
                 trajectories.removeAt(0);
                 amplitudeEnvelopes.removeAt(0);
                 spatialEnvelopes.removeAt(0);
                 trajectorySynthDefs.removeAt(0);
+                wavetables.removeAt(0);
+                wavetableBuffers.removeAt(0);
             };
 
             // Add new trajectory
@@ -56,6 +78,15 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             amplitudeEnvelopes.add(amplitudeEnv);
             spatialEnvelopes.add(spatialEnv);  // nil = default center position
             trajectorySynthDefs.add(actualSynthDef);
+            wavetables.add(actualWavetable);
+
+            // Create server buffer for this trajectory's wavetable
+            if(Server.default.serverRunning) {
+                newBuffer = Buffer.loadCollection(Server.default, actualWavetable);
+                wavetableBuffers.add(newBuffer);
+            } {
+                wavetableBuffers.add(nil);  // Will be created when server starts
+            };
 
             // Return index of added trajectory
             trajectories.size - 1;
@@ -65,10 +96,17 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             if(index >= 0 and: { index < trajectories.size }) {
                 var newSelected;
 
+                // Free the wavetable buffer
+                if(wavetableBuffers[index].notNil) {
+                    wavetableBuffers[index].free;
+                };
+
                 trajectories.removeAt(index);
                 amplitudeEnvelopes.removeAt(index);
                 spatialEnvelopes.removeAt(index);
                 trajectorySynthDefs.removeAt(index);
+                wavetables.removeAt(index);
+                wavetableBuffers.removeAt(index);
                 selectedTrajectories.remove(index);
 
                 // Adjust selected indices after removal
@@ -85,10 +123,17 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         },
 
         clearAll: {
+            // Free all wavetable buffers
+            wavetableBuffers.do { |buf|
+                if(buf.notNil) { buf.free };
+            };
+
             trajectories.clear;
             amplitudeEnvelopes.clear;
             spatialEnvelopes.clear;
             trajectorySynthDefs.clear;
+            wavetables.clear;
+            wavetableBuffers.clear;
             selectedTrajectories.clear;
             copiedTrajectories.clear;
             undoStack.clear;
@@ -136,7 +181,10 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                         spatial: if(spatialEnvelopes[i].notNil) {
                             spatialEnvelopes[i].deepCopy
                         } { nil },
-                        synthDef: trajectorySynthDefs[i]
+                        synthDef: trajectorySynthDefs[i],
+                        wavetable: if(wavetables[i].notNil) {
+                            wavetables[i].copy
+                        } { nil }
                     ));
                 };
             };
@@ -174,7 +222,11 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                     }
                 } { nil };
 
-                var newIndex = this.addTrajectory(newTraj, item.synthDef, newAmp, newSpatial);
+                var newWavetable = if(item.wavetable.notNil) {
+                    item.wavetable.copy
+                } { nil };
+
+                var newIndex = this.addTrajectory(newTraj, item.synthDef, newAmp, newSpatial, newWavetable);
                 pastedIndices = pastedIndices.add(newIndex);
             };
 
@@ -353,6 +405,42 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         setSpatialEnvelope: { |index, envelope|
             if(index >= 0 and: { index < spatialEnvelopes.size }) {
                 spatialEnvelopes[index] = envelope;
+            };
+        },
+
+        // Wavetable management
+        // Each trajectory has its own wavetable (512 samples, -1 to 1)
+        getWavetable: { |index|
+            if(index >= 0 and: { index < wavetables.size }) {
+                wavetables[index]
+            } { nil };
+        },
+
+        setWavetable: { |index, data|
+            if(index >= 0 and: { index < wavetables.size }) {
+                wavetables[index] = data;
+                // Update server buffer if it exists
+                if(wavetableBuffers[index].notNil) {
+                    wavetableBuffers[index].loadCollection(data);
+                };
+            };
+        },
+
+        getWavetableBuffer: { |index|
+            if(index >= 0 and: { index < wavetableBuffers.size }) {
+                wavetableBuffers[index]
+            } { nil };
+        },
+
+        // Ensure all trajectories have valid server buffers
+        // Call this after server boot
+        ensureWavetableBuffers: {
+            if(Server.default.serverRunning) {
+                wavetables.do { |wt, i|
+                    if(wavetableBuffers[i].isNil and: { wt.notNil }) {
+                        wavetableBuffers[i] = Buffer.loadCollection(Server.default, wt);
+                    };
+                };
             };
         },
 

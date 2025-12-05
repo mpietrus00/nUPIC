@@ -96,11 +96,24 @@
                 \numSynths, trajectoryModels.size
             ];
 
-            // Add wavetable buffer if available
-            if(synthDefName.asString.contains("upicWavetable") and: {
-                ~nUPIC_wavetableBuffer.notNil
-            }) {
-                params = params ++ [\bufnum, ~nUPIC_wavetableBuffer.bufnum];
+            // Add wavetable buffer if available (per-trajectory or global fallback)
+            if(synthDefName.asString.contains("upicWavetable")) {
+                var trajBuffer = nil;
+                var manager = ~nUPIC[\trajectoryData][\manager];
+
+                // Try per-trajectory buffer first
+                if(manager.notNil) {
+                    trajBuffer = manager[\getWavetableBuffer].value(i);
+                };
+
+                // Fall back to global buffer
+                if(trajBuffer.isNil and: { ~nUPIC_wavetableBuffer.notNil }) {
+                    trajBuffer = ~nUPIC_wavetableBuffer;
+                };
+
+                if(trajBuffer.notNil) {
+                    params = params ++ [\bufnum, trajBuffer.bufnum];
+                };
             };
 
             // Create synth

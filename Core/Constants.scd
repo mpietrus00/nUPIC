@@ -185,6 +185,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 // Get all data for a trajectory as an Event
 ~nUPIC[\trajectories][\get] = { |index|
     var data = ~nUPIC[\data];
+    var manager = ~nUPIC[\trajectoryData][\manager];
     if(data.notNil and: { index >= 0 } and: { index < ~nUPIC[\trajectories][\count].value }) {
         (
             index: index,
@@ -202,6 +203,9 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                     data[\spatialEnvelopes][index]
                 } { nil }
             },
+            wavetable: if(manager.notNil and: { manager[\wavetables].notNil } and: { index < manager[\wavetables].size }) {
+                manager[\wavetables][index]
+            } { nil },
             isSelected: if(data[\selectedTrajectories].notNil) {
                 data[\selectedTrajectories].includes(index)
             } { false }
@@ -292,6 +296,51 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         ("Trajectory " ++ index ++ " spatial envelope set").postln;
         envelope
     } { nil };
+};
+
+// Get wavetable data for trajectory
+~nUPIC[\trajectories][\getWavetable] = { |index|
+    var manager = ~nUPIC[\trajectoryData][\manager];
+    if(manager.notNil and: { index >= 0 } and: { index < manager[\wavetables].size }) {
+        manager[\getWavetable].value(index)
+    } { nil };
+};
+
+// Set wavetable data for trajectory (512 samples, -1 to 1)
+~nUPIC[\trajectories][\setWavetable] = { |index, data|
+    var manager = ~nUPIC[\trajectoryData][\manager];
+    if(manager.notNil and: { index >= 0 } and: { index < manager[\wavetables].size }) {
+        manager[\setWavetable].value(index, data);
+        ("Trajectory " ++ index ++ " wavetable set").postln;
+        data
+    } { nil };
+};
+
+// Get wavetable buffer reference for trajectory
+~nUPIC[\trajectories][\getWavetableBuffer] = { |index|
+    var manager = ~nUPIC[\trajectoryData][\manager];
+    if(manager.notNil and: { index >= 0 } and: { index < manager[\wavetableBuffers].size }) {
+        manager[\getWavetableBuffer].value(index)
+    } { nil };
+};
+
+// Open wavetable editor for trajectory
+~nUPIC[\trajectories][\editWavetable] = { |index|
+    ~nUPIC[\wavetableEditor][\open].value(index);
+};
+
+// Copy wavetable from one trajectory to another
+~nUPIC[\trajectories][\copyWavetable] = { |fromIndex, toIndex|
+    var manager = ~nUPIC[\trajectoryData][\manager];
+    var fromData;
+    if(manager.notNil) {
+        fromData = manager[\getWavetable].value(fromIndex);
+        if(fromData.notNil) {
+            manager[\setWavetable].value(toIndex, fromData.copy);
+            ("Wavetable copied from trajectory " ++ fromIndex ++ " to " ++ toIndex).postln;
+            true
+        } { false }
+    } { false };
 };
 
 // List all trajectories with summary info

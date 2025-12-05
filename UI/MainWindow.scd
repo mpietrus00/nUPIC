@@ -368,9 +368,24 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         ];
                         
                         // Add buffer number for all upicWavetable variants
-                        if(synthDefName.asString.contains("upicWavetable") and: { ~nUPIC_wavetableBuffer.notNil }) {
-                            params = params ++ [\bufnum, ~nUPIC_wavetableBuffer.bufnum];
-                            ("Using wavetable synth: " ++ synthDefName).postln;
+                        // Use per-trajectory wavetable buffer if available, fall back to global
+                        if(synthDefName.asString.contains("upicWavetable")) {
+                            var trajBuffer = nil;
+                            var manager = ~nUPIC[\trajectoryData][\manager];
+
+                            // Try to get per-trajectory buffer
+                            if(manager.notNil) {
+                                trajBuffer = manager[\getWavetableBuffer].value(i);
+                            };
+
+                            // Fall back to global buffer if per-trajectory not available
+                            if(trajBuffer.isNil and: { ~nUPIC_wavetableBuffer.notNil }) {
+                                trajBuffer = ~nUPIC_wavetableBuffer;
+                            };
+
+                            if(trajBuffer.notNil) {
+                                params = params ++ [\bufnum, trajBuffer.bufnum];
+                            };
                         };
                         
                         synth = Synth(synthDefName, params, state[\synthGroup]);
