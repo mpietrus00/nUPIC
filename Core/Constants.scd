@@ -121,63 +121,55 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 // Values stored directly for backwards compatibility: defaults[\playDuration]
 // Use defaults.setValue(\key, value) to update and auto-refresh UI
 // Preserve existing dependants if reloading
-~nUPIC[\defaults] = (
-    // Enable method-style calling: event.funcName(args) passes self automatically
-    know: true,
+// Initialize dependants storage first (preserve if reloading)
+if(~nUPIC['_defaultsDependants'].isNil) {
+    ~nUPIC['_defaultsDependants'] = IdentitySet.new;
+};
 
+~nUPIC[\defaults] = (
     // Actual values (backwards compatible - direct access works)
     defaultSynthDef: \upicWavetable,
     playDuration: 10,
     showGrid: true,
-    gridType: \equalTemperament,
-
-    // Dependants storage - preserve existing dependants if reloading
-    '_dependants': if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults]['_dependants'].notNil }) {
-        ~nUPIC[\defaults]['_dependants']
-    } {
-        IdentitySet.new
-    },
-
-    // Set value and notify dependants (named setValue to avoid Event:set conflict)
-    setValue: { |self, key, value|
-        var oldValue = self[key];
-        self[key] = value;
-        if(oldValue != value) {
-            ("defaults[" ++ key ++ "] changed: " ++ oldValue ++ " -> " ++ value).postln;
-            self.notifyChanged(key, value, oldValue);
-        };
-        value
-    },
-
-    // Add dependant (UI element or other listener)
-    addDependant: { |self, dep|
-        ("[DEFAULTS] Adding dependant, current count: " ++ self['_dependants'].size).postln;
-        self['_dependants'].add(dep);
-        ("[DEFAULTS] After add, count: " ++ self['_dependants'].size).postln;
-    },
-
-    // Remove dependant
-    removeDependant: { |self, dep|
-        self['_dependants'].remove(dep);
-    },
-
-    // Notify all dependants of change
-    notifyChanged: { |self, what, value, oldValue|
-        ("[DEFAULTS] notifyChanged called for " ++ what ++ ", dependants: " ++ self['_dependants'].size).postln;
-        self['_dependants'].do { |dep|
-            "[DEFAULTS] Notifying dependant...".postln;
-            {
-                if(dep.isKindOf(Function)) {
-                    dep.value(what, value, oldValue);
-                } {
-                    if(dep.respondsTo(\update)) {
-                        dep.update(self, what, value, oldValue);
-                    };
-                };
-            }.defer;
-        };
-    }
+    gridType: \equalTemperament
 );
+
+// Define methods separately to avoid Event method dispatch issues
+// These functions access ~nUPIC directly instead of relying on self
+
+~nUPIC[\defaults][\setValue] = { |key, value|
+    var defaults = ~nUPIC[\defaults];
+    var oldValue = defaults[key];
+    defaults[key] = value;
+    if(oldValue != value) {
+        ("defaults[" ++ key ++ "] changed: " ++ oldValue ++ " -> " ++ value).postln;
+        ~nUPIC[\defaults][\notifyChanged].value(key, value, oldValue);
+    };
+    value
+};
+
+~nUPIC[\defaults][\addDependant] = { |dep|
+    "[DEFAULTS] Adding dependant...".postln;
+    ~nUPIC['_defaultsDependants'].add(dep);
+    ("[DEFAULTS] Dependants count: " ++ ~nUPIC['_defaultsDependants'].size).postln;
+};
+
+~nUPIC[\defaults][\removeDependant] = { |dep|
+    ~nUPIC['_defaultsDependants'].remove(dep);
+};
+
+~nUPIC[\defaults][\notifyChanged] = { |what, value, oldValue|
+    var deps = ~nUPIC['_defaultsDependants'];
+    ("[DEFAULTS] notifyChanged: " ++ what ++ ", dependants: " ++ deps.size).postln;
+    deps.do { |dep|
+        "[DEFAULTS] Notifying dependant...".postln;
+        {
+            if(dep.isKindOf(Function)) {
+                dep.value(what, value, oldValue);
+            };
+        }.defer;
+    };
+};
 
 // Grid system definitions
 ~nUPIC[\gridSystems] = (

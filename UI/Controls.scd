@@ -60,7 +60,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             state[\playDuration] = newDuration;
             // Update reactive defaults (notifies other dependants)
             if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\setValue].notNil }) {
-                ~nUPIC[\defaults].setValue(\playDuration, newDuration);
+                ~nUPIC[\defaults][\setValue].value(\playDuration, newDuration);
             };
 
             // Update zoom system when duration changes
@@ -81,7 +81,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
     // Register for reactive updates from defaults
     if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
-        ~nUPIC[\defaults].addDependant({ |what, value, oldValue|
+        ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
             if(what == \playDuration) {
                 { durationNumberBox.value = value }.defer;
             };
@@ -1212,7 +1212,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             state[\playDuration] = newDuration;
             // Update reactive defaults
             if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\setValue].notNil }) {
-                ~nUPIC[\defaults].setValue(\playDuration, newDuration);
+                ~nUPIC[\defaults][\setValue].value(\playDuration, newDuration);
             };
 
             if(~nUPIC[\ui][\onDurationChange].notNil) {
@@ -1222,7 +1222,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
     // Register for reactive updates
     if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
-        ~nUPIC[\defaults].addDependant({ |what, value, oldValue|
+        ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
             if(what == \playDuration) {
                 { durationNumberBox.value = value }.defer;
             };
@@ -1935,7 +1935,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             state[\playDuration] = newDuration;
             // Update reactive defaults
             if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\setValue].notNil }) {
-                ~nUPIC[\defaults].setValue(\playDuration, newDuration);
+                ~nUPIC[\defaults][\setValue].value(\playDuration, newDuration);
             };
 
             if(~nUPIC[\ui][\onDurationChange].notNil) {
@@ -1949,7 +1949,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     ("[CONTROLS] addDependant exists: " ++ if(~nUPIC[\defaults].notNil) { ~nUPIC[\defaults][\addDependant].notNil } { false }).postln;
     if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
         "[CONTROLS] Registering dependant for playDuration".postln;
-        ~nUPIC[\defaults].addDependant({ |what, value, oldValue|
+        ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
             if(what == \playDuration) {
                 { durationNumberBox.value = value }.defer;
             };
