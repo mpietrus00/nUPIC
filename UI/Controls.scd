@@ -1588,17 +1588,22 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
         ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
             if(what == \defaultSynthDef) {
+                "[REACTIVE] defaultSynthDef changed to: %".format(value).postln;
                 {
+                    var menu = ~nUPIC[\ui][\state][\controls][\synthDefMenu];
                     var synthDefNames = if(~nUPIC_SynthDefs.notNil and: { ~nUPIC_SynthDefs[\available].notNil }) {
                         ~nUPIC_SynthDefs[\available]
                     } { [] };
                     var idx = synthDefNames.indexOf(value);
-                    if(idx.notNil and: { synthDefMenu.notNil }) {
-                        synthDefMenu.value = idx;
+                    "[REACTIVE] Found menu: %, idx: %".format(menu.notNil, idx).postln;
+                    if(idx.notNil and: { menu.notNil }) {
+                        menu.value = idx;
+                        "[REACTIVE] Updated menu to index %".format(idx).postln;
                     };
                 }.defer;
             };
         });
+        "[REACTIVE] Registered defaultSynthDef dependant".postln;
     };
 
     // Store references

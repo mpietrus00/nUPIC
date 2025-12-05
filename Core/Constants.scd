@@ -140,15 +140,20 @@ if(~nUPIC['_defaultsDependants'].isNil) {
 ~nUPIC[\defaults][\setValue] = { |key, value|
     var defaults = ~nUPIC[\defaults];
     var oldValue = defaults[key];
+    "[DEFAULTS] setValue called: % = % (was %)".format(key, value, oldValue).postln;
     defaults[key] = value;
     if(oldValue != value) {
+        "[DEFAULTS] Value changed, notifying dependants...".postln;
         ~nUPIC[\defaults][\notifyChanged].value(key, value, oldValue);
+    } {
+        "[DEFAULTS] Value unchanged, skipping notification".postln;
     };
     value
 };
 
 ~nUPIC[\defaults][\addDependant] = { |dep|
     ~nUPIC['_defaultsDependants'].add(dep);
+    "[DEFAULTS] Added dependant, count: %".format(~nUPIC['_defaultsDependants'].size).postln;
 };
 
 ~nUPIC[\defaults][\removeDependant] = { |dep|
@@ -156,7 +161,9 @@ if(~nUPIC['_defaultsDependants'].isNil) {
 };
 
 ~nUPIC[\defaults][\notifyChanged] = { |what, value, oldValue|
+    "[DEFAULTS] notifyChanged: % = %, dependants: %".format(what, value, ~nUPIC['_defaultsDependants'].size).postln;
     ~nUPIC['_defaultsDependants'].do { |dep|
+        "[DEFAULTS] Calling dependant: %".format(dep.class).postln;
         {
             if(dep.isKindOf(Function)) {
                 dep.value(what, value, oldValue);
