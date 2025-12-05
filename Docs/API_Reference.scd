@@ -93,6 +93,15 @@
 // ============================================================================
 // Modify trajectory frequencies using periodic, random, or custom functions.
 
+// --- Resolution / Resampling ---
+
+// Increase trajectory resolution for finer modulation (interpolates between points)
+~nUPIC[\trajectories][\resample].value(0, 200);  // Resample trajectory 0 to 200 points
+
+// Typical workflow: resample first, then modulate
+~nUPIC[\trajectories][\resample].value(0, 500);
+~nUPIC[\trajectories][\modulateFreq].value(0, ~nUPIC[\trajectories][\sineModulation].value(0.1, 8));
+
 // --- Periodic Modulation ---
 
 // Vibrato: multiply frequency by sine wave (depth = ±2%, 4 cycles)
