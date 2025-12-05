@@ -43,9 +43,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 var clickedTrajectory = nil;
                 var threshold = 10;  // Click threshold in pixels
                 
-                // Check if clicking on existing trajectory
-                if(data[\trajectories].notNil) {
-                    data[\trajectories].do { |traj, i|
+                // Check if clicking on existing arc
+                if(data[\arcs].notNil) {
+                    data[\arcs].do { |traj, i|
                         traj.do { |point|
                             var pointX, pointY, displayX;
                             pointX = if(point.isKindOf(Event)) { point.x } { point.x };
@@ -75,9 +75,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 };
                 
                 if(clickedTrajectory.notNil) {
-                    // Check if clicking on already selected trajectory - start drag
-                    if(data[\selectedTrajectories].notNil and: { 
-                        data[\selectedTrajectories].includes(clickedTrajectory) 
+                    // Check if clicking on already selected arc - start drag
+                    if(data[\selectedArcs].notNil and: { 
+                        data[\selectedArcs].includes(clickedTrajectory) 
                     }) {
                         // Start dragging
                         state[\isDragging] = true;
@@ -85,34 +85,34 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         state[\dragStartY] = y;
                         // Store original positions of all selected trajectories
                         state[\draggedTrajectories] = IdentityDictionary.new;
-                        if(data[\selectedTrajectories].notNil) {
-                            data[\selectedTrajectories].do { |i|
-                                if(i < data[\trajectories].size) {
-                                    state[\draggedTrajectories][i] = data[\trajectories][i].deepCopy;
+                        if(data[\selectedArcs].notNil) {
+                            data[\selectedArcs].do { |i|
+                                if(i < data[\arcs].size) {
+                                    state[\draggedTrajectories][i] = data[\arcs][i].deepCopy;
                                 };
                             };
                         };
                     } {
                         // Handle selection
-                        if(data[\selectedTrajectories].isNil) {
-                            data[\selectedTrajectories] = Set.new;
+                        if(data[\selectedArcs].isNil) {
+                            data[\selectedArcs] = Set.new;
                         };
                         
                         if(modifiers.isShift) {
                             // Shift-click: toggle selection
-                            if(data[\selectedTrajectories].includes(clickedTrajectory)) {
-                                data[\selectedTrajectories].remove(clickedTrajectory);
+                            if(data[\selectedArcs].includes(clickedTrajectory)) {
+                                data[\selectedArcs].remove(clickedTrajectory);
                             } {
-                                data[\selectedTrajectories].add(clickedTrajectory);
+                                data[\selectedArcs].add(clickedTrajectory);
                             };
                         } {
                             if(modifiers.isCmd) {
                                 // Cmd-click: add to selection
-                                data[\selectedTrajectories].add(clickedTrajectory);
+                                data[\selectedArcs].add(clickedTrajectory);
                             } {
                                 // Regular click: select only this one
-                                data[\selectedTrajectories].clear;
-                                data[\selectedTrajectories].add(clickedTrajectory);
+                                data[\selectedArcs].clear;
+                                data[\selectedArcs].add(clickedTrajectory);
                             };
                         };
                     };
@@ -124,7 +124,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     
                     ~nUPIC[\ui][\refreshDisplay].value;
                 } {
-                    // No trajectory clicked - start marquee selection
+                    // No arc clicked - start marquee selection
                     state[\isMarqueeSelecting] = true;
                     state[\marqueeStartX] = x;
                     state[\marqueeStartY] = y;
@@ -133,15 +133,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     
                     // Clear selection unless holding Cmd/Shift to add to selection
                     if(modifiers.isCmd.not and: { modifiers.isShift.not }) {
-                        if(data[\selectedTrajectories].isNil) {
-                            data[\selectedTrajectories] = Set.new;
+                        if(data[\selectedArcs].isNil) {
+                            data[\selectedArcs] = Set.new;
                         } {
-                            data[\selectedTrajectories].clear;
+                            data[\selectedArcs].clear;
                         };
                     };
                 };
             } {
-                // No trajectory clicked - start drawing new one
+                // No arc clicked - start drawing new one
                 var freq;
                 ("Starting to draw at virtual (% , %)".format(virtualX, virtualY)).postln;
                 state[\isDrawing] = true;
@@ -182,7 +182,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var constrainedDeltaY = deltaY;
 
         // Update all selected trajectories
-        if(data.notNil and: { data[\selectedTrajectories].notNil } and: {
+        if(data.notNil and: { data[\selectedArcs].notNil } and: {
             state[\draggedTrajectories].notNil
         }) {
             // First pass: find min/max Y across all selected trajectories to constrain deltaY
@@ -190,7 +190,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var globalMinY = inf;
             var globalMaxY = inf.neg;
 
-            data[\selectedTrajectories].do { |i|
+            data[\selectedArcs].do { |i|
                 var originalTraj = state[\draggedTrajectories][i];
                 if(originalTraj.notNil) {
                     originalTraj.do { |point|
@@ -201,7 +201,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 };
             };
 
-            // Constrain deltaY so trajectory shape is preserved
+            // Constrain deltaY so arc shape is preserved
             if(globalMinY < inf) {
                 // Don't let minimum point go below 0
                 if((globalMinY + deltaY) < 0) {
@@ -214,10 +214,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
 
             // Second pass: apply constrained delta to all points
-            data[\selectedTrajectories].do { |i|
+            data[\selectedArcs].do { |i|
                 var originalTraj = state[\draggedTrajectories][i];
-                if(originalTraj.notNil and: { i < data[\trajectories].size }) {
-                    data[\trajectories][i] = originalTraj.collect { |point|
+                if(originalTraj.notNil and: { i < data[\arcs].size }) {
+                    data[\arcs][i] = originalTraj.collect { |point|
                         if(point.isKindOf(Event)) {
                             var newY = point.y + constrainedDeltaY;
                             var uiState = ~nUPIC[\ui][\state];
@@ -315,17 +315,17 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     if(state[\isDrawing]) {
         state[\isDrawing] = false;
         
-        // Save trajectory if it has points
+        // Save arc if it has points
         if(state[\currentTrajectory].notNil and: { state[\currentTrajectory].size > 1 }) {
             var sortedTrajectory;
             
-            ("Saving trajectory with % points".format(state[\currentTrajectory].size)).postln;
+            ("Saving arc with % points".format(state[\currentTrajectory].size)).postln;
             
-            // Sort trajectory points by X coordinate to handle right-to-left drawing
+            // Sort arc points by X coordinate to handle right-to-left drawing
             // This ensures playback works correctly regardless of drawing direction
             sortedTrajectory = state[\currentTrajectory].sort({ |a, b| a.x < b.x });
             
-            // Check if we reversed the trajectory
+            // Check if we reversed the arc
             if(sortedTrajectory[0].x != state[\currentTrajectory][0].x) {
                 "Trajectory was drawn right-to-left - automatically sorted for correct playback".postln;
             };
@@ -372,7 +372,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     ("Creating spatial envelope: speaker 0 -> speaker " ++ (numChannels - 1)).postln;
                 };
 
-                // Use the trajectory manager if available, otherwise use direct data access
+                // Use the arc manager if available, otherwise use direct data access
                 if(data.respondsTo(\addTrajectory)) {
                     data[\addTrajectory].value(sortedTrajectory, synthDef, nil, spatialEnv);
                 } {
@@ -381,18 +381,18 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     var defaultWavetable = Array.fill(2048, { |i| sin(2pi * i / 2048) });
 
                     // Ensure data structures exist
-                    if(data[\trajectories].isNil) { data[\trajectories] = List.new };
+                    if(data[\arcs].isNil) { data[\arcs] = List.new };
                     if(data[\amplitudeEnvelopes].isNil) { data[\amplitudeEnvelopes] = List.new };
-                    if(data[\trajectorySynthDefs].isNil) { data[\trajectorySynthDefs] = List.new };
+                    if(data[\arcSynthDefs].isNil) { data[\arcSynthDefs] = List.new };
                     if(data[\spatialEnvelopes].isNil) { data[\spatialEnvelopes] = List.new };
                     if(data[\wavetables].isNil) { data[\wavetables] = List.new };
                     if(data[\wavetableBuffers].isNil) { data[\wavetableBuffers] = List.new };
 
-                    if(data[\trajectories].size >= maxSynths) {
-                        // Remove oldest trajectory
-                        data[\trajectories].removeAt(0);
+                    if(data[\arcs].size >= maxSynths) {
+                        // Remove oldest arc
+                        data[\arcs].removeAt(0);
                         data[\amplitudeEnvelopes].removeAt(0);
-                        data[\trajectorySynthDefs].removeAt(0);
+                        data[\arcSynthDefs].removeAt(0);
                         if(data[\spatialEnvelopes].size > 0) { data[\spatialEnvelopes].removeAt(0) };
                         // Free and remove wavetable buffer
                         if(data[\wavetableBuffers].size > 0) {
@@ -402,9 +402,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         if(data[\wavetables].size > 0) { data[\wavetables].removeAt(0) };
                     };
 
-                    data[\trajectories].add(sortedTrajectory);
+                    data[\arcs].add(sortedTrajectory);
                     data[\amplitudeEnvelopes].add(nil);
-                    data[\trajectorySynthDefs].add(synthDef);
+                    data[\arcSynthDefs].add(synthDef);
                     data[\spatialEnvelopes].add(spatialEnv);
                     data[\wavetables].add(defaultWavetable.copy);
                     // Create server buffer for wavetable
@@ -416,7 +416,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 };
             };
             
-            ("New trajectory added (SynthDef: " ++ synthDef ++ ")").postln;
+            ("New arc added (SynthDef: " ++ synthDef ++ ")").postln;
         };
         
         state[\currentTrajectory] = nil;
@@ -435,9 +435,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var width = constants[\defaultWidth] ? 1200;
     var height = constants[\defaultHeight] ? 800;
     
-    if(state.isNil or: { data.isNil } or: { data[\trajectories].isNil }) { ^nil };
+    if(state.isNil or: { data.isNil } or: { data[\arcs].isNil }) { ^nil };
     
-    data[\trajectories].do { |traj, trajIndex|
+    data[\arcs].do { |traj, trajIndex|
         var newTraj = List.new;
         var segments = List.new;
         var currentSegment = List.new;
@@ -483,7 +483,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         if(hasErased) {
             // If we erased something, check what's left
             if(segments.size == 0) {
-                // Entire trajectory erased
+                // Entire arc erased
                 trajectoriesToRemove.add(trajIndex);
             } {
                 if(segments.size == 1) {
@@ -506,38 +506,38 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Apply modifications
     modifiedTrajectories.do { |mod|
-        data[\trajectories][mod[0]] = mod[1];
+        data[\arcs][mod[0]] = mod[1];
     };
     
     // Remove trajectories marked for deletion (in reverse order)
     trajectoriesToRemove.sort.reverse.do { |index|
-        data[\trajectories].removeAt(index);
+        data[\arcs].removeAt(index);
         if(data[\amplitudeEnvelopes].notNil and: { index < data[\amplitudeEnvelopes].size }) {
             data[\amplitudeEnvelopes].removeAt(index);
         };
-        if(data[\trajectorySynthDefs].notNil and: { index < data[\trajectorySynthDefs].size }) {
-            data[\trajectorySynthDefs].removeAt(index);
+        if(data[\arcSynthDefs].notNil and: { index < data[\arcSynthDefs].size }) {
+            data[\arcSynthDefs].removeAt(index);
         };
-        if(data[\selectedTrajectories].notNil) {
-            data[\selectedTrajectories].remove(index);
+        if(data[\selectedArcs].notNil) {
+            data[\selectedArcs].remove(index);
         };
     };
     
-    // Adjust selected trajectory indices after removal
-    if(data[\selectedTrajectories].notNil and: { trajectoriesToRemove.size > 0 }) {
+    // Adjust selected arc indices after removal
+    if(data[\selectedArcs].notNil and: { trajectoriesToRemove.size > 0 }) {
         var newSelectedTrajectories = Set.new;
-        data[\selectedTrajectories].do { |index|
+        data[\selectedArcs].do { |index|
             var adjustedIndex = index;
             trajectoriesToRemove.do { |removedIndex|
                 if(removedIndex < index) {
                     adjustedIndex = adjustedIndex - 1;
                 };
             };
-            if(adjustedIndex >= 0 and: { adjustedIndex < data[\trajectories].size }) {
+            if(adjustedIndex >= 0 and: { adjustedIndex < data[\arcs].size }) {
                 newSelectedTrajectories.add(adjustedIndex);
             };
         };
-        data[\selectedTrajectories] = newSelectedTrajectories;
+        data[\selectedArcs] = newSelectedTrajectories;
     };
     
     ~nUPIC[\ui][\refreshDisplay].value;
@@ -550,7 +550,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var constants = ~nUPIC[\constants];
     var selectionRect;
     
-    if(state.isNil or: { data.isNil } or: { data[\trajectories].isNil }) { ^nil };
+    if(state.isNil or: { data.isNil } or: { data[\arcs].isNil }) { ^nil };
     
     // Calculate selection rectangle bounds
     selectionRect = Rect(
@@ -563,15 +563,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Only proceed if rectangle has some size
     if(selectionRect.width > 5 and: { selectionRect.height > 5 }) {
         // Initialize selection set if needed
-        if(data[\selectedTrajectories].isNil) {
-            data[\selectedTrajectories] = Set.new;
+        if(data[\selectedArcs].isNil) {
+            data[\selectedArcs] = Set.new;
         };
         
-        // Check each trajectory
-        data[\trajectories].do { |traj, trajIndex|
-            var trajectoryInSelection = false;
+        // Check each arc
+        data[\arcs].do { |traj, trajIndex|
+            var arcInSelection = false;
             
-            // Check if any point of trajectory is within selection rectangle
+            // Check if any point of arc is within selection rectangle
             traj.do { |point|
                 var pointX, pointY, displayX;
                 pointX = if(point.isKindOf(Event)) { point.x } { point.x };
@@ -592,13 +592,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 
                 // Check if point is within selection rectangle
                 if(selectionRect.containsPoint(Point(displayX, pointY))) {
-                    trajectoryInSelection = true;
+                    arcInSelection = true;
                 };
             };
             
-            // Add/remove trajectory from selection
-            if(trajectoryInSelection) {
-                data[\selectedTrajectories].add(trajIndex);
+            // Add/remove arc from selection
+            if(arcInSelection) {
+                data[\selectedArcs].add(trajIndex);
             };
         };
         
@@ -607,7 +607,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             ~nUPIC[\ui][\onTrajectorySelectionChanged].value;
         };
         
-        ("Marquee selection completed: " ++ data[\selectedTrajectories].size ++ " trajectories selected").postln;
+        ("Marquee selection completed: " ++ data[\selectedArcs].size ++ " trajectories selected").postln;
     };
     
     // Clean up marquee state
@@ -623,14 +623,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var data = ~nUPIC[\data];
     var constants = ~nUPIC[\constants];
     
-    if(state.isNil or: { data.isNil } or: { data[\selectedTrajectories].isNil }) { ^nil };
+    if(state.isNil or: { data.isNil } or: { data[\selectedArcs].isNil }) { ^nil };
     
-    if(data[\selectedTrajectories].size == 0) { ^nil };
+    if(data[\selectedArcs].size == 0) { ^nil };
     
-    // Move each selected trajectory
-    data[\selectedTrajectories].do { |trajIndex|
-        if(trajIndex < data[\trajectories].size) {
-            data[\trajectories][trajIndex] = data[\trajectories][trajIndex].collect { |point|
+    // Move each selected arc
+    data[\selectedArcs].do { |trajIndex|
+        if(trajIndex < data[\arcs].size) {
+            data[\arcs][trajIndex] = data[\arcs][trajIndex].collect { |point|
                 if(point.isKindOf(Event)) {
                     var newX = (point.x + deltaX).max(0);  // Prevent negative time
                     var newFreq;
@@ -666,9 +666,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var data = ~nUPIC[\data];
     var copiedCount = 0;
     
-    if(state.isNil or: { data.isNil } or: { data[\selectedTrajectories].isNil }) { ^0 };
+    if(state.isNil or: { data.isNil } or: { data[\selectedArcs].isNil }) { ^0 };
     
-    if(data[\selectedTrajectories].size == 0) { ^0 };
+    if(data[\selectedArcs].size == 0) { ^0 };
     
     // Create clipboard data structure
     if(data[\clipboard].isNil) {
@@ -679,15 +679,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         );
     } {
         // Clear existing clipboard
-        data[\clipboard][\trajectories].clear;
+        data[\clipboard][\arcs].clear;
         data[\clipboard][\amplitudeEnvelopes].clear;
         data[\clipboard][\synthDefs].clear;
     };
     
     // Copy selected trajectories
-    data[\selectedTrajectories].do { |trajIndex|
-        if(trajIndex < data[\trajectories].size) {
-            data[\clipboard][\trajectories].add(data[\trajectories][trajIndex].deepCopy);
+    data[\selectedArcs].do { |trajIndex|
+        if(trajIndex < data[\arcs].size) {
+            data[\clipboard][\arcs].add(data[\arcs][trajIndex].deepCopy);
             
             // Copy amplitude envelope if it exists
             if(data[\amplitudeEnvelopes].notNil and: { trajIndex < data[\amplitudeEnvelopes].size }) {
@@ -702,8 +702,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
             
             // Copy SynthDef if it exists
-            if(data[\trajectorySynthDefs].notNil and: { trajIndex < data[\trajectorySynthDefs].size }) {
-                data[\clipboard][\synthDefs].add(data[\trajectorySynthDefs][trajIndex]);
+            if(data[\arcSynthDefs].notNil and: { trajIndex < data[\arcSynthDefs].size }) {
+                data[\clipboard][\synthDefs].add(data[\arcSynthDefs][trajIndex]);
             } {
                 data[\clipboard][\synthDefs].add(nil);
             };
@@ -725,19 +725,19 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     if(state.isNil or: { data.isNil } or: { data[\clipboard].isNil }) { ^[] };
     
-    if(data[\clipboard][\trajectories].size == 0) { ^[] };
+    if(data[\clipboard][\arcs].size == 0) { ^[] };
     
     // Ensure data structures exist
-    if(data[\trajectories].isNil) { data[\trajectories] = List.new };
+    if(data[\arcs].isNil) { data[\arcs] = List.new };
     if(data[\amplitudeEnvelopes].isNil) { data[\amplitudeEnvelopes] = List.new };
-    if(data[\trajectorySynthDefs].isNil) { data[\trajectorySynthDefs] = List.new };
-    if(data[\selectedTrajectories].isNil) { data[\selectedTrajectories] = Set.new };
+    if(data[\arcSynthDefs].isNil) { data[\arcSynthDefs] = List.new };
+    if(data[\selectedArcs].isNil) { data[\selectedArcs] = Set.new };
     
     // Clear current selection
-    data[\selectedTrajectories].clear;
+    data[\selectedArcs].clear;
     
-    // Paste each trajectory
-    data[\clipboard][\trajectories].do { |traj, i|
+    // Paste each arc
+    data[\clipboard][\arcs].do { |traj, i|
         var newTraj = traj.collect { |point|
             if(point.isKindOf(Event)) {
                 var newX = (point.x + offsetX).max(0);
@@ -756,10 +756,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
         };
         
-        var newIndex = data[\trajectories].size;
-        data[\trajectories].add(newTraj);
+        var newIndex = data[\arcs].size;
+        data[\arcs].add(newTraj);
         pastedIndices.add(newIndex);
-        data[\selectedTrajectories].add(newIndex);
+        data[\selectedArcs].add(newIndex);
         
         // Paste amplitude envelope if available
         if(i < data[\clipboard][\amplitudeEnvelopes].size and: { 
@@ -777,9 +777,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         if(i < data[\clipboard][\synthDefs].size and: { 
             data[\clipboard][\synthDefs][i].notNil 
         }) {
-            data[\trajectorySynthDefs].add(data[\clipboard][\synthDefs][i]);
+            data[\arcSynthDefs].add(data[\clipboard][\synthDefs][i]);
         } {
-            data[\trajectorySynthDefs].add(defaults[\defaultSynthDef] ? \upicWavetable);
+            data[\arcSynthDefs].add(defaults[\defaultSynthDef] ? \upicWavetable);
         };
     };
     
@@ -787,33 +787,33 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     pastedIndices
 };
 
-// Utility function to reverse trajectory direction
+// Utility function to reverse arc direction
 // Useful for manually changing direction of existing trajectories
-~nUPIC[\ui][\reverseTrajectoryDirection] = { |trajectoryIndex|
+~nUPIC[\ui][\reverseTrajectoryDirection] = { |arcIndex|
     var state = ~nUPIC[\ui][\state];
     var data = ~nUPIC[\data];
     
-    if(state.isNil or: { data.isNil } or: { data[\trajectories].isNil }) {
-        "Cannot reverse trajectory - data not available".postln;
+    if(state.isNil or: { data.isNil } or: { data[\arcs].isNil }) {
+        "Cannot reverse arc - data not available".postln;
         ^nil;
     };
     
-    if(trajectoryIndex.isNil or: { trajectoryIndex >= data[\trajectories].size }) {
-        "Invalid trajectory index".postln;
+    if(arcIndex.isNil or: { arcIndex >= data[\arcs].size }) {
+        "Invalid arc index".postln;
         ^nil;
     };
     
-    // Reverse the trajectory points
-    data[\trajectories][trajectoryIndex] = data[\trajectories][trajectoryIndex].reverse;
+    // Reverse the arc points
+    data[\arcs][arcIndex] = data[\arcs][arcIndex].reverse;
     
     // Also reverse amplitude envelope if it exists
     if(data[\amplitudeEnvelopes].notNil and: { 
-        trajectoryIndex < data[\amplitudeEnvelopes].size 
-    } and: { data[\amplitudeEnvelopes][trajectoryIndex].notNil }) {
-        data[\amplitudeEnvelopes][trajectoryIndex] = data[\amplitudeEnvelopes][trajectoryIndex].reverse;
+        arcIndex < data[\amplitudeEnvelopes].size 
+    } and: { data[\amplitudeEnvelopes][arcIndex].notNil }) {
+        data[\amplitudeEnvelopes][arcIndex] = data[\amplitudeEnvelopes][arcIndex].reverse;
     };
     
-    ("Reversed trajectory " ++ trajectoryIndex).postln;
+    ("Reversed arc " ++ arcIndex).postln;
     ~nUPIC[\ui][\refreshDisplay].value;
 };
 
@@ -823,17 +823,17 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var data = ~nUPIC[\data];
     var reversedCount = 0;
     
-    if(state.isNil or: { data.isNil } or: { data[\selectedTrajectories].isNil }) {
+    if(state.isNil or: { data.isNil } or: { data[\selectedArcs].isNil }) {
         "No trajectories selected for reversal".postln;
         ^0;
     };
     
-    if(data[\selectedTrajectories].size == 0) {
+    if(data[\selectedArcs].size == 0) {
         "No trajectories selected".postln;
         ^0;
     };
     
-    data[\selectedTrajectories].do { |trajIndex|
+    data[\selectedArcs].do { |trajIndex|
         ~nUPIC[\ui][\reverseTrajectoryDirection].value(trajIndex);
         reversedCount = reversedCount + 1;
     };
@@ -844,6 +844,6 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
 "nUPIC Mouse Handlers loaded".postln;
 "Additional functions available:".postln;
-"  ~nUPIC[\\ui][\\reverseTrajectoryDirection].value(index) - Reverse specific trajectory".postln;
+"  ~nUPIC[\\ui][\\reverseTrajectoryDirection].value(index) - Reverse specific arc".postln;
 "  ~nUPIC[\\ui][\\reverseSelectedTrajectories].value - Reverse all selected trajectories".postln;
 )

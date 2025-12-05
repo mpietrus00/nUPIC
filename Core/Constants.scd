@@ -1,5 +1,5 @@
 // nUPIC Core Constants and Configuration
-// Central configuration for the nUPIC trajectory synthesis system
+// Central configuration for the nUPIC arc synthesis system
 
 (
 // Initialize nUPIC namespace
@@ -41,7 +41,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     moveStep: 10,
     
     // Drawing
-    trajectoryWidth: 2,
+    arcWidth: 2,
     selectedWidth: 4,
     gridOpacity: 0.5,
     
@@ -62,7 +62,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     controlBackground: Color.new(205/255, 250/255, 205/255),  // Light green for control areas (rgb 205, 250, 205)
     grid: Color.gray(0.3, 0.5),
     gridText: Color.gray(0.4),
-    trajectory: { |index, maxIndex = 200| 
+    arc: { |index, maxIndex = 200| 
         Color.hsv((index / maxIndex) * 0.8, 0.7, 0.9) 
     },
     selected: Color.blue,
@@ -102,7 +102,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     gridType: \equalTemperament,
     
     // Audio
-    synthDefNames: [\upicWavetable, \simpleGravObject, \trajectoryVarSaw, \testOrbit],
+    synthDefNames: [\upicWavetable, \simpleGravObject, \arcVarSaw, \testOrbit],
     defaultSynthDef: \upicWavetable,
     
     // UI modes
@@ -163,34 +163,34 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 };
 
 // ============================================================================
-// Trajectories API - Clean interface to access and modify trajectory data
+// Trajectories API - Clean interface to access and modify arc data
 // ============================================================================
 // Usage:
-//   ~nUPIC[\trajectories][\count].value              // Get number of trajectories
-//   ~nUPIC[\trajectories][\get].value(0)             // Get all data for trajectory 0
-//   ~nUPIC[\trajectories][\getSynthDef].value(0)     // Get SynthDef for trajectory 0
-//   ~nUPIC[\trajectories][\setSynthDef].value(0, \upicWavetable8ch)  // Set SynthDef
+//   ~nUPIC[\arcs][\count].value              // Get number of trajectories
+//   ~nUPIC[\arcs][\get].value(0)             // Get all data for arc 0
+//   ~nUPIC[\arcs][\getSynthDef].value(0)     // Get SynthDef for arc 0
+//   ~nUPIC[\arcs][\setSynthDef].value(0, \upicWavetable8ch)  // Set SynthDef
 //   etc.
 
-~nUPIC[\trajectories] = IdentityDictionary.new;
+~nUPIC[\arcs] = IdentityDictionary.new;
 
 // Get number of trajectories
-~nUPIC[\trajectories][\count] = {
+~nUPIC[\arcs][\count] = {
     var data = ~nUPIC[\data];
-    if(data.notNil and: { data[\trajectories].notNil }) {
-        data[\trajectories].size
+    if(data.notNil and: { data[\arcs].notNil }) {
+        data[\arcs].size
     } { 0 };
 };
 
-// Get all data for a trajectory as an Event
-~nUPIC[\trajectories][\get] = { |index|
+// Get all data for a arc as an Event
+~nUPIC[\arcs][\get] = { |index|
     var data = ~nUPIC[\data];
-    if(data.notNil and: { index >= 0 } and: { index < ~nUPIC[\trajectories][\count].value }) {
+    if(data.notNil and: { index >= 0 } and: { index < ~nUPIC[\arcs][\count].value }) {
         (
             index: index,
-            points: if(data[\trajectories].notNil) { data[\trajectories][index] } { nil },
-            synthDef: if(data[\trajectorySynthDefs].notNil and: { index < data[\trajectorySynthDefs].size }) {
-                data[\trajectorySynthDefs][index]
+            points: if(data[\arcs].notNil) { data[\arcs][index] } { nil },
+            synthDef: if(data[\arcSynthDefs].notNil and: { index < data[\arcSynthDefs].size }) {
+                data[\arcSynthDefs][index]
             } { nil },
             amplitudeEnvelope: if(data[\amplitudeEnvelopes].notNil and: { index < data[\amplitudeEnvelopes].size }) {
                 data[\amplitudeEnvelopes][index]
@@ -205,69 +205,69 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             wavetable: if(data[\wavetables].notNil and: { index < data[\wavetables].size }) {
                 data[\wavetables][index]
             } { nil },
-            isSelected: if(data[\selectedTrajectories].notNil) {
-                data[\selectedTrajectories].includes(index)
+            isSelected: if(data[\selectedArcs].notNil) {
+                data[\selectedArcs].includes(index)
             } { false }
         )
     } { nil };
 };
 
-// Get trajectory points
-~nUPIC[\trajectories][\getPoints] = { |index|
+// Get arc points
+~nUPIC[\arcs][\getPoints] = { |index|
     var data = ~nUPIC[\data];
-    if(data.notNil and: { data[\trajectories].notNil } and: { index >= 0 } and: { index < data[\trajectories].size }) {
-        data[\trajectories][index]
+    if(data.notNil and: { data[\arcs].notNil } and: { index >= 0 } and: { index < data[\arcs].size }) {
+        data[\arcs][index]
     } { nil };
 };
 
-// Set trajectory points
-~nUPIC[\trajectories][\setPoints] = { |index, points|
+// Set arc points
+~nUPIC[\arcs][\setPoints] = { |index, points|
     var data = ~nUPIC[\data];
-    if(data.notNil and: { data[\trajectories].notNil } and: { index >= 0 } and: { index < data[\trajectories].size }) {
-        data[\trajectories][index] = points;
+    if(data.notNil and: { data[\arcs].notNil } and: { index >= 0 } and: { index < data[\arcs].size }) {
+        data[\arcs][index] = points;
         ~nUPIC[\ui][\refreshDisplay].value;
         points
     } { nil };
 };
 
-// Get SynthDef for trajectory
-~nUPIC[\trajectories][\getSynthDef] = { |index|
+// Get SynthDef for arc
+~nUPIC[\arcs][\getSynthDef] = { |index|
     var data = ~nUPIC[\data];
-    if(data.notNil and: { data[\trajectorySynthDefs].notNil } and: { index >= 0 } and: { index < data[\trajectorySynthDefs].size }) {
-        data[\trajectorySynthDefs][index]
+    if(data.notNil and: { data[\arcSynthDefs].notNil } and: { index >= 0 } and: { index < data[\arcSynthDefs].size }) {
+        data[\arcSynthDefs][index]
     } { nil };
 };
 
-// Set SynthDef for trajectory
-~nUPIC[\trajectories][\setSynthDef] = { |index, synthDef|
+// Set SynthDef for arc
+~nUPIC[\arcs][\setSynthDef] = { |index, synthDef|
     var data = ~nUPIC[\data];
-    if(data.notNil and: { data[\trajectorySynthDefs].notNil } and: { index >= 0 } and: { index < data[\trajectorySynthDefs].size }) {
-        data[\trajectorySynthDefs][index] = synthDef;
-        ("Trajectory " ++ index ++ " SynthDef set to: " ++ synthDef).postln;
+    if(data.notNil and: { data[\arcSynthDefs].notNil } and: { index >= 0 } and: { index < data[\arcSynthDefs].size }) {
+        data[\arcSynthDefs][index] = synthDef;
+        ("Arc " ++ index ++ " SynthDef set to: " ++ synthDef).postln;
         synthDef
     } { nil };
 };
 
-// Get amplitude envelope for trajectory
-~nUPIC[\trajectories][\getAmplitudeEnvelope] = { |index|
+// Get amplitude envelope for arc
+~nUPIC[\arcs][\getAmplitudeEnvelope] = { |index|
     var data = ~nUPIC[\data];
     if(data.notNil and: { data[\amplitudeEnvelopes].notNil } and: { index >= 0 } and: { index < data[\amplitudeEnvelopes].size }) {
         data[\amplitudeEnvelopes][index]
     } { nil };
 };
 
-// Set amplitude envelope for trajectory
-~nUPIC[\trajectories][\setAmplitudeEnvelope] = { |index, envelope|
+// Set amplitude envelope for arc
+~nUPIC[\arcs][\setAmplitudeEnvelope] = { |index, envelope|
     var data = ~nUPIC[\data];
     if(data.notNil and: { data[\amplitudeEnvelopes].notNil } and: { index >= 0 } and: { index < data[\amplitudeEnvelopes].size }) {
         data[\amplitudeEnvelopes][index] = envelope;
-        ("Trajectory " ++ index ++ " amplitude envelope set").postln;
+        ("Arc " ++ index ++ " amplitude envelope set").postln;
         envelope
     } { nil };
 };
 
-// Get spatial envelope for trajectory
-~nUPIC[\trajectories][\getSpatialEnvelope] = { |index|
+// Get spatial envelope for arc
+~nUPIC[\arcs][\getSpatialEnvelope] = { |index|
     var data = ~nUPIC[\data];
     if(data.notNil) {
         if(data[\getSpatialEnvelope].notNil) {
@@ -280,11 +280,11 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     } { nil };
 };
 
-// Set spatial envelope for trajectory
-~nUPIC[\trajectories][\setSpatialEnvelope] = { |index, envelope|
+// Set spatial envelope for arc
+~nUPIC[\arcs][\setSpatialEnvelope] = { |index, envelope|
     var data = ~nUPIC[\data];
     if(data.notNil and: { index >= 0 }) {
-        // Set in TrajectoryData
+        // Set in ArcData
         if(data[\setSpatialEnvelope].notNil) {
             data[\setSpatialEnvelope].value(index, envelope);
         };
@@ -292,21 +292,21 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         if(data[\spatializationEnvelopes].notNil and: { index < data[\spatializationEnvelopes].size }) {
             data[\spatializationEnvelopes][index] = envelope;
         };
-        ("Trajectory " ++ index ++ " spatial envelope set").postln;
+        ("Arc " ++ index ++ " spatial envelope set").postln;
         envelope
     } { nil };
 };
 
-// Get wavetable data for trajectory
-~nUPIC[\trajectories][\getWavetable] = { |index|
+// Get wavetable data for arc
+~nUPIC[\arcs][\getWavetable] = { |index|
     var data = ~nUPIC[\data];
     if(data.notNil and: { data[\wavetables].notNil } and: { index >= 0 } and: { index < data[\wavetables].size }) {
         data[\wavetables][index]
     } { nil };
 };
 
-// Set wavetable data for trajectory (2048 samples, -1 to 1)
-~nUPIC[\trajectories][\setWavetable] = { |index, wavetableData|
+// Set wavetable data for arc (2048 samples, -1 to 1)
+~nUPIC[\arcs][\setWavetable] = { |index, wavetableData|
     var data = ~nUPIC[\data];
     if(data.notNil and: { data[\wavetables].notNil } and: { index >= 0 } and: { index < data[\wavetables].size }) {
         data[\wavetables][index] = wavetableData;
@@ -314,44 +314,44 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         if(data[\wavetableBuffers].notNil and: { data[\wavetableBuffers][index].notNil }) {
             data[\wavetableBuffers][index].loadCollection(wavetableData);
         };
-        ("Trajectory " ++ index ++ " wavetable set").postln;
+        ("Arc " ++ index ++ " wavetable set").postln;
         wavetableData
     } { nil };
 };
 
-// Get wavetable buffer reference for trajectory
-~nUPIC[\trajectories][\getWavetableBuffer] = { |index|
+// Get wavetable buffer reference for arc
+~nUPIC[\arcs][\getWavetableBuffer] = { |index|
     var data = ~nUPIC[\data];
     if(data.notNil and: { data[\wavetableBuffers].notNil } and: { index >= 0 } and: { index < data[\wavetableBuffers].size }) {
         data[\wavetableBuffers][index]
     } { nil };
 };
 
-// Open wavetable editor for trajectory
-~nUPIC[\trajectories][\editWavetable] = { |index|
+// Open wavetable editor for arc
+~nUPIC[\arcs][\editWavetable] = { |index|
     ~nUPIC[\wavetableEditor][\open].value(index);
 };
 
-// Copy wavetable from one trajectory to another
-~nUPIC[\trajectories][\copyWavetable] = { |fromIndex, toIndex|
+// Copy wavetable from one arc to another
+~nUPIC[\arcs][\copyWavetable] = { |fromIndex, toIndex|
     var data = ~nUPIC[\data];
     var fromWavetable;
     if(data.notNil and: { data[\wavetables].notNil }) {
-        fromWavetable = ~nUPIC[\trajectories][\getWavetable].value(fromIndex);
+        fromWavetable = ~nUPIC[\arcs][\getWavetable].value(fromIndex);
         if(fromWavetable.notNil) {
-            ~nUPIC[\trajectories][\setWavetable].value(toIndex, fromWavetable.copy);
-            ("Wavetable copied from trajectory " ++ fromIndex ++ " to " ++ toIndex).postln;
+            ~nUPIC[\arcs][\setWavetable].value(toIndex, fromWavetable.copy);
+            ("Wavetable copied from arc " ++ fromIndex ++ " to " ++ toIndex).postln;
             true
         } { false }
     } { false };
 };
 
 // List all trajectories with summary info
-~nUPIC[\trajectories][\list] = {
-    var count = ~nUPIC[\trajectories][\count].value;
+~nUPIC[\arcs][\list] = {
+    var count = ~nUPIC[\arcs][\count].value;
     "=== Trajectories (%): ===".format(count).postln;
     count.do { |i|
-        var traj = ~nUPIC[\trajectories][\get].value(i);
+        var traj = ~nUPIC[\arcs][\get].value(i);
         if(traj.notNil) {
             "  [%] SynthDef: %, Points: %, Selected: %".format(
                 i,
@@ -365,19 +365,19 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 };
 
 // ============================================================================
-// Trajectory Transformation Functions
+// Arc Transformation Functions
 // ============================================================================
-// Apply mathematical functions to modulate trajectory values
+// Apply mathematical functions to modulate arc values
 // Supports periodic, stochastic, and custom functions
 
-// Resample trajectory to increase/decrease number of points (for higher modulation resolution)
+// Resample arc to increase/decrease number of points (for higher modulation resolution)
 // Uses linear interpolation between existing points
-~nUPIC[\trajectories][\resample] = { |index, numPoints = 100|
+~nUPIC[\arcs][\resample] = { |index, numPoints = 100|
     var points, newPoints, totalLength, segmentLengths, cumulativeLengths;
     var i, dx, dy, length, targetDist, segIdx, prevCumulative;
     var segStart, t, x, y, freq, cumLen, j;
 
-    points = ~nUPIC[\trajectories][\getPoints].value(index);
+    points = ~nUPIC[\arcs][\getPoints].value(index);
     if(points.notNil and: { points.size >= 2 } and: { numPoints >= 2 }) {
         newPoints = List.new;
         totalLength = 0;
@@ -394,7 +394,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             cumulativeLengths.add(totalLength);
         };
 
-        // Generate evenly spaced points along the trajectory
+        // Generate evenly spaced points along the arc
         numPoints.do { |idx|
             targetDist = (idx / (numPoints - 1)) * totalLength;
             segIdx = 0;
@@ -428,46 +428,46 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             };
         };
 
-        ~nUPIC[\trajectories][\setPoints].value(index, newPoints);
-        ("Trajectory " ++ index ++ " resampled: " ++ points.size ++ " -> " ++ numPoints ++ " points").postln;
+        ~nUPIC[\arcs][\setPoints].value(index, newPoints);
+        ("Arc " ++ index ++ " resampled: " ++ points.size ++ " -> " ++ numPoints ++ " points").postln;
         newPoints
     } { nil };
 };
 
-// Transform trajectory with arbitrary function
+// Transform arc with arbitrary function
 // func receives: (point, index, totalPoints, normalizedPosition)
 // func should return modified point or new (x:, y:, freq:) event
-~nUPIC[\trajectories][\transform] = { |index, func|
-    var points = ~nUPIC[\trajectories][\getPoints].value(index);
+~nUPIC[\arcs][\transform] = { |index, func|
+    var points = ~nUPIC[\arcs][\getPoints].value(index);
     if(points.notNil and: { func.notNil }) {
         var newPoints = points.collect { |point, i|
             var normalized = i / (points.size - 1).max(1);
             func.value(point, i, points.size, normalized);
         };
-        ~nUPIC[\trajectories][\setPoints].value(index, newPoints);
+        ~nUPIC[\arcs][\setPoints].value(index, newPoints);
         newPoints
     } { nil };
 };
 
 // Modulate frequency/y values with a function
 // func receives: (freq, normalizedPosition, index) and returns new freq
-~nUPIC[\trajectories][\modulateFreq] = { |index, func|
-    var points = ~nUPIC[\trajectories][\getPoints].value(index);
+~nUPIC[\arcs][\modulateFreq] = { |index, func|
+    var points = ~nUPIC[\arcs][\getPoints].value(index);
     if(points.notNil and: { func.notNil }) {
         var newPoints = points.collect { |point, i|
             var normalized = i / (points.size - 1).max(1);
             var newFreq = func.value(point.freq ? point.y, normalized, i);
             (x: point.x, y: point.y, freq: newFreq)
         };
-        ~nUPIC[\trajectories][\setPoints].value(index, newPoints);
+        ~nUPIC[\arcs][\setPoints].value(index, newPoints);
         newPoints
     } { nil };
 };
 
 // Modulate time/x values with a function
 // func receives: (x, normalizedPosition, index) and returns new x
-~nUPIC[\trajectories][\modulateTime] = { |index, func|
-    var points = ~nUPIC[\trajectories][\getPoints].value(index);
+~nUPIC[\arcs][\modulateTime] = { |index, func|
+    var points = ~nUPIC[\arcs][\getPoints].value(index);
     if(points.notNil and: { func.notNil }) {
         var newPoints = points.collect { |point, i|
             var normalized = i / (points.size - 1).max(1);
@@ -476,7 +476,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         };
         // Sort by x to maintain proper order
         newPoints = newPoints.sort({ |a, b| a.x < b.x });
-        ~nUPIC[\trajectories][\setPoints].value(index, newPoints);
+        ~nUPIC[\arcs][\setPoints].value(index, newPoints);
         newPoints
     } { nil };
 };
@@ -486,35 +486,35 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 // ============================================================================
 
 // Sine modulation: value * (1 + depth * sin(freq * 2pi * position + phase))
-~nUPIC[\trajectories][\sineModulation] = { |depth = 0.2, freq = 4, phase = 0|
+~nUPIC[\arcs][\sineModulation] = { |depth = 0.2, freq = 4, phase = 0|
     { |val, pos, idx|
         val * (1 + (depth * sin((freq * 2pi * pos) + phase)))
     }
 };
 
 // Add sine wave to value: value + amplitude * sin(freq * 2pi * position + phase)
-~nUPIC[\trajectories][\sineAdd] = { |amplitude = 100, freq = 4, phase = 0|
+~nUPIC[\arcs][\sineAdd] = { |amplitude = 100, freq = 4, phase = 0|
     { |val, pos, idx|
         val + (amplitude * sin((freq * 2pi * pos) + phase))
     }
 };
 
 // Noise modulation: value * (1 + depth * random)
-~nUPIC[\trajectories][\noiseModulation] = { |depth = 0.1|
+~nUPIC[\arcs][\noiseModulation] = { |depth = 0.1|
     { |val, pos, idx|
         val * (1 + (depth * rrand(-1.0, 1.0)))
     }
 };
 
 // Add noise to value
-~nUPIC[\trajectories][\noiseAdd] = { |amplitude = 50|
+~nUPIC[\arcs][\noiseAdd] = { |amplitude = 50|
     { |val, pos, idx|
         val + (amplitude * rrand(-1.0, 1.0))
     }
 };
 
 // Sawtooth modulation
-~nUPIC[\trajectories][\sawModulation] = { |depth = 0.2, freq = 4|
+~nUPIC[\arcs][\sawModulation] = { |depth = 0.2, freq = 4|
     { |val, pos, idx|
         var sawVal = ((pos * freq) % 1) * 2 - 1;  // -1 to 1 sawtooth
         val * (1 + (depth * sawVal))
@@ -522,14 +522,14 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 };
 
 // Exponential decay: value * exp(-decay * position)
-~nUPIC[\trajectories][\expDecay] = { |decay = 2|
+~nUPIC[\arcs][\expDecay] = { |decay = 2|
     { |val, pos, idx|
         val * exp(decay * pos.neg)
     }
 };
 
 // Exponential growth: value * exp(growth * position)
-~nUPIC[\trajectories][\expGrowth] = { |growth = 1|
+~nUPIC[\arcs][\expGrowth] = { |growth = 1|
     { |val, pos, idx|
         val * exp(growth * pos)
     }
@@ -540,7 +540,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 // ============================================================================
 // Based on Xenakis' GENDYN algorithm - random walks with barriers
 
-~nUPIC[\trajectories][\stochasticModulation] = { |
+~nUPIC[\arcs][\stochasticModulation] = { |
     ampStep = 0.1,      // Max amplitude step size (as fraction of value)
     durStep = 0.1,      // Max duration/time step size
     ampBarrier = 0.5,   // Amplitude barrier (max deviation from original)
@@ -573,13 +573,13 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
 // Full Xenakis GENDYN-style transformation
 // Modulates both amplitude and time with random walks
-~nUPIC[\trajectories][\gendyn] = { |index,
+~nUPIC[\arcs][\gendyn] = { |index,
     freqStep = 0.05,
     freqBarrier = 0.3,
     timeStep = 0.02,
     timeBarrier = 0.1
 |
-    var points = ~nUPIC[\trajectories][\getPoints].value(index);
+    var points = ~nUPIC[\arcs][\getPoints].value(index);
     if(points.notNil) {
         var freqAccum = 0;
         var timeAccum = 0;
@@ -604,15 +604,15 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
         // Sort by x
         newPoints = newPoints.sort({ |a, b| a.x < b.x });
-        ~nUPIC[\trajectories][\setPoints].value(index, newPoints);
-        ("Trajectory " ++ index ++ " transformed with GENDYN stochastic").postln;
+        ~nUPIC[\arcs][\setPoints].value(index, newPoints);
+        ("Arc " ++ index ++ " transformed with GENDYN stochastic").postln;
         newPoints
     } { nil };
 };
 
 // Brownian motion / random walk modulation
-~nUPIC[\trajectories][\brownian] = { |index, stepSize = 0.02, barrier = 0.3|
-    var points = ~nUPIC[\trajectories][\getPoints].value(index);
+~nUPIC[\arcs][\brownian] = { |index, stepSize = 0.02, barrier = 0.3|
+    var points = ~nUPIC[\arcs][\getPoints].value(index);
     if(points.notNil) {
         var accum = 0;
         var newPoints = points.collect { |point, i|
@@ -620,15 +620,15 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             accum = accum.fold(barrier.neg, barrier);
             (x: point.x, y: point.y, freq: point.freq * (1 + accum))
         };
-        ~nUPIC[\trajectories][\setPoints].value(index, newPoints);
-        ("Trajectory " ++ index ++ " transformed with Brownian motion").postln;
+        ~nUPIC[\arcs][\setPoints].value(index, newPoints);
+        ("Arc " ++ index ++ " transformed with Brownian motion").postln;
         newPoints
     } { nil };
 };
 
 // Quantize frequencies to a scale
-~nUPIC[\trajectories][\quantizeToScale] = { |index, scale, root = 60|
-    var points = ~nUPIC[\trajectories][\getPoints].value(index);
+~nUPIC[\arcs][\quantizeToScale] = { |index, scale, root = 60|
+    var points = ~nUPIC[\arcs][\getPoints].value(index);
     if(points.notNil and: { scale.notNil }) {
         var newPoints = points.collect { |point, i|
             var midi = point.freq.cpsmidi;
@@ -639,8 +639,8 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             var newFreq = quantizedMidi.midicps;
             (x: point.x, y: point.y, freq: newFreq)
         };
-        ~nUPIC[\trajectories][\setPoints].value(index, newPoints);
-        ("Trajectory " ++ index ++ " quantized to scale").postln;
+        ~nUPIC[\arcs][\setPoints].value(index, newPoints);
+        ("Arc " ++ index ++ " quantized to scale").postln;
         newPoints
     } { nil };
 };
@@ -727,10 +727,10 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 };
 
 // Convenient quantize function using scale name
-~nUPIC[\trajectories][\quantize] = { |index, scaleName = \major, root = 60|
+~nUPIC[\arcs][\quantize] = { |index, scaleName = \major, root = 60|
     var scale = ~nUPIC[\scales][scaleName];
     if(scale.notNil) {
-        ~nUPIC[\trajectories][\quantizeToScale].value(index, scale, root);
+        ~nUPIC[\arcs][\quantizeToScale].value(index, scale, root);
     } {
         ("Unknown scale: " ++ scaleName ++ ". Use ~nUPIC[\\scales][\\list].value to see options.").postln;
         nil

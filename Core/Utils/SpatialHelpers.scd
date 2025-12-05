@@ -38,25 +38,25 @@
     }
 };
 
-// Get SynthDef name for a trajectory index
-~nUPIC[\utils][\getSynthDefForTrajectory] = { |index|
+// Get SynthDef name for a arc index
+~nUPIC[\utils][\getSynthDefForArc] = { |index|
     var data = ~nUPIC[\data];
     var defaults = ~nUPIC[\defaults];
 
-    if(data[\trajectorySynthDefs].notNil and: {
-        index < data[\trajectorySynthDefs].size and: {
-            data[\trajectorySynthDefs][index].notNil
+    if(data[\arcSynthDefs].notNil and: {
+        index < data[\arcSynthDefs].size and: {
+            data[\arcSynthDefs][index].notNil
         }
     }) {
-        data[\trajectorySynthDefs][index]
+        data[\arcSynthDefs][index]
     } {
         defaults[\defaultSynthDef] ? \upicWavetable
     }
 };
 
-// Get channel count for a trajectory index
-~nUPIC[\utils][\getChannelCountForTrajectory] = { |index|
-    var synthDef = ~nUPIC[\utils][\getSynthDefForTrajectory].value(index);
+// Get channel count for a arc index
+~nUPIC[\utils][\getChannelCountForArc] = { |index|
+    var synthDef = ~nUPIC[\utils][\getSynthDefForArc].value(index);
     ~nUPIC[\utils][\getChannelCount].value(synthDef);
 };
 
@@ -98,10 +98,10 @@
     channelValue.clip(0, numChannels - 1);
 };
 
-// Get pan value for a trajectory at normalized time
-~nUPIC[\utils][\getPanForTrajectory] = { |trajIndex, timeNorm|
+// Get pan value for a arc at normalized time
+~nUPIC[\utils][\getPanForArc] = { |trajIndex, timeNorm|
     var data = ~nUPIC[\data];
-    var numChannels = ~nUPIC[\utils][\getChannelCountForTrajectory].value(trajIndex);
+    var numChannels = ~nUPIC[\utils][\getChannelCountForArc].value(trajIndex);
     var spatialEnv = data[\spatializationEnvelopes][trajIndex];
     var channel;
 
@@ -117,5 +117,5 @@
 "Utils/SpatialHelpers loaded".postln;
 "  - getChannelCount: extract from SynthDef name".postln;
 "  - channelToPan: convert channel to pan value".postln;
-"  - getPanForTrajectory: get pan at normalized time".postln;
+"  - getPanForArc: get pan at normalized time".postln;
 )

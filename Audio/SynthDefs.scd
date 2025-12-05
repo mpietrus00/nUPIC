@@ -20,13 +20,13 @@
     ~nUPIC_DefaultWaveTable;
 };
 
-// Function to create a wavetable from drawn trajectory
-~createWavetableFromTrajectory = { |trajectory, bufferSize = 2048|
+// Function to create a wavetable from drawn arc
+~createWavetableFromArc = { |arc, bufferSize = 2048|
     var signal, buffer;
     var points, normalized;
     
-    // Extract Y values from trajectory for waveform
-    points = trajectory.collect { |point| point.y };
+    // Extract Y values from arc for waveform
+    points = arc.collect { |point| point.y };
     
     if(points.size < 2) {
         "Not enough points to create wavetable".warn;
@@ -75,7 +75,7 @@
     
     // Create and return buffer
     buffer = Buffer.loadCollection(s, signal, action: {
-        "Wavetable created from trajectory".postln;
+        "Wavetable created from arc".postln;
     });
     
     buffer;
@@ -253,7 +253,7 @@
         finalFreq = freq * dopplerShift.clip(0.5, 2.0);
         
         // NO ENVELOPE - direct amplitude control for precision
-        // The amplitude envelope from the trajectory will control the level directly
+        // The amplitude envelope from the arc will control the level directly
         
         // Phase generation
         phase = LFSaw.ar(finalFreq).range(0, 1);

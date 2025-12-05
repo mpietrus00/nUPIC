@@ -1,5 +1,5 @@
 // nUPIC Main Window
-// Main GUI window for trajectory drawing and control
+// Main GUI window for arc drawing and control
 // Part of the nUPIC (nu-UPIC) modular system
 
 (
@@ -17,7 +17,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var freqLabelWidth = 80; // Width for frequency labels - made wider
     var freqLabelGap = 8; // Small gap between freq labels and drawing
     var freqLabelView;
-    var drawingAreaLeft, drawingAreaWidth, trajectoryHeight;
+    var drawingAreaLeft, drawingAreaWidth, arcHeight;
     var rangeSliderHeight = 20; // Height for horizontal range slider
     var rangeSliderWidth = 20; // Width for vertical range slider
     var rangeSliderGap = 5; // Gap between drawing area and range sliders
@@ -33,7 +33,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     colors = ~nUPIC[\colors] ? (
         background: Color.white,
         grid: Color.gray(0.3, 0.5),
-        trajectory: { |index, maxIndex = 200|
+        arc: { |index, maxIndex = 200|
             Color.hsv((index / maxIndex) * 0.8, 0.7, 0.9)
         },
         selected: Color.blue,
@@ -54,7 +54,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Calculate layout dimensions with space for RangeSliders
     drawingAreaLeft = allMargin + freqLabelWidth + freqLabelGap;
     drawingAreaWidth = width - drawingAreaLeft - allMargin - rangeSliderWidth - rangeSliderGap;
-    trajectoryHeight = height - allMargin - allMargin - rangeSliderHeight - rangeSliderGap;
+    arcHeight = height - allMargin - allMargin - rangeSliderHeight - rangeSliderGap;
 
     // Initialize UI state if not exists
     if(~nUPIC[\ui][\state].isNil) {
@@ -130,18 +130,18 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     ~nUPIC[\ui][\state][\window] = window;
 
     // Create frequency labels view (left area)
-    freqLabelView = UserView(window, Rect(allMargin, allMargin, freqLabelWidth, trajectoryHeight));
+    freqLabelView = UserView(window, Rect(allMargin, allMargin, freqLabelWidth, arcHeight));
     freqLabelView.background = Color.white;
     ~nUPIC[\ui][\state][\freqLabelView] = freqLabelView;
 
     // Set up frequency label drawing
     freqLabelView.drawFunc = {
-        ~nUPIC[\ui][\drawFrequencyLabels].value(freqLabelWidth, trajectoryHeight);
+        ~nUPIC[\ui][\drawFrequencyLabels].value(freqLabelWidth, arcHeight);
     };
 
     // Create vertical RangeSlider for frequency zoom (positioned to the right of drawing area)
     verticalRangeSlider = RangeSlider(window,
-        Rect(drawingAreaLeft + drawingAreaWidth + rangeSliderGap, allMargin, rangeSliderWidth, trajectoryHeight))
+        Rect(drawingAreaLeft + drawingAreaWidth + rangeSliderGap, allMargin, rangeSliderWidth, arcHeight))
         .background_(Color.gray(0.8))
         .knobColor_(Color.green)
         .hi_(1.0)  // Top frequency (normalized)
@@ -155,14 +155,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Store reference
     ~nUPIC[\ui][\state][\verticalRangeSlider] = verticalRangeSlider;
 
-    // Create main trajectory drawing view
-    drawView = UserView(window, Rect(drawingAreaLeft, allMargin, drawingAreaWidth, trajectoryHeight));
+    // Create main arc drawing view
+    drawView = UserView(window, Rect(drawingAreaLeft, allMargin, drawingAreaWidth, arcHeight));
     drawView.background = Color.white;
     ~nUPIC[\ui][\state][\drawView] = drawView;
 
     // Create horizontal RangeSlider for time zoom (positioned below drawing area)
     horizontalRangeSlider = RangeSlider(window,
-        Rect(drawingAreaLeft, allMargin + trajectoryHeight + rangeSliderGap, drawingAreaWidth, rangeSliderHeight))
+        Rect(drawingAreaLeft, allMargin + arcHeight + rangeSliderGap, drawingAreaWidth, rangeSliderHeight))
         .background_(Color.gray(0.8))
         .knobColor_(Color.green)
         .hi_(1.0)  // End time (normalized)
@@ -203,7 +203,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
 
     if(~nUPIC[\ui][\initializeDrawing].notNil) {
-        ~nUPIC[\ui][\initializeDrawing].value(drawView, drawingAreaWidth, trajectoryHeight);
+        ~nUPIC[\ui][\initializeDrawing].value(drawView, drawingAreaWidth, arcHeight);
     };
 
     // Keyboard handling is done by Controls.scd to avoid conflicts
@@ -256,7 +256,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         ^nil;
     };
 
-    if(data[\trajectories].isNil or: { data[\trajectories].size == 0 }) {
+    if(data[\arcs].isNil or: { data[\arcs].size == 0 }) {
         "No trajectories to play".postln;
         ^nil;
     };
@@ -279,7 +279,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     state[\isPlaying] = true;
     state[\spatialDebugLogged] = nil;  // Reset debug flag for spatial envelope logging
 
-    ("Starting playback with " ++ data[\trajectories].size ++ " trajectories").postln;
+    ("Starting playback with " ++ data[\arcs].size ++ " trajectories").postln;
     ("Play duration: " ++ playDuration ++ " seconds").postln;
 
     // Initialize synth group if not exists
@@ -296,8 +296,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     if(~nUPIC_voiceManager.notNil) {
         ~nUPIC_voiceManager.startMasterLimiter.value;
         // Ensure we pass a proper integer count
-        trajCount = if(data[\trajectories].notNil) {
-            data[\trajectories].size.asInteger
+        trajCount = if(data[\arcs].notNil) {
+            data[\arcs].size.asInteger
         } { 0 };
         ~nUPIC_voiceManager.updateVoiceCount.value(trajCount);
     };
@@ -306,11 +306,11 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     state[\playbackTask] = Task {
         var uiFrameTime = 1 / frameRate;
         var audioFrameTime = if(useHighResAudio) { 1 / audioFrameRate } { uiFrameTime };
-        var synthStarted = Array.fill(data[\trajectories].size, false);
+        var synthStarted = Array.fill(data[\arcs].size, false);
         var frameCount = 0;
         var audioFrameCount = 0;
         var lastUIUpdateTime = 0;
-        var numTrajectories = data[\trajectories].size;
+        var numTrajectories = data[\arcs].size;
 
         // Limit number of trajectories to prevent clipping
         if(~nUPIC_voiceManager.notNil and: { numTrajectories > ~nUPIC_voiceManager.maxSynths }) {
@@ -318,18 +318,18 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             numTrajectories = ~nUPIC_voiceManager.maxSynths;
         };
 
-        // Create synths for each trajectory
+        // Create synths for each arc
         fork {
             var startTime;  // Declare at beginning of fork block
             
-            ("Creating " ++ data[\trajectories].size ++ " synths").postln;
-            data[\trajectories].do { |traj, i|
+            ("Creating " ++ data[\arcs].size ++ " synths").postln;
+            data[\arcs].do { |traj, i|
                 var hue, synth, startFreq, startPan, firstPoint, synthDefName;
                 var synthCreated = false;
                 var attempts = 0;
                 var maxAttempts = 3;
 
-                // Get the starting frequency from the first point of the trajectory
+                // Get the starting frequency from the first point of the arc
                 if(traj.size > 0) {
                     firstPoint = if(traj[0].isKindOf(Event)) { traj[0] } { (x: traj[0].x, y: traj[0].y, freq: nil) };
                     startFreq = firstPoint.freq ?? { firstPoint.y.linlin(0, height, state[\zoomFreqMax], state[\zoomFreqMin]) };
@@ -340,8 +340,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 };
 
                 // Get SynthDef name with fallback
-                synthDefName = if(data[\trajectorySynthDefs].notNil and: { i < data[\trajectorySynthDefs].size }) {
-                    data[\trajectorySynthDefs][i]
+                synthDefName = if(data[\arcSynthDefs].notNil and: { i < data[\arcSynthDefs].size }) {
+                    data[\arcSynthDefs][i]
                 } {
                     defaults[\defaultSynthDef] ? \simpleGravObject
                 };
@@ -353,7 +353,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     try {
                         var params = [
                             \freq, startFreq,
-                            \amp, 0.0,  // Start silent until trajectory begins
+                            \amp, 0.0,  // Start silent until arc begins
                             \pan, startPan,
                             \mass, 1.5 + (i * 0.3),
                             \velocity, 5,
@@ -368,16 +368,16 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         ];
                         
                         // Add buffer number for all upicWavetable variants
-                        // Use per-trajectory wavetable buffer if available, fall back to global
+                        // Use per-arc wavetable buffer if available, fall back to global
                         if(synthDefName.asString.contains("upicWavetable")) {
                             var trajBuffer = nil;
 
-                            // Try to get per-trajectory buffer from data
+                            // Try to get per-arc buffer from data
                             if(data[\wavetableBuffers].notNil and: { i < data[\wavetableBuffers].size }) {
                                 trajBuffer = data[\wavetableBuffers][i];
                             };
 
-                            // Fall back to global buffer if per-trajectory not available
+                            // Fall back to global buffer if per-arc not available
                             if(trajBuffer.isNil and: { ~nUPIC_wavetableBuffer.notNil }) {
                                 trajBuffer = ~nUPIC_wavetableBuffer;
                             };
@@ -399,7 +399,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                 ("First synth created with nodeID: " ++ synth.nodeID ++ " freq: " ++ startFreq).postln;
                             };
                         } {
-                            ("Synth creation failed for trajectory " ++ i ++ ", attempt " ++ attempts).postln;
+                            ("Synth creation failed for arc " ++ i ++ ", attempt " ++ attempts).postln;
                             synth = nil;
                         };
                     } { |error|
@@ -447,7 +447,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 // ZOOM-INDEPENDENT PLAYBACK ENGINE
                 // Audio playback is completely independent of current zoom/view state
                 // Plays all trajectories based on their absolute stored positions
-                data[\trajectories].do { |traj, i|
+                data[\arcs].do { |traj, i|
                     var point1, point2, interpFactor;
                     var freq, pan, velocity, amp;
                     var foundPoints = false;
@@ -471,10 +471,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         var firstTime = firstSpatialPos * state[\playDuration];
                         var lastTime = lastSpatialPos * state[\playDuration];
 
-                        // Check if we've reached the start of this trajectory - use absolute time
+                        // Check if we've reached the start of this arc - use absolute time
                         if(synthStarted[i].not and: { currentTime >= firstTime }) {
                             synthStarted[i] = true;
-                            // Fade in the synth when its trajectory starts
+                            // Fade in the synth when its arc starts
                             if(state[\synths][i].notNil) {
                                 state[\synths][i].set(\amp, 0.1);
                                 if(i == 0) {
@@ -483,7 +483,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                             };
                         };
 
-                        // Only process if we're within the trajectory time range - use absolute time
+                        // Only process if we're within the arc time range - use absolute time
                         if(currentTime >= firstTime and: { currentTime <= lastTime }) {
                             // Find two points to interpolate between using ABSOLUTE time coordinates
                             block { |break|
@@ -574,11 +574,11 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                     var ampPoint1, ampPoint2, ampFound = false;
                                     var trajRelativeTime, trajRelativeX, trajPixelLength, firstTimeForAmp;
 
-                                    // Calculate trajectory-relative time position (0 to trajectory duration)
+                                    // Calculate arc-relative time position (0 to arc duration)
                                     // CONSISTENT SPATIAL MAPPING: Use same coordinate system as main timing
                                     firstTimeForAmp = firstTime;  // Use the already calculated consistent firstTime
                                     trajRelativeTime = currentTime - firstTimeForAmp;
-                                    // Convert time to relative position for amplitude envelope lookup using actual trajectory length
+                                    // Convert time to relative position for amplitude envelope lookup using actual arc length
                                     trajPixelLength = (lastPoint.x - firstPoint.x).max(1);
                                     trajRelativeX = trajRelativeTime * trajPixelLength / (lastTime - firstTimeForAmp);
 
@@ -643,7 +643,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                     };
 
                                     if(spatialEnv.isNil and: { state[\spatialDebugLogged].isNil }) {
-                                        "[SPATIAL] No spatial envelope found for trajectory %".format(i).postln;
+                                        "[SPATIAL] No spatial envelope found for arc %".format(i).postln;
                                         state[\spatialDebugLogged] = true;
                                     };
 
@@ -653,13 +653,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                         var channelValue, maxChannels;
                                         var trajSynthDefName;
 
-                                    // Get channel count from trajectory's SynthDef
-                                    trajSynthDefName = if(data[\trajectorySynthDefs].notNil and: {
-                                        i < data[\trajectorySynthDefs].size and: {
-                                            data[\trajectorySynthDefs][i].notNil
+                                    // Get channel count from arc's SynthDef
+                                    trajSynthDefName = if(data[\arcSynthDefs].notNil and: {
+                                        i < data[\arcSynthDefs].size and: {
+                                            data[\arcSynthDefs][i].notNil
                                         }
                                     }) {
-                                        data[\trajectorySynthDefs][i].asString
+                                        data[\arcSynthDefs][i].asString
                                     } {
                                         (defaults[\defaultSynthDef] ? \upicWavetable).asString
                                     };
@@ -675,7 +675,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                         { trajSynthDefName.contains("2ch") } { 2 }
                                         { true } { 1 };  // mono
 
-                                    // Calculate trajectory-relative position for spatial envelope lookup
+                                    // Calculate arc-relative position for spatial envelope lookup
                                     // Use same coordinate system as amplitude envelope
                                     firstTimeForSpatial = firstTime;
                                     spatialRelativeX = (currentTime - firstTimeForSpatial) * (lastPoint.x - firstPoint.x).max(1) / (lastTime - firstTimeForSpatial);
@@ -754,13 +754,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                         var maxChannels;
                                         var edgeSynthDefName;
 
-                                        // Get channel count from trajectory's SynthDef
-                                        edgeSynthDefName = if(data[\trajectorySynthDefs].notNil and: {
-                                            i < data[\trajectorySynthDefs].size and: {
-                                                data[\trajectorySynthDefs][i].notNil
+                                        // Get channel count from arc's SynthDef
+                                        edgeSynthDefName = if(data[\arcSynthDefs].notNil and: {
+                                            i < data[\arcSynthDefs].size and: {
+                                                data[\arcSynthDefs][i].notNil
                                             }
                                         }) {
-                                            data[\trajectorySynthDefs][i].asString
+                                            data[\arcSynthDefs][i].asString
                                         } {
                                             (defaults[\defaultSynthDef] ? \upicWavetable).asString
                                         };
@@ -792,12 +792,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                 };
                             };
                         } {
-                            // Outside trajectory range - stay silent
+                            // Outside arc range - stay silent
                             if(state[\synths][i].notNil) {
                                 state[\synths][i].set(\amp, 0.0);
                             };
                         };
-                        // End of trajectory processing
+                        // End of arc processing
                     } {
                         // Trajectory hasn't started yet or is too small
                         if(state[\synths][i].notNil) {

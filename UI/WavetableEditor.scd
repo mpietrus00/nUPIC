@@ -1,12 +1,12 @@
 // Wavetable Editor UI for nUPIC
 // Visual editor for creating and modifying wavetables
-// Each trajectory has its own wavetable
+// Each arc has its own wavetable
 
 (
 ~nUPIC = ~nUPIC ?? ();
 ~nUPIC[\wavetableEditor] = ~nUPIC[\wavetableEditor] ?? ();
 
-~nUPIC[\wavetableEditor][\open] = { |trajectoryIndex = nil|
+~nUPIC[\wavetableEditor][\open] = { |arcIndex = nil|
     var win, drawView, controlView, wavetableData, isDrawing = false;
     var width = 350, height = 200;
     var controlHeight = 35;  // Single row for controls
@@ -17,29 +17,29 @@
     var currentIndex;
     var titleText;
     var data = ~nUPIC[\data];
-    var trajCount = ~nUPIC[\trajectories][\count].value;
+    var trajCount = ~nUPIC[\arcs][\count].value;
     var presetMenu, presetLabel, presetNames;
 
-    // Determine which trajectory to edit
-    if(trajectoryIndex.notNil) {
-        currentIndex = trajectoryIndex;
+    // Determine which arc to edit
+    if(arcIndex.notNil) {
+        currentIndex = arcIndex;
     } {
-        // Use first selected trajectory, or nil if none
-        if(data.notNil and: { data[\selectedTrajectories].notNil } and: { data[\selectedTrajectories].size > 0 }) {
-            currentIndex = data[\selectedTrajectories].asArray.sort[0];
+        // Use first selected arc, or nil if none
+        if(data.notNil and: { data[\selectedArcs].notNil } and: { data[\selectedArcs].size > 0 }) {
+            currentIndex = data[\selectedArcs].asArray.sort[0];
         } {
             currentIndex = nil;
         };
     };
 
-    // Check if we have a valid trajectory
+    // Check if we have a valid arc
     if(currentIndex.isNil or: { trajCount == 0 } or: { currentIndex >= trajCount }) {
-        "No trajectory selected. Draw a trajectory first, select it, then open the wavetable editor.".warn;
+        "No arc selected. Draw a arc first, select it, then open the wavetable editor.".warn;
         ^nil;
     };
 
-    // Get wavetable data for this trajectory
-    wavetableData = ~nUPIC[\trajectories][\getWavetable].value(currentIndex);
+    // Get wavetable data for this arc
+    wavetableData = ~nUPIC[\arcs][\getWavetable].value(currentIndex);
     if(wavetableData.isNil) {
         // Create default sine wavetable and store it
         wavetableData = Array.fill(2048, { |i|
@@ -60,7 +60,7 @@
     };
 
     // Create title
-    titleText = "nUPIC Wavetable Editor - Trajectory " ++ currentIndex;
+    titleText = "nUPIC Wavetable Editor - Arc " ++ currentIndex;
 
     // Create window with B&K green
     win = Window(titleText, Rect(100, 100, width, height + controlHeight));
@@ -117,7 +117,7 @@
 
     // Helper function to update wavetable in manager
     ~nUPIC[\wavetableEditor][\updateWavetable] = {
-        ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
+        ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
     };
 
     // Mouse interaction for drawing
@@ -164,8 +164,8 @@
 
     drawView.mouseUpAction = { |view, x, y|
         isDrawing = false;
-        // Update the trajectory's wavetable
-        ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
+        // Update the arc's wavetable
+        ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
     };
 
     // Control area with light B&K green
@@ -193,7 +193,7 @@
                         if(loadedData.notNil) {
                             wavetableData = loadedData;
                             { drawView.refresh }.defer;
-                            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
+                            ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
                         };
                     });
                 } {
@@ -201,7 +201,7 @@
                     if(presetData.notNil) {
                         wavetableData = presetData;
                         drawView.refresh;
-                        ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
+                        ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
                     };
                 };
             };
@@ -215,7 +215,7 @@
         .action_({
             wavetableData = wavetableData.reverse;
             drawView.refresh;
-            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
         });
 
     buttons[\invert] = Button(controlView, Rect(xPos + 35, 5, 32, 22))
@@ -224,7 +224,7 @@
         .action_({
             wavetableData = wavetableData.neg;
             drawView.refresh;
-            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
         });
 
     buttons[\smooth] = Button(controlView, Rect(xPos + 70, 5, 32, 22))
@@ -241,7 +241,7 @@
             };
             wavetableData = smoothed;
             drawView.refresh;
-            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
         });
 
     buttons[\normalize] = Button(controlView, Rect(xPos + 105, 5, 32, 22))
@@ -252,7 +252,7 @@
             if(maxVal > 0) {
                 wavetableData = wavetableData / maxVal;
                 drawView.refresh;
-                ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
+                ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
             };
         });
 
@@ -260,7 +260,7 @@
         .states_([["test", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 9))
         .action_({
-            var buffer = ~nUPIC[\trajectories][\getWavetableBuffer].value(currentIndex);
+            var buffer = ~nUPIC[\arcs][\getWavetableBuffer].value(currentIndex);
             if(buffer.notNil) {
                 fork {
                     var synth = Synth(\upicWavetable, [\freq, 440, \amp, 0.2, \gate, 1, \bufnum, buffer.bufnum]);
@@ -283,5 +283,5 @@
     win.front;
 };
 
-"Wavetable Editor loaded (per-trajectory)".postln;
+"Wavetable Editor loaded (per-arc)".postln;
 )

@@ -20,12 +20,12 @@ if(~nUPIC[\spatial].isNil) {
     // Stop existing playback
     ~nUPIC[\playback][\stop].value;
 
-    if(data[\trajectories].isNil or: { data[\trajectories].size == 0 }) {
+    if(data[\arcs].isNil or: { data[\arcs].size == 0 }) {
         "No trajectories to play".postln;
         ^nil;
     };
 
-    numTrajectories = data[\trajectories].size;
+    numTrajectories = data[\arcs].size;
     ("Starting playback: " ++ numTrajectories ++ " trajectories, " ++ duration ++ "s").postln;
 
     // Create synth group
@@ -38,18 +38,18 @@ if(~nUPIC[\spatial].isNil) {
     ~nUPIC[\spatial][\Playback][\duration] = duration;
 
     fork {
-        // Create synths for each trajectory
-        data[\trajectories].do { |traj, i|
+        // Create synths for each arc
+        data[\arcs].do { |traj, i|
             var synthDefName, numChannels, params, synth;
             var firstPoint, startFreq;
 
-            // Get SynthDef for this trajectory
-            synthDefName = if(data[\trajectorySynthDefs].notNil and: {
-                i < data[\trajectorySynthDefs].size and: {
-                    data[\trajectorySynthDefs][i].notNil
+            // Get SynthDef for this arc
+            synthDefName = if(data[\arcSynthDefs].notNil and: {
+                i < data[\arcSynthDefs].size and: {
+                    data[\arcSynthDefs][i].notNil
                 }
             }) {
-                data[\trajectorySynthDefs][i]
+                data[\arcSynthDefs][i]
             } {
                 defaults[\defaultSynthDef] ? \upicWavetable
             };
@@ -71,12 +71,12 @@ if(~nUPIC[\spatial].isNil) {
                 \numSynths, numTrajectories
             ];
 
-            // Add wavetable buffer (per-trajectory or global fallback)
+            // Add wavetable buffer (per-arc or global fallback)
             if(synthDefName.asString.contains("upicWavetable")) {
                 var trajBuffer = nil;
                 var nupicData = ~nUPIC[\data];
 
-                // Try per-trajectory buffer first
+                // Try per-arc buffer first
                 if(nupicData.notNil and: { nupicData[\wavetableBuffers].notNil } and: { i < nupicData[\wavetableBuffers].size }) {
                     trajBuffer = nupicData[\wavetableBuffers][i];
                 };
@@ -116,8 +116,8 @@ if(~nUPIC[\spatial].isNil) {
                 var currentTime = Main.elapsedTime - startTime;
                 var globalTimeNorm = currentTime / duration;
 
-                // Update each trajectory
-                data[\trajectories].do { |traj, i|
+                // Update each arc
+                data[\arcs].do { |traj, i|
                     var synth = state[\synths][i];
 
                     if(synth.notNil and: { traj.size > 0 }) {
@@ -126,7 +126,7 @@ if(~nUPIC[\spatial].isNil) {
                         var trajStartNorm = firstPoint.x / canvasWidth;
                         var trajEndNorm = lastPoint.x / canvasWidth;
 
-                        // Check if we're within trajectory time range
+                        // Check if we're within arc time range
                         if(globalTimeNorm >= trajStartNorm and: { globalTimeNorm <= trajEndNorm }) {
                             var trajTimeNorm = (globalTimeNorm - trajStartNorm) / (trajEndNorm - trajStartNorm);
                             var freq, amp, pan;
@@ -144,7 +144,7 @@ if(~nUPIC[\spatial].isNil) {
 
                             synth.set(\freq, freq, \amp, amp, \pan, pan);
                         } {
-                            // Outside trajectory - silence
+                            // Outside arc - silence
                             synth.set(\amp, 0);
                         };
                     };
@@ -165,7 +165,7 @@ if(~nUPIC[\spatial].isNil) {
     };
 };
 
-// Helper: interpolate frequency along trajectory
+// Helper: interpolate frequency along arc
 ~nUPIC[\playback][\interpolateFreq] = { |traj, timeNorm|
     var result = 440;
     var index = (timeNorm * (traj.size - 1)).floor.asInteger;

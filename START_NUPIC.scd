@@ -202,8 +202,8 @@ fork {
 
             "  ✓ simpleGravObject loaded".postln;
 
-            // Simpler trajectory synth based on working example
-            SynthDef(\trajectoryVarSaw, {
+            // Simpler arc synth based on working example
+            SynthDef(\arcVarSaw, {
                 arg freq = 440, amp = 0.1, pan = 0, gate = 1,
                     mass = 1, velocity = 0, distance = 100, width = 0.5,
                     radialVel = 0, dopplerSens = 0, numSynths = 1;
@@ -230,7 +230,7 @@ fork {
                 Out.ar(0, Pan2.ar(sig, pan));
             }).add;
 
-            "  ✓ trajectoryVarSaw loaded".postln;
+            "  ✓ arcVarSaw loaded".postln;
 
             // Test synth - exactly like working example from fix_synthdefs_based_on_working.scd
             SynthDef(\testOrbit, {

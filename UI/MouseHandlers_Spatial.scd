@@ -14,7 +14,7 @@
     // Stop any existing playback
     ~nUPIC[\ui][\stopPlayback].value;
     
-    if(data[\trajectories].isNil or: { data[\trajectories].size == 0 }) {
+    if(data[\arcs].isNil or: { data[\arcs].size == 0 }) {
         "No trajectories to play".postln;
         ^nil;
     };
@@ -26,20 +26,20 @@
     // Initialize synth list
     state[\synths] = List.new;
     
-    // Create spatial envelope buffers for each trajectory
+    // Create spatial envelope buffers for each arc
     state[\spatialBuffers] = List.new;
     
-    // Play each trajectory
-    data[\trajectories].do { |trajectory, i|
+    // Play each arc
+    data[\arcs].do { |arc, i|
         var synth, synthDef, ampEnvelope, spatialBuffer;
         var params, viewWidth;
         
-        if(trajectory.notNil and: { trajectory.size > 0 }) {
-            // Get synthdef for this trajectory
-            synthDef = if(data[\trajectorySynthDefs].notNil and: { 
-                i < data[\trajectorySynthDefs].size 
+        if(arc.notNil and: { arc.size > 0 }) {
+            // Get synthdef for this arc
+            synthDef = if(data[\arcSynthDefs].notNil and: { 
+                i < data[\arcSynthDefs].size 
             }) {
-                data[\trajectorySynthDefs][i]
+                data[\arcSynthDefs][i]
             } {
                 defaults[\defaultSynthDef] ? \upicWavetable
             };
@@ -49,7 +49,7 @@
                 spatialBuffer = ~nUPIC[\createSpatialEnvelopeBuffer].value(i);
                 state[\spatialBuffers].add(spatialBuffer);
                 
-                "Created spatial buffer for trajectory % with % channels".format(i, 8).postln;
+                "Created spatial buffer for arc % with % channels".format(i, 8).postln;
             };
             
             // Get amplitude envelope
@@ -66,16 +66,16 @@
                 state[\drawView].bounds.width
             } { 800 };
 
-            // Create playback routine for this trajectory
+            // Create playback routine for this arc
             fork {
                 var startTime = Main.elapsedTime;
-                var firstPoint = trajectory[0];
-                var lastPoint = trajectory.last;
-                var trajectoryDuration = playDuration;
+                var firstPoint = arc[0];
+                var lastPoint = arc.last;
+                var arcDuration = playDuration;
                 var prevSynth = nil;
 
-                trajectory.do { |point, j|
-                    var nextPoint = if(j < (trajectory.size - 1)) { trajectory[j + 1] } { nil };
+                arc.do { |point, j|
+                    var nextPoint = if(j < (arc.size - 1)) { arc[j + 1] } { nil };
                     var timeToNextPoint, freq, amp, pan;
                     var playbackProgress;
 
@@ -83,7 +83,7 @@
                     if(nextPoint.notNil) {
                         var currentPos = (point.x - firstPoint.x) / (lastPoint.x - firstPoint.x);
                         var nextPos = (nextPoint.x - firstPoint.x) / (lastPoint.x - firstPoint.x);
-                        timeToNextPoint = (nextPos - currentPos) * trajectoryDuration;
+                        timeToNextPoint = (nextPos - currentPos) * arcDuration;
                     } {
                         timeToNextPoint = 0.1; // Last point
                     };
@@ -113,7 +113,7 @@
                         \amp, amp,
                         \pan, pan,
                         \gate, 1,
-                        \numSynths, data[\trajectories].size,
+                        \numSynths, data[\arcs].size,
                         \mass, point[\mass] ? 1,
                         \velocity, point[\velocity] ? 0,
                         \distance, point[\distance] ? 100,

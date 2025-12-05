@@ -1,14 +1,14 @@
-// SynthConnection - Connects TrajectoryModel to Synths using Connection quark
+// SynthConnection - Connects ArcModel to Synths using Connection quark
 // Handles reactive updates from model to synth parameters
 
 (
 ~nUPIC[\connections] = ~nUPIC[\connections] ? IdentityDictionary.new;
 
-// SynthConnection - links a trajectory model to a running synth
-~nUPIC[\connections][\SynthConnection] = { |trajectoryModel, synth|
+// SynthConnection - links a arc model to a running synth
+~nUPIC[\connections][\SynthConnection] = { |arcModel, synth|
     var conn = IdentityDictionary.new;
 
-    conn[\model] = trajectoryModel;
+    conn[\model] = arcModel;
     conn[\synth] = synth;
     conn[\connected] = false;
 
@@ -82,26 +82,26 @@
     engine[\playbackRoutine] = nil;
 
     // Create synths and connections for all trajectories
-    engine[\prepare] = { |trajectoryModels, synthGroup|
+    engine[\prepare] = { |arcModels, synthGroup|
         // Clean up existing
         engine[\stop].value;
 
-        trajectoryModels.do { |model, i|
+        arcModels.do { |model, i|
             var synthDefName = model[\synthDefName];
             var params = [
                 \freq, 440,
                 \amp, 0,
                 \pan, 0,
                 \gate, 1,
-                \numSynths, trajectoryModels.size
+                \numSynths, arcModels.size
             ];
 
-            // Add wavetable buffer if available (per-trajectory or global fallback)
+            // Add wavetable buffer if available (per-arc or global fallback)
             if(synthDefName.asString.contains("upicWavetable")) {
                 var trajBuffer = nil;
                 var data = ~nUPIC[\data];
 
-                // Try per-trajectory buffer first
+                // Try per-arc buffer first
                 if(data.notNil and: { data[\wavetableBuffers].notNil } and: { i < data[\wavetableBuffers].size }) {
                     trajBuffer = data[\wavetableBuffers][i];
                 };
@@ -158,7 +158,7 @@
                             var trajEnd = lastX / 800;
                             var trajTimeNorm;
 
-                            // Check if we're within this trajectory's time range
+                            // Check if we're within this arc's time range
                             if(timeNorm >= trajStart and: { timeNorm <= trajEnd }) {
                                 trajTimeNorm = (timeNorm - trajStart) / (trajEnd - trajStart);
                                 trajTimeNorm = trajTimeNorm.clip(0, 1);
@@ -169,7 +169,7 @@
                                 // Set amplitude (could also use envelope)
                                 conn[\synth].set(\amp, 0.2);
                             } {
-                                // Outside trajectory range - silence
+                                // Outside arc range - silence
                                 conn[\synth].set(\amp, 0);
                             };
                         };
