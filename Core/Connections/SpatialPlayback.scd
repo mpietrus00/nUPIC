@@ -74,11 +74,11 @@ if(~nUPIC[\spatial].isNil) {
             // Add wavetable buffer (per-trajectory or global fallback)
             if(synthDefName.asString.contains("upicWavetable")) {
                 var trajBuffer = nil;
-                var manager = ~nUPIC[\trajectoryData][\manager];
+                var nupicData = ~nUPIC[\data];
 
                 // Try per-trajectory buffer first
-                if(manager.notNil) {
-                    trajBuffer = manager[\getWavetableBuffer].value(i);
+                if(nupicData.notNil and: { nupicData[\wavetableBuffers].notNil } and: { i < nupicData[\wavetableBuffers].size }) {
+                    trajBuffer = nupicData[\wavetableBuffers][i];
                 };
 
                 // Fall back to global buffer

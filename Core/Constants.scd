@@ -185,7 +185,6 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 // Get all data for a trajectory as an Event
 ~nUPIC[\trajectories][\get] = { |index|
     var data = ~nUPIC[\data];
-    var manager = ~nUPIC[\trajectoryData][\manager];
     if(data.notNil and: { index >= 0 } and: { index < ~nUPIC[\trajectories][\count].value }) {
         (
             index: index,
@@ -203,8 +202,8 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                     data[\spatialEnvelopes][index]
                 } { nil }
             },
-            wavetable: if(manager.notNil and: { manager[\wavetables].notNil } and: { index < manager[\wavetables].size }) {
-                manager[\wavetables][index]
+            wavetable: if(data[\wavetables].notNil and: { index < data[\wavetables].size }) {
+                data[\wavetables][index]
             } { nil },
             isSelected: if(data[\selectedTrajectories].notNil) {
                 data[\selectedTrajectories].includes(index)
@@ -300,27 +299,31 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
 // Get wavetable data for trajectory
 ~nUPIC[\trajectories][\getWavetable] = { |index|
-    var manager = ~nUPIC[\trajectoryData][\manager];
-    if(manager.notNil and: { index >= 0 } and: { index < manager[\wavetables].size }) {
-        manager[\getWavetable].value(index)
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { data[\wavetables].notNil } and: { index >= 0 } and: { index < data[\wavetables].size }) {
+        data[\wavetables][index]
     } { nil };
 };
 
-// Set wavetable data for trajectory (512 samples, -1 to 1)
-~nUPIC[\trajectories][\setWavetable] = { |index, data|
-    var manager = ~nUPIC[\trajectoryData][\manager];
-    if(manager.notNil and: { index >= 0 } and: { index < manager[\wavetables].size }) {
-        manager[\setWavetable].value(index, data);
+// Set wavetable data for trajectory (2048 samples, -1 to 1)
+~nUPIC[\trajectories][\setWavetable] = { |index, wavetableData|
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { data[\wavetables].notNil } and: { index >= 0 } and: { index < data[\wavetables].size }) {
+        data[\wavetables][index] = wavetableData;
+        // Update server buffer if it exists
+        if(data[\wavetableBuffers].notNil and: { data[\wavetableBuffers][index].notNil }) {
+            data[\wavetableBuffers][index].loadCollection(wavetableData);
+        };
         ("Trajectory " ++ index ++ " wavetable set").postln;
-        data
+        wavetableData
     } { nil };
 };
 
 // Get wavetable buffer reference for trajectory
 ~nUPIC[\trajectories][\getWavetableBuffer] = { |index|
-    var manager = ~nUPIC[\trajectoryData][\manager];
-    if(manager.notNil and: { index >= 0 } and: { index < manager[\wavetableBuffers].size }) {
-        manager[\getWavetableBuffer].value(index)
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { data[\wavetableBuffers].notNil } and: { index >= 0 } and: { index < data[\wavetableBuffers].size }) {
+        data[\wavetableBuffers][index]
     } { nil };
 };
 
@@ -331,12 +334,12 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
 // Copy wavetable from one trajectory to another
 ~nUPIC[\trajectories][\copyWavetable] = { |fromIndex, toIndex|
-    var manager = ~nUPIC[\trajectoryData][\manager];
-    var fromData;
-    if(manager.notNil) {
-        fromData = manager[\getWavetable].value(fromIndex);
-        if(fromData.notNil) {
-            manager[\setWavetable].value(toIndex, fromData.copy);
+    var data = ~nUPIC[\data];
+    var fromWavetable;
+    if(data.notNil and: { data[\wavetables].notNil }) {
+        fromWavetable = ~nUPIC[\trajectories][\getWavetable].value(fromIndex);
+        if(fromWavetable.notNil) {
+            ~nUPIC[\trajectories][\setWavetable].value(toIndex, fromWavetable.copy);
             ("Wavetable copied from trajectory " ++ fromIndex ++ " to " ++ toIndex).postln;
             true
         } { false }

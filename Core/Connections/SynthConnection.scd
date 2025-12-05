@@ -99,11 +99,11 @@
             // Add wavetable buffer if available (per-trajectory or global fallback)
             if(synthDefName.asString.contains("upicWavetable")) {
                 var trajBuffer = nil;
-                var manager = ~nUPIC[\trajectoryData][\manager];
+                var data = ~nUPIC[\data];
 
                 // Try per-trajectory buffer first
-                if(manager.notNil) {
-                    trajBuffer = manager[\getWavetableBuffer].value(i);
+                if(data.notNil and: { data[\wavetableBuffers].notNil } and: { i < data[\wavetableBuffers].size }) {
+                    trajBuffer = data[\wavetableBuffers][i];
                 };
 
                 // Fall back to global buffer

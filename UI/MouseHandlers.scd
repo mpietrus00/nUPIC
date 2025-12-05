@@ -378,12 +378,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 } {
                     // Direct data access fallback
                     var maxSynths = constants[\maxTrajectories] ? 200;
+                    var defaultWavetable = Array.fill(2048, { |i| sin(2pi * i / 2048) });
 
                     // Ensure data structures exist
                     if(data[\trajectories].isNil) { data[\trajectories] = List.new };
                     if(data[\amplitudeEnvelopes].isNil) { data[\amplitudeEnvelopes] = List.new };
                     if(data[\trajectorySynthDefs].isNil) { data[\trajectorySynthDefs] = List.new };
                     if(data[\spatialEnvelopes].isNil) { data[\spatialEnvelopes] = List.new };
+                    if(data[\wavetables].isNil) { data[\wavetables] = List.new };
+                    if(data[\wavetableBuffers].isNil) { data[\wavetableBuffers] = List.new };
 
                     if(data[\trajectories].size >= maxSynths) {
                         // Remove oldest trajectory
@@ -391,12 +394,25 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         data[\amplitudeEnvelopes].removeAt(0);
                         data[\trajectorySynthDefs].removeAt(0);
                         if(data[\spatialEnvelopes].size > 0) { data[\spatialEnvelopes].removeAt(0) };
+                        // Free and remove wavetable buffer
+                        if(data[\wavetableBuffers].size > 0) {
+                            if(data[\wavetableBuffers][0].notNil) { data[\wavetableBuffers][0].free };
+                            data[\wavetableBuffers].removeAt(0);
+                        };
+                        if(data[\wavetables].size > 0) { data[\wavetables].removeAt(0) };
                     };
 
                     data[\trajectories].add(sortedTrajectory);
                     data[\amplitudeEnvelopes].add(nil);
                     data[\trajectorySynthDefs].add(synthDef);
                     data[\spatialEnvelopes].add(spatialEnv);
+                    data[\wavetables].add(defaultWavetable.copy);
+                    // Create server buffer for wavetable
+                    if(Server.default.serverRunning) {
+                        data[\wavetableBuffers].add(Buffer.loadCollection(Server.default, defaultWavetable));
+                    } {
+                        data[\wavetableBuffers].add(nil);
+                    };
                 };
             };
             

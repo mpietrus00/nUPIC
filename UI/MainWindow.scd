@@ -371,11 +371,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         // Use per-trajectory wavetable buffer if available, fall back to global
                         if(synthDefName.asString.contains("upicWavetable")) {
                             var trajBuffer = nil;
-                            var manager = ~nUPIC[\trajectoryData][\manager];
 
-                            // Try to get per-trajectory buffer
-                            if(manager.notNil) {
-                                trajBuffer = manager[\getWavetableBuffer].value(i);
+                            // Try to get per-trajectory buffer from data
+                            if(data[\wavetableBuffers].notNil and: { i < data[\wavetableBuffers].size }) {
+                                trajBuffer = data[\wavetableBuffers][i];
                             };
 
                             // Fall back to global buffer if per-trajectory not available

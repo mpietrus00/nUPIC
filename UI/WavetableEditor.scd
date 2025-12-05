@@ -17,7 +17,7 @@
     var currentIndex;
     var titleText;
     var data = ~nUPIC[\data];
-    var manager = ~nUPIC[\trajectoryData][\manager];
+    var trajCount = ~nUPIC[\trajectories][\count].value;
 
     // Determine which trajectory to edit
     if(trajectoryIndex.notNil) {
@@ -32,19 +32,30 @@
     };
 
     // Check if we have a valid trajectory
-    if(currentIndex.isNil or: { manager[\trajectories].size == 0 } or: { currentIndex >= manager[\trajectories].size }) {
+    if(currentIndex.isNil or: { trajCount == 0 } or: { currentIndex >= trajCount }) {
         "No trajectory selected. Draw a trajectory first, select it, then open the wavetable editor.".warn;
         ^nil;
     };
 
     // Get wavetable data for this trajectory
-    wavetableData = manager[\getWavetable].value(currentIndex);
+    wavetableData = ~nUPIC[\trajectories][\getWavetable].value(currentIndex);
     if(wavetableData.isNil) {
-        // Create default sine wavetable
+        // Create default sine wavetable and store it
         wavetableData = Array.fill(2048, { |i|
             sin(2pi * i / 2048)
         });
-        manager[\setWavetable].value(currentIndex, wavetableData);
+        // Ensure storage exists
+        if(data[\wavetables].isNil) { data[\wavetables] = List.new };
+        if(data[\wavetableBuffers].isNil) { data[\wavetableBuffers] = List.new };
+        // Pad with nil if needed
+        while { data[\wavetables].size <= currentIndex } {
+            data[\wavetables].add(nil);
+            data[\wavetableBuffers].add(nil);
+        };
+        data[\wavetables][currentIndex] = wavetableData;
+        if(Server.default.serverRunning) {
+            data[\wavetableBuffers][currentIndex] = Buffer.loadCollection(Server.default, wavetableData);
+        };
     };
 
     // Create title
@@ -105,7 +116,7 @@
 
     // Helper function to update wavetable in manager
     ~nUPIC[\wavetableEditor][\updateWavetable] = {
-        manager[\setWavetable].value(currentIndex, wavetableData);
+        ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
     };
 
     // Mouse interaction for drawing
@@ -153,7 +164,7 @@
     drawView.mouseUpAction = { |view, x, y|
         isDrawing = false;
         // Update the trajectory's wavetable
-        manager[\setWavetable].value(currentIndex, wavetableData);
+        ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
     };
 
     // Control area with light B&K green
@@ -170,7 +181,7 @@
                 (i / (numSamples - 1) * 2 * pi).sin
             });
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -182,7 +193,7 @@
                 (2 * (i / numSamples)) - 1
             });
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -194,7 +205,7 @@
                 if(i < (numSamples / 2), 1, -1)
             });
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -210,7 +221,7 @@
                 )
             });
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -225,7 +236,7 @@
                 wavetableData = wavetableData / maxVal;
             };
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -243,7 +254,7 @@
             };
             wavetableData = smoothed;
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -255,7 +266,7 @@
             if(maxVal > 0) {
                 wavetableData = wavetableData / maxVal;
                 drawView.refresh;
-                manager[\setWavetable].value(currentIndex, wavetableData);
+                ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
             };
         });
     xPos = xPos + 65;
@@ -266,7 +277,7 @@
         .action_({
             wavetableData = wavetableData.neg;
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -276,7 +287,7 @@
         .action_({
             wavetableData = wavetableData.reverse;
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
 
     // Row 2: Advanced synthesis (y=35)
@@ -288,7 +299,7 @@
             wavetableData = Signal.sineFill(numSamples, Array.fill(8, { |i| 1.0 / (i + 1) }));
             wavetableData = wavetableData.normalize;
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -300,7 +311,7 @@
             wavetableData = Signal.chebyFill(numSamples, coeffs);
             wavetableData = wavetableData.normalize;
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -320,7 +331,7 @@
 
             wavetableData = signal.normalize;
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -334,7 +345,7 @@
             });
             wavetableData = wavetableData.normalize;
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -348,7 +359,7 @@
             });
             wavetableData = wavetableData.normalize;
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
     xPos = xPos + 65;
 
@@ -365,7 +376,7 @@
             wavetableData = Signal.sineFill(numSamples, harmonics, phases);
             wavetableData = wavetableData.normalize;
             drawView.refresh;
-            manager[\setWavetable].value(currentIndex, wavetableData);
+            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
 
     // Row 3: Test, Copy, and Close (y=70)
@@ -373,7 +384,7 @@
         .states_([["_test", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
-            var buffer = manager[\getWavetableBuffer].value(currentIndex);
+            var buffer = ~nUPIC[\trajectories][\getWavetableBuffer].value(currentIndex);
             if(buffer.notNil) {
                 fork {
                     var synth = Synth(\upicWavetable, [
@@ -402,7 +413,7 @@
             if(data.notNil and: { data[\selectedTrajectories].notNil }) {
                 data[\selectedTrajectories].do { |idx|
                     if(idx != currentIndex) {
-                        manager[\setWavetable].value(idx, wavetableData.copy);
+                        ~nUPIC[\trajectories][\setWavetable].value(idx, wavetableData.copy);
                     };
                 };
                 ("Wavetable copied to " ++ (data[\selectedTrajectories].size - 1) ++ " other trajectories").postln;
