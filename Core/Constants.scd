@@ -143,17 +143,17 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
     // Add dependant (UI element or other listener)
     addDependant: { |self, dep|
-        self[\\_dependants].add(dep);
+        self['_dependants'].add(dep);
     },
 
     // Remove dependant
     removeDependant: { |self, dep|
-        self[\\_dependants].remove(dep);
+        self['_dependants'].remove(dep);
     },
 
     // Notify all dependants of change
     notifyChanged: { |self, what, value, oldValue|
-        self[\\_dependants].do { |dep|
+        self['_dependants'].do { |dep|
             {
                 if(dep.respondsTo(\update)) {
                     dep.update(self, what, value, oldValue);
