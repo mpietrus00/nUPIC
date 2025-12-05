@@ -162,6 +162,156 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     };
 };
 
+// ============================================================================
+// Trajectories API - Clean interface to access and modify trajectory data
+// ============================================================================
+// Usage:
+//   ~nUPIC[\trajectories][\count].value              // Get number of trajectories
+//   ~nUPIC[\trajectories][\get].value(0)             // Get all data for trajectory 0
+//   ~nUPIC[\trajectories][\getSynthDef].value(0)     // Get SynthDef for trajectory 0
+//   ~nUPIC[\trajectories][\setSynthDef].value(0, \upicWavetable8ch)  // Set SynthDef
+//   etc.
+
+~nUPIC[\trajectories] = IdentityDictionary.new;
+
+// Get number of trajectories
+~nUPIC[\trajectories][\count] = {
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { data[\trajectories].notNil }) {
+        data[\trajectories].size
+    } { 0 };
+};
+
+// Get all data for a trajectory as an Event
+~nUPIC[\trajectories][\get] = { |index|
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { index >= 0 } and: { index < ~nUPIC[\trajectories][\count].value }) {
+        (
+            index: index,
+            points: if(data[\trajectories].notNil) { data[\trajectories][index] } { nil },
+            synthDef: if(data[\trajectorySynthDefs].notNil and: { index < data[\trajectorySynthDefs].size }) {
+                data[\trajectorySynthDefs][index]
+            } { nil },
+            amplitudeEnvelope: if(data[\amplitudeEnvelopes].notNil and: { index < data[\amplitudeEnvelopes].size }) {
+                data[\amplitudeEnvelopes][index]
+            } { nil },
+            spatialEnvelope: if(data[\getSpatialEnvelope].notNil) {
+                data[\getSpatialEnvelope].value(index)
+            } {
+                if(data[\spatialEnvelopes].notNil and: { index < data[\spatialEnvelopes].size }) {
+                    data[\spatialEnvelopes][index]
+                } { nil }
+            },
+            isSelected: if(data[\selectedTrajectories].notNil) {
+                data[\selectedTrajectories].includes(index)
+            } { false }
+        )
+    } { nil };
+};
+
+// Get trajectory points
+~nUPIC[\trajectories][\getPoints] = { |index|
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { data[\trajectories].notNil } and: { index >= 0 } and: { index < data[\trajectories].size }) {
+        data[\trajectories][index]
+    } { nil };
+};
+
+// Set trajectory points
+~nUPIC[\trajectories][\setPoints] = { |index, points|
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { data[\trajectories].notNil } and: { index >= 0 } and: { index < data[\trajectories].size }) {
+        data[\trajectories][index] = points;
+        ~nUPIC[\ui][\refreshDisplay].value;
+        points
+    } { nil };
+};
+
+// Get SynthDef for trajectory
+~nUPIC[\trajectories][\getSynthDef] = { |index|
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { data[\trajectorySynthDefs].notNil } and: { index >= 0 } and: { index < data[\trajectorySynthDefs].size }) {
+        data[\trajectorySynthDefs][index]
+    } { nil };
+};
+
+// Set SynthDef for trajectory
+~nUPIC[\trajectories][\setSynthDef] = { |index, synthDef|
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { data[\trajectorySynthDefs].notNil } and: { index >= 0 } and: { index < data[\trajectorySynthDefs].size }) {
+        data[\trajectorySynthDefs][index] = synthDef;
+        ("Trajectory " ++ index ++ " SynthDef set to: " ++ synthDef).postln;
+        synthDef
+    } { nil };
+};
+
+// Get amplitude envelope for trajectory
+~nUPIC[\trajectories][\getAmplitudeEnvelope] = { |index|
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { data[\amplitudeEnvelopes].notNil } and: { index >= 0 } and: { index < data[\amplitudeEnvelopes].size }) {
+        data[\amplitudeEnvelopes][index]
+    } { nil };
+};
+
+// Set amplitude envelope for trajectory
+~nUPIC[\trajectories][\setAmplitudeEnvelope] = { |index, envelope|
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { data[\amplitudeEnvelopes].notNil } and: { index >= 0 } and: { index < data[\amplitudeEnvelopes].size }) {
+        data[\amplitudeEnvelopes][index] = envelope;
+        ("Trajectory " ++ index ++ " amplitude envelope set").postln;
+        envelope
+    } { nil };
+};
+
+// Get spatial envelope for trajectory
+~nUPIC[\trajectories][\getSpatialEnvelope] = { |index|
+    var data = ~nUPIC[\data];
+    if(data.notNil) {
+        if(data[\getSpatialEnvelope].notNil) {
+            data[\getSpatialEnvelope].value(index)
+        } {
+            if(data[\spatialEnvelopes].notNil and: { index >= 0 } and: { index < data[\spatialEnvelopes].size }) {
+                data[\spatialEnvelopes][index]
+            } { nil }
+        }
+    } { nil };
+};
+
+// Set spatial envelope for trajectory
+~nUPIC[\trajectories][\setSpatialEnvelope] = { |index, envelope|
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { index >= 0 }) {
+        // Set in TrajectoryData
+        if(data[\setSpatialEnvelope].notNil) {
+            data[\setSpatialEnvelope].value(index, envelope);
+        };
+        // Also set in editor storage for consistency
+        if(data[\spatializationEnvelopes].notNil and: { index < data[\spatializationEnvelopes].size }) {
+            data[\spatializationEnvelopes][index] = envelope;
+        };
+        ("Trajectory " ++ index ++ " spatial envelope set").postln;
+        envelope
+    } { nil };
+};
+
+// List all trajectories with summary info
+~nUPIC[\trajectories][\list] = {
+    var count = ~nUPIC[\trajectories][\count].value;
+    "=== Trajectories (%): ===".format(count).postln;
+    count.do { |i|
+        var traj = ~nUPIC[\trajectories][\get].value(i);
+        if(traj.notNil) {
+            "  [%] SynthDef: %, Points: %, Selected: %".format(
+                i,
+                traj.synthDef ? "nil",
+                if(traj.points.notNil) { traj.points.size } { 0 },
+                traj.isSelected
+            ).postln;
+        };
+    };
+    count
+};
+
 // Grid system definitions
 ~nUPIC[\gridSystems] = (
     equalTemperament: (
