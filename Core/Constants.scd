@@ -119,7 +119,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
 // Defaults - mutable settings that can be changed at runtime
 ~nUPIC[\defaults] = (
-    defaultSynthDef: \upicWavetable8ch,  // Currently selected SynthDef for new trajectories
+    defaultSynthDef: \upicWavetable,  // Currently selected SynthDef for new trajectories (mono)
     playDuration: 10,
     showGrid: true,
     gridType: \equalTemperament

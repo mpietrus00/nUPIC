@@ -620,7 +620,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                     }) {
                                         data[\trajectorySynthDefs][i].asString
                                     } {
-                                        (defaults[\defaultSynthDef] ? \upicWavetable8ch).asString
+                                        (defaults[\defaultSynthDef] ? \upicWavetable).asString
                                     };
 
                                     // Extract channel count from SynthDef name
@@ -720,7 +720,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                         }) {
                                             data[\trajectorySynthDefs][i].asString
                                         } {
-                                            (defaults[\defaultSynthDef] ? \upicWavetable8ch).asString
+                                            (defaults[\defaultSynthDef] ? \upicWavetable).asString
                                         };
 
                                         maxChannels = case

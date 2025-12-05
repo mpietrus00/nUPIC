@@ -20,8 +20,8 @@
     model[\spatialEnvelope] = List.new;  // List of (x, channel) events
 
     // SynthDef assignment
-    model[\synthDefName] = \upicWavetable8ch;
-    model[\numChannels] = 8;
+    model[\synthDefName] = \upicWavetable;
+    model[\numChannels] = 1;  // mono
 
     // Dependants for reactive updates
     model[\dependants] = IdentitySet.new;

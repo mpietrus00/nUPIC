@@ -41,7 +41,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
         // Trajectory management
         addTrajectory: { |trajectory, synthDef = nil, amplitudeEnv = nil, spatialEnv = nil|
-            var actualSynthDef = synthDef ?? { \upicWavetable8ch };  // Safe default - 8ch wavetable
+            var actualSynthDef = synthDef ?? { \upicWavetable };  // Safe default - mono wavetable
 
             // Check if we need to remove old trajectory
             if(trajectories.size >= maxSynths) {
@@ -410,7 +410,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         getSynthDef: { |index|
             if(index >= 0 and: { index < trajectorySynthDefs.size }) {
                 trajectorySynthDefs[index]
-            } { \upicWavetable8ch };  // Safe default - 8ch wavetable
+            } { \upicWavetable };  // Safe default - mono wavetable
         },
 
         setSynthDef: { |index, synthDef|

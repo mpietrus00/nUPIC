@@ -214,7 +214,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     }) {
         data[\trajectorySynthDefs][trajIndex]
     } {
-        defaults[\defaultSynthDef] ? \upicWavetable8ch
+        defaults[\defaultSynthDef] ? \upicWavetable
     };
 
     // Get channel count from SynthDef

@@ -50,7 +50,7 @@
     }) {
         data[\trajectorySynthDefs][index]
     } {
-        defaults[\defaultSynthDef] ? \upicWavetable8ch
+        defaults[\defaultSynthDef] ? \upicWavetable
     }
 };
 

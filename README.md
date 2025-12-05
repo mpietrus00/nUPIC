@@ -78,10 +78,11 @@ nUPIC/
 
 The system uses wavetable synthesis with configurable channel counts:
 
+- `upicWavetable` - Mono output (default)
 - `upicWavetable2ch` - Stereo output
 - `upicWavetable3ch` - 3-channel output
 - `upicWavetable4ch` - Quad output
-- `upicWavetable8ch` - 8-channel output (default)
+- `upicWavetable8ch` - 8-channel output
 - `upicWavetable12ch` - 12-channel output
 - `upicWavetable15ch` - 15-channel output
 - `upicWavetable24ch` - 24-channel output
@@ -97,7 +98,7 @@ Access system settings via the `~nUPIC` namespace:
 ~nUPIC[\constants][\freqMax]          // 7500 Hz
 
 // Defaults (runtime settings)
-~nUPIC[\defaults][\defaultSynthDef]   // \upicWavetable8ch
+~nUPIC[\defaults][\defaultSynthDef]   // \upicWavetable (mono)
 ~nUPIC[\defaults][\playDuration]      // 10 seconds
 
 // Colors

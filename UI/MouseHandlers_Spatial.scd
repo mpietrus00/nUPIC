@@ -41,7 +41,7 @@
             }) {
                 data[\trajectorySynthDefs][i]
             } {
-                defaults[\defaultSynthDef] ? \upicWavetable8ch
+                defaults[\defaultSynthDef] ? \upicWavetable
             };
             
             // Create spatial envelope buffer if using 8ch synthdef

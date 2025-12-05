@@ -1204,7 +1204,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         synthDefName = if(data[\trajectorySynthDefs].notNil and: { trajIndex < data[\trajectorySynthDefs].size }) {
             data[\trajectorySynthDefs][trajIndex]
         } {
-            defaults[\defaultSynthDef] ? \upicWavetable8ch
+            defaults[\defaultSynthDef] ? \upicWavetable
         };
         
         firstPoint = if(traj[0].isKindOf(Event)) { traj[0] } { (x: traj[0].x, y: traj[0].y, freq: nil) };

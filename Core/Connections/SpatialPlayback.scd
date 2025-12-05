@@ -51,7 +51,7 @@ if(~nUPIC[\spatial].isNil) {
             }) {
                 data[\trajectorySynthDefs][i]
             } {
-                defaults[\defaultSynthDef] ? \upicWavetable8ch
+                defaults[\defaultSynthDef] ? \upicWavetable
             };
 
             // Get starting frequency
