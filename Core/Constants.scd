@@ -529,6 +529,98 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     } { nil };
 };
 
+// ============================================================================
+// Musical Scales Dictionary
+// ============================================================================
+// All scales in semitones from root (0-11)
+// Usage: ~nUPIC[\scales][\major] returns [0, 2, 4, 5, 7, 9, 11]
+
+~nUPIC[\scales] = IdentityDictionary[
+    // === DIATONIC MODES ===
+    \major -> [0, 2, 4, 5, 7, 9, 11],           // Ionian
+    \minor -> [0, 2, 3, 5, 7, 8, 10],           // Natural minor / Aeolian
+    \harmonicMinor -> [0, 2, 3, 5, 7, 8, 11],
+    \melodicMinor -> [0, 2, 3, 5, 7, 9, 11],    // Ascending
+    \dorian -> [0, 2, 3, 5, 7, 9, 10],
+    \phrygian -> [0, 1, 3, 5, 7, 8, 10],
+    \lydian -> [0, 2, 4, 6, 7, 9, 11],
+    \mixolydian -> [0, 2, 4, 5, 7, 9, 10],
+    \locrian -> [0, 1, 3, 5, 6, 8, 10],
+
+    // === PENTATONIC ===
+    \pentatonicMajor -> [0, 2, 4, 7, 9],
+    \pentatonicMinor -> [0, 3, 5, 7, 10],
+    \blues -> [0, 3, 5, 6, 7, 10],              // Minor pentatonic + blue note
+    \bluesMajor -> [0, 2, 3, 4, 7, 9],          // Major blues
+
+    // === SYMMETRIC ===
+    \chromatic -> [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    \wholeTone -> [0, 2, 4, 6, 8, 10],
+    \diminishedHW -> [0, 1, 3, 4, 6, 7, 9, 10], // Half-Whole
+    \diminishedWH -> [0, 2, 3, 5, 6, 8, 9, 11], // Whole-Half
+    \augmented -> [0, 3, 4, 7, 8, 11],
+
+    // === BEBOP ===
+    \bebopDominant -> [0, 2, 4, 5, 7, 9, 10, 11],
+    \bebopMajor -> [0, 2, 4, 5, 7, 8, 9, 11],
+    \bebopMinor -> [0, 2, 3, 5, 7, 8, 9, 10],
+
+    // === EXOTIC / WORLD ===
+    \hungarian -> [0, 2, 3, 6, 7, 8, 11],       // Hungarian minor
+    \hungarianMajor -> [0, 3, 4, 6, 7, 9, 10],
+    \spanish -> [0, 1, 4, 5, 7, 8, 10],         // Phrygian dominant
+    \arabic -> [0, 1, 4, 5, 7, 8, 11],          // Double harmonic
+    \persian -> [0, 1, 4, 5, 6, 8, 11],
+    \japanese -> [0, 1, 5, 7, 8],               // In scale
+    \hirajoshi -> [0, 2, 3, 7, 8],              // Japanese
+    \iwato -> [0, 1, 5, 6, 10],                 // Japanese
+    \chinese -> [0, 4, 6, 7, 11],
+    \indian -> [0, 1, 4, 5, 7, 8, 10],          // Bhairav
+    \gypsy -> [0, 2, 3, 6, 7, 8, 11],           // Hungarian gypsy
+    \byzantine -> [0, 1, 4, 5, 7, 8, 11],       // Double harmonic
+    \balinese -> [0, 1, 3, 7, 8],               // Pelog
+
+    // === MESSIAEN MODES OF LIMITED TRANSPOSITION ===
+    \messiaen1 -> [0, 2, 4, 6, 8, 10],          // = whole tone
+    \messiaen2 -> [0, 1, 3, 4, 6, 7, 9, 10],    // = diminished HW
+    \messiaen3 -> [0, 2, 3, 4, 6, 7, 8, 10, 11],
+    \messiaen4 -> [0, 1, 2, 5, 6, 7, 8, 11],
+    \messiaen5 -> [0, 1, 5, 6, 7, 11],
+    \messiaen6 -> [0, 2, 4, 5, 6, 8, 10, 11],
+    \messiaen7 -> [0, 1, 2, 3, 5, 6, 7, 8, 9, 11],
+
+    // === MICROTONAL / XENHARMONIC (in 12-TET approximations) ===
+    \prometheus -> [0, 2, 4, 6, 9, 10],         // Scriabin
+    \enigmatic -> [0, 1, 4, 6, 8, 10, 11],
+    \neapolitan -> [0, 1, 3, 5, 7, 9, 11],      // Neapolitan major
+    \neapolitanMinor -> [0, 1, 3, 5, 7, 8, 11],
+
+    // === SIMPLE / SPARSE ===
+    \tritone -> [0, 6],
+    \fifths -> [0, 7],
+    \fourths -> [0, 5],
+    \octaves -> [0]
+];
+
+// Helper to list all available scales
+~nUPIC[\scales][\list] = {
+    "Available scales:".postln;
+    ~nUPIC[\scales].keys.reject({ |k| k == \list }).sort.do { |key|
+        ("  \\" ++ key ++ " -> " ++ ~nUPIC[\scales][key]).postln;
+    };
+};
+
+// Convenient quantize function using scale name
+~nUPIC[\trajectories][\quantize] = { |index, scaleName = \major, root = 60|
+    var scale = ~nUPIC[\scales][scaleName];
+    if(scale.notNil) {
+        ~nUPIC[\trajectories][\quantizeToScale].value(index, scale, root);
+    } {
+        ("Unknown scale: " ++ scaleName ++ ". Use ~nUPIC[\\scales][\\list].value to see options.").postln;
+        nil
+    };
+};
+
 // Grid system definitions
 ~nUPIC[\gridSystems] = (
     equalTemperament: (
