@@ -1944,12 +1944,18 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         });
 
     // Register for reactive updates
+    "[CONTROLS] Checking defaults for addDependant...".postln;
+    ("[CONTROLS] defaults exists: " ++ ~nUPIC[\defaults].notNil).postln;
+    ("[CONTROLS] addDependant exists: " ++ if(~nUPIC[\defaults].notNil) { ~nUPIC[\defaults][\addDependant].notNil } { false }).postln;
     if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
+        "[CONTROLS] Registering dependant for playDuration".postln;
         ~nUPIC[\defaults].addDependant({ |what, value, oldValue|
             if(what == \playDuration) {
                 { durationNumberBox.value = value }.defer;
             };
         });
+    } {
+        "[CONTROLS] WARNING: Could not register dependant - defaults or addDependant missing".postln;
     };
 
     // Seconds label (centered) - adjusted position for wider duration label, with 3px gap
