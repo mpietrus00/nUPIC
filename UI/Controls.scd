@@ -826,7 +826,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                 "~nUPIC[\\data][\\amplitudeEnvelopes][trajIndex] = List[(x: 0, amp: 0.5), (x: 600, amp: 0.5)];".postln;
                             };
                         } {
-                            "No trajectories selected for amplitude editing".postln;
+                            "No arcs selected for amplitude editing".postln;
                         };
                     };
                     
@@ -835,7 +835,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     ~nUPIC[\ui][\openAmplitudeEditorForSelected].value;
                 };
             } {
-                "No trajectories selected. Select trajectories first by pressing G and clicking on them.".postln;
+                "No arcs selected. Select trajectories first by pressing G and clicking on them.".postln;
             };
         });
     

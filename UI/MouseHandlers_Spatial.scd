@@ -15,7 +15,7 @@
     ~nUPIC[\ui][\stopPlayback].value;
     
     if(data[\arcs].isNil or: { data[\arcs].size == 0 }) {
-        "No trajectories to play".postln;
+        "No arcs to play".postln;
         ^nil;
     };
     

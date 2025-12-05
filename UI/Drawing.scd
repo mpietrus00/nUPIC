@@ -71,13 +71,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Draw all completed trajectories
     if(data[\arcs].notNil) {
         data[\arcs].do { |traj, i|
-            ~nUPIC[\ui][\drawTrajectory].value(traj, i, width, height);
+            ~nUPIC[\ui][\drawArc].value(traj, i, width, height);
         };
     };
     
     // Draw current arc being drawn
-    if(state[\currentTrajectory].notNil and: { state[\currentTrajectory].size > 1 }) {
-        ~nUPIC[\ui][\drawCurrentTrajectory].value(state[\currentTrajectory], width, height);
+    if(state[\currentArc].notNil and: { state[\currentArc].size > 1 }) {
+        ~nUPIC[\ui][\drawCurrentArc].value(state[\currentArc], width, height);
     };
     
     // Draw playback position
@@ -335,7 +335,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 };
 
 // Draw individual arc
-~nUPIC[\ui][\drawTrajectory] = { |traj, index, width, height|
+~nUPIC[\ui][\drawArc] = { |traj, index, width, height|
     var state = ~nUPIC[\ui][\state];
     var data = ~nUPIC[\data];
     var colors = ~nUPIC[\colors];
@@ -522,7 +522,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 };
 
 // Draw current arc being drawn
-~nUPIC[\ui][\drawCurrentTrajectory] = { |currentTraj, width, height|
+~nUPIC[\ui][\drawCurrentArc] = { |currentTraj, width, height|
     var state = ~nUPIC[\ui][\state];
     
     if(state.isNil) { ^nil };
@@ -1090,7 +1090,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     [0.0, 0.2, 0.33, 0.5, 0.66, 0.8, 1.0].do { |amp|
         var hue, saturation, brightness;
         
-        // Same color mapping logic as in drawTrajectory
+        // Same color mapping logic as in drawArc
         case 
         { amp <= 0.33 } {
             hue = amp.linlin(0, 0.33, 0.67, 0.5);  // Blue to cyan
