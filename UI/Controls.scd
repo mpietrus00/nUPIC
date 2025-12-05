@@ -50,7 +50,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Duration number box
     durationNumberBox = NumberBox(window, Rect(140, yStart, 80, 25))
-        .value_(state[\playDuration] ? defaults[\playDuration] ? 10)
+        .value_(state[\playDuration] ? (if(defaults.notNil) { defaults[\playDuration] }) ? 10)
         .decimals_(1)
         .step_(0.5)
         .clipLo_(0.1)
@@ -1202,7 +1202,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .font_(Font("Arial", 11));
     
     durationNumberBox = NumberBox(window, Rect(160, yStart, 60, 25))
-        .value_(state[\playDuration] ? defaults[\playDuration] ? 10)
+        .value_(state[\playDuration] ? (if(defaults.notNil) { defaults[\playDuration] }) ? 10)
         .decimals_(1)
         .step_(0.5)
         .clipLo_(0.1)
@@ -1924,7 +1924,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Duration number box (centered) - adjusted position for wider label, with 3px gap
     durationNumberBox = NumberBox(playbackGroupView, Rect(startX + 70 + 3 + 75 + 3, controlY, 50, 20))
-        .value_(state[\playDuration] ? defaults[\playDuration] ? 10)
+        .value_(state[\playDuration] ? (if(defaults.notNil) { defaults[\playDuration] }) ? 10)
         .decimals_(1)
         .step_(0.5)
         .clipLo_(0.1)
