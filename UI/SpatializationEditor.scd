@@ -17,7 +17,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         selectedIndices = data[\selectedArcs].asArray.sort;
         ~nUPIC[\ui][\openSpatializationEditor].value(selectedIndices);
     } {
-        "No trajectories selected. Use 'G' key to enter select mode, then click on trajectories.".postln;
+        "No arcs selected. Use 'G' key to enter select mode, then click on trajectories.".postln;
     };
 };
 

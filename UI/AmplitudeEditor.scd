@@ -673,7 +673,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
     
     if(data[\selectedArcs].isNil or: { data[\selectedArcs].size == 0 }) {
-        "No trajectories selected. Use G key and click trajectories first.".postln;
+        "No arcs selected. Use G key and click trajectories first.".postln;
         ^nil;
     };
     
@@ -755,7 +755,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         // Enable auto-update when opening amplitude editor
         ~nUPIC[\ui][\setupAmplitudeEditorAutoUpdate].value;
     } {
-        "No trajectories selected. Select trajectories first with G key and click on them.".postln;
+        "No arcs selected. Select trajectories first with G key and click on them.".postln;
     };
 };
 

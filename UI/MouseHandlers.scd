@@ -40,7 +40,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             // Normal mode - check if in select mode
             if(state[\selectMode]) {
                 // Selection mode - look for trajectories to select or start marquee selection
-                var clickedTrajectory = nil;
+                var clickedArc = nil;
                 var threshold = 10;  // Click threshold in pixels
                 
                 // Check if clicking on existing arc
@@ -68,27 +68,27 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                             
                             // Check if click is near this point
                             if((displayX - x).abs < threshold and: { (pointY - y).abs < threshold }) {
-                                clickedTrajectory = i;
+                                clickedArc = i;
                             };
                         };
                     };
                 };
                 
-                if(clickedTrajectory.notNil) {
+                if(clickedArc.notNil) {
                     // Check if clicking on already selected arc - start drag
                     if(data[\selectedArcs].notNil and: { 
-                        data[\selectedArcs].includes(clickedTrajectory) 
+                        data[\selectedArcs].includes(clickedArc) 
                     }) {
                         // Start dragging
                         state[\isDragging] = true;
                         state[\dragStartX] = x;
                         state[\dragStartY] = y;
                         // Store original positions of all selected trajectories
-                        state[\draggedTrajectories] = IdentityDictionary.new;
+                        state[\draggedArcs] = IdentityDictionary.new;
                         if(data[\selectedArcs].notNil) {
                             data[\selectedArcs].do { |i|
                                 if(i < data[\arcs].size) {
-                                    state[\draggedTrajectories][i] = data[\arcs][i].deepCopy;
+                                    state[\draggedArcs][i] = data[\arcs][i].deepCopy;
                                 };
                             };
                         };
@@ -100,26 +100,26 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         
                         if(modifiers.isShift) {
                             // Shift-click: toggle selection
-                            if(data[\selectedArcs].includes(clickedTrajectory)) {
-                                data[\selectedArcs].remove(clickedTrajectory);
+                            if(data[\selectedArcs].includes(clickedArc)) {
+                                data[\selectedArcs].remove(clickedArc);
                             } {
-                                data[\selectedArcs].add(clickedTrajectory);
+                                data[\selectedArcs].add(clickedArc);
                             };
                         } {
                             if(modifiers.isCmd) {
                                 // Cmd-click: add to selection
-                                data[\selectedArcs].add(clickedTrajectory);
+                                data[\selectedArcs].add(clickedArc);
                             } {
                                 // Regular click: select only this one
                                 data[\selectedArcs].clear;
-                                data[\selectedArcs].add(clickedTrajectory);
+                                data[\selectedArcs].add(clickedArc);
                             };
                         };
                     };
                     
                     // Trigger selection change callback
-                    if(~nUPIC[\ui][\onTrajectorySelectionChanged].notNil) {
-                        ~nUPIC[\ui][\onTrajectorySelectionChanged].value;
+                    if(~nUPIC[\ui][\onArcSelectionChanged].notNil) {
+                        ~nUPIC[\ui][\onArcSelectionChanged].value;
                     };
                     
                     ~nUPIC[\ui][\refreshDisplay].value;
@@ -145,12 +145,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 var freq;
                 ("Starting to draw at virtual (% , %)".format(virtualX, virtualY)).postln;
                 state[\isDrawing] = true;
-                state[\currentTrajectory] = List.new;
+                state[\currentArc] = List.new;
                 // Convert y position to frequency using zoomed range
                 freq = y.linlin(0, height, state[\zoomFreqMax], state[\zoomFreqMin]);
                 // Store ONLY spatial coordinates (x, y) and frequency - NO TIME
                 // Time will be calculated during playback based on current duration
-                state[\currentTrajectory].add((x: virtualX, y: virtualY, freq: freq));
+                state[\currentArc].add((x: virtualX, y: virtualY, freq: freq));
                 ("First point added: x=%, y=%, freq=%".format(virtualX, virtualY, freq)).postln;
                 ~nUPIC[\ui][\refreshDisplay].value;
             };
@@ -183,7 +183,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
         // Update all selected trajectories
         if(data.notNil and: { data[\selectedArcs].notNil } and: {
-            state[\draggedTrajectories].notNil
+            state[\draggedArcs].notNil
         }) {
             // First pass: find min/max Y across all selected trajectories to constrain deltaY
             // This prevents flattening by limiting the drag rather than clipping individual points
@@ -191,7 +191,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var globalMaxY = inf.neg;
 
             data[\selectedArcs].do { |i|
-                var originalTraj = state[\draggedTrajectories][i];
+                var originalTraj = state[\draggedArcs][i];
                 if(originalTraj.notNil) {
                     originalTraj.do { |point|
                         var pointY = if(point.isKindOf(Event)) { point.y } { point.y };
@@ -215,7 +215,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
             // Second pass: apply constrained delta to all points
             data[\selectedArcs].do { |i|
-                var originalTraj = state[\draggedTrajectories][i];
+                var originalTraj = state[\draggedArcs][i];
                 if(originalTraj.notNil and: { i < data[\arcs].size }) {
                     data[\arcs][i] = originalTraj.collect { |point|
                         if(point.isKindOf(Event)) {
@@ -257,7 +257,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         } {
             // Continue drawing
             var freq, viewportX, viewportY, virtualX, virtualY;
-            if(state[\currentTrajectory].notNil) {
+            if(state[\currentArc].notNil) {
                 // Translate mouse coordinates to spatial coordinates (same logic as mouse down)
                 viewportX = state[\viewportX] ? 0;
                 viewportY = state[\viewportY] ? 0;
@@ -278,10 +278,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 freq = y.linlin(0, height, state[\zoomFreqMax], state[\zoomFreqMin]);
                 // Store ONLY spatial coordinates (x, y) and frequency - NO TIME
                 // Time will be calculated during playback based on current duration
-                state[\currentTrajectory].add((x: virtualX, y: virtualY, freq: freq));
+                state[\currentArc].add((x: virtualX, y: virtualY, freq: freq));
                 // Status message removed for cleaner output
-                // if((state[\currentTrajectory].size % 5) == 0) {
-                //     ("Drawing continues - % points".format(state[\currentTrajectory].size)).postln;
+                // if((state[\currentArc].size % 5) == 0) {
+                //     ("Drawing continues - % points".format(state[\currentArc].size)).postln;
                 // };
                 ~nUPIC[\ui][\refreshDisplay].value;
             };
@@ -308,7 +308,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     if(state[\isDragging] == true) {
         state[\isDragging] = false;
-        state[\draggedTrajectories] = nil;
+        state[\draggedArcs] = nil;
         "Finished dragging trajectories".postln;
     };
     
@@ -316,18 +316,18 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         state[\isDrawing] = false;
         
         // Save arc if it has points
-        if(state[\currentTrajectory].notNil and: { state[\currentTrajectory].size > 1 }) {
-            var sortedTrajectory;
+        if(state[\currentArc].notNil and: { state[\currentArc].size > 1 }) {
+            var sortedArc;
             
-            ("Saving arc with % points".format(state[\currentTrajectory].size)).postln;
+            ("Saving arc with % points".format(state[\currentArc].size)).postln;
             
             // Sort arc points by X coordinate to handle right-to-left drawing
             // This ensures playback works correctly regardless of drawing direction
-            sortedTrajectory = state[\currentTrajectory].sort({ |a, b| a.x < b.x });
+            sortedArc = state[\currentArc].sort({ |a, b| a.x < b.x });
             
             // Check if we reversed the arc
-            if(sortedTrajectory[0].x != state[\currentTrajectory][0].x) {
-                "Trajectory was drawn right-to-left - automatically sorted for correct playback".postln;
+            if(sortedArc[0].x != state[\currentArc][0].x) {
+                "Arc was drawn right-to-left - automatically sorted for correct playback".postln;
             };
             
             // Get the SynthDef name
@@ -363,8 +363,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
                 // Create first-to-last spatial envelope for multi-channel SynthDefs
                 if(numChannels > 1) {
-                    var startX = sortedTrajectory[0].x;
-                    var endX = sortedTrajectory.last.x;
+                    var startX = sortedArc[0].x;
+                    var endX = sortedArc.last.x;
                     spatialEnv = List[
                         (x: startX, channel: 0),                  // Start at first speaker
                         (x: endX, channel: numChannels - 1)       // End at last speaker
@@ -373,8 +373,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 };
 
                 // Use the arc manager if available, otherwise use direct data access
-                if(data.respondsTo(\addTrajectory)) {
-                    data[\addTrajectory].value(sortedTrajectory, synthDef, nil, spatialEnv);
+                if(data.respondsTo(\addArc)) {
+                    data[\addArc].value(sortedArc, synthDef, nil, spatialEnv);
                 } {
                     // Direct data access fallback
                     var maxSynths = constants[\maxTrajectories] ? 200;
@@ -402,7 +402,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         if(data[\wavetables].size > 0) { data[\wavetables].removeAt(0) };
                     };
 
-                    data[\arcs].add(sortedTrajectory);
+                    data[\arcs].add(sortedArc);
                     data[\amplitudeEnvelopes].add(nil);
                     data[\arcSynthDefs].add(synthDef);
                     data[\spatialEnvelopes].add(spatialEnv);
@@ -419,7 +419,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             ("New arc added (SynthDef: " ++ synthDef ++ ")").postln;
         };
         
-        state[\currentTrajectory] = nil;
+        state[\currentArc] = nil;
         ~nUPIC[\ui][\refreshDisplay].value;
     };
 };
@@ -603,11 +603,11 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         };
         
         // Trigger selection change callback
-        if(~nUPIC[\ui][\onTrajectorySelectionChanged].notNil) {
-            ~nUPIC[\ui][\onTrajectorySelectionChanged].value;
+        if(~nUPIC[\ui][\onArcSelectionChanged].notNil) {
+            ~nUPIC[\ui][\onArcSelectionChanged].value;
         };
         
-        ("Marquee selection completed: " ++ data[\selectedArcs].size ++ " trajectories selected").postln;
+        ("Marquee selection completed: " ++ data[\selectedArcs].size ++ " arcs selected").postln;
     };
     
     // Clean up marquee state
@@ -789,7 +789,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
 // Utility function to reverse arc direction
 // Useful for manually changing direction of existing trajectories
-~nUPIC[\ui][\reverseTrajectoryDirection] = { |arcIndex|
+~nUPIC[\ui][\reverseArcDirection] = { |arcIndex|
     var state = ~nUPIC[\ui][\state];
     var data = ~nUPIC[\data];
     
@@ -824,17 +824,17 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var reversedCount = 0;
     
     if(state.isNil or: { data.isNil } or: { data[\selectedArcs].isNil }) {
-        "No trajectories selected for reversal".postln;
+        "No arcs selected for reversal".postln;
         ^0;
     };
     
     if(data[\selectedArcs].size == 0) {
-        "No trajectories selected".postln;
+        "No arcs selected".postln;
         ^0;
     };
     
     data[\selectedArcs].do { |trajIndex|
-        ~nUPIC[\ui][\reverseTrajectoryDirection].value(trajIndex);
+        ~nUPIC[\ui][\reverseArcDirection].value(trajIndex);
         reversedCount = reversedCount + 1;
     };
     
@@ -844,6 +844,6 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
 "nUPIC Mouse Handlers loaded".postln;
 "Additional functions available:".postln;
-"  ~nUPIC[\\ui][\\reverseTrajectoryDirection].value(index) - Reverse specific arc".postln;
+"  ~nUPIC[\\ui][\\reverseArcDirection].value(index) - Reverse specific arc".postln;
 "  ~nUPIC[\\ui][\\reverseSelectedTrajectories].value - Reverse all selected trajectories".postln;
 )

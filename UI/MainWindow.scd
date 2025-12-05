@@ -65,7 +65,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
             // Drawing state
             isDrawing: false,
-            currentTrajectory: nil,
+            currentArc: nil,
 
             // Interaction modes
             eraseMode: false,
@@ -77,7 +77,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             mouseY: 0,
             dragStartX: 0,
             dragStartY: 0,
-            draggedTrajectories: nil,
+            draggedArcs: nil,
 
             // Zoom and view state
             zoomFreqMin: constants[\freqMin] ? 20,
@@ -122,7 +122,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
 
     // Create main window with resizable set to false
-    window = Window("nUPIC - Trajectory Synthesis System", 
+    window = Window("nUPIC - Arc Synthesis System", 
         Rect(100, 100, width, height + controlsHeight + 20), resizable: false);
     window.background = Color.new(205/255, 250/255, 205/255); // B&K green
 
@@ -257,7 +257,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
 
     if(data[\arcs].isNil or: { data[\arcs].size == 0 }) {
-        "No trajectories to play".postln;
+        "No arcs to play".postln;
         ^nil;
     };
 
@@ -478,7 +478,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                             if(state[\synths][i].notNil) {
                                 state[\synths][i].set(\amp, 0.1);
                                 if(i == 0) {
-                                    ("Trajectory 0 started at time=" ++ currentTime.round(0.1) ++ "s, firstTime=" ++ firstTime.round(0.1) ++ "s").postln;
+                                    ("Arc 0 started at time=" ++ currentTime.round(0.1) ++ "s, firstTime=" ++ firstTime.round(0.1) ++ "s").postln;
                                 };
                             };
                         };
@@ -616,15 +616,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                 };
 
                                 // Check if we have a spatial envelope
-                                // First try TrajectoryData storage, then fall back to editor storage
+                                // First try ArcData storage, then fall back to editor storage
                                 block { |breakSpatial|
                                     var spatialEnv = nil;
 
-                                    // Try TrajectoryData getter first
+                                    // Try ArcData getter first
                                     if(data[\getSpatialEnvelope].notNil) {
                                         spatialEnv = data[\getSpatialEnvelope].value(i);
                                         if(spatialEnv.notNil and: { state[\spatialDebugLogged].isNil }) {
-                                            "[SPATIAL] Got envelope from TrajectoryData: % points".format(spatialEnv.size).postln;
+                                            "[SPATIAL] Got envelope from ArcData: % points".format(spatialEnv.size).postln;
                                             state[\spatialDebugLogged] = true;
                                         };
                                     };

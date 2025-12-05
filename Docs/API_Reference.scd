@@ -1,7 +1,7 @@
 /*
  * nUPIC API Reference
  * ===================
- * Programmatic access to trajectories, defaults, and transformations.
+ * Programmatic access to arcs, defaults, and transformations.
  */
 
 
@@ -24,20 +24,20 @@
 
 // Available defaults:
 //   \playDuration    - playback duration in seconds
-//   \defaultSynthDef - SynthDef for new trajectories (\upicWavetable, \upicWavetable8ch, etc.)
+//   \defaultSynthDef - SynthDef for new arcs (\upicWavetable, \upicWavetable8ch, etc.)
 
 
 // ============================================================================
-// TRAJECTORIES API
+// ARCS API
 // ============================================================================
 // Access and modify arc data programmatically.
 
 // --- Basic Access ---
 
-// Get number of trajectories
+// Get number of arcs
 ~nUPIC[\arcs][\count].value;
 
-// List all trajectories (summary)
+// List all arcs (summary)
 ~nUPIC[\arcs][\list].value;
 
 // Get all data for a arc
@@ -117,7 +117,7 @@
 
 
 // ============================================================================
-// TRAJECTORY TRANSFORMATIONS
+// ARC TRANSFORMATIONS
 // ============================================================================
 // Modify arc frequencies using periodic, random, or custom functions.
 
