@@ -2494,6 +2494,31 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     state[\controls][\scMeterButton] = scMeterButton;
     state[\controls][\freqScopeButton] = freqScopeButton;
     
+    // Register for reactive updates to defaultSynthDef
+    if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
+        var synthDefDependant = { |what, value, oldValue|
+            "[REACTIVE CALLBACK] what=%, value=%".format(what, value).postln;
+            if(what == \defaultSynthDef) {
+                "[REACTIVE] defaultSynthDef changed to: %".format(value).postln;
+                {
+                    var menu = ~nUPIC[\ui][\state][\controls][\synthDefMenu];
+                    var synthDefNames = if(~nUPIC_SynthDefs.notNil and: { ~nUPIC_SynthDefs[\available].notNil }) {
+                        ~nUPIC_SynthDefs[\available]
+                    } { [] };
+                    var idx = synthDefNames.indexOf(value);
+                    "[REACTIVE] Found menu: %, idx: %".format(menu.notNil, idx).postln;
+                    if(idx.notNil and: { menu.notNil }) {
+                        menu.value = idx;
+                        "[REACTIVE] Updated menu to index %".format(idx).postln;
+                    };
+                }.defer;
+            };
+        };
+        ~nUPIC[\defaults][\addDependant].value(synthDefDependant);
+        state[\synthDefDependant] = synthDefDependant;
+        "[REACTIVE] Registered defaultSynthDef dependant in createBottomPanel".postln;
+    };
+
     // Store references
     state[\controls][\playButton] = playButton;
     state[\controls][\durationNumberBox] = durationNumberBox;
