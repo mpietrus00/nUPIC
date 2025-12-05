@@ -8,8 +8,8 @@
 
 ~nUPIC[\wavetableEditor][\open] = { |trajectoryIndex = nil|
     var win, drawView, controlView, wavetableData, isDrawing = false;
-    var width = 700, height = 400;
-    var controlHeight = 45;  // Single row for controls
+    var width = 350, height = 200;
+    var controlHeight = 35;  // Single row for controls
     var numSamples = 2048;
     var lastX, lastY;
     var buttons = ();
@@ -172,15 +172,6 @@
     controlView = CompositeView(win, Rect(0, height, width, controlHeight));
     controlView.background = Color.new(190/255, 240/255, 190/255);
 
-    // Single row: Dropdown menu + utility buttons
-    xPos = 10;
-
-    // Wavetable dropdown label
-    presetLabel = StaticText(controlView, Rect(xPos, 10, 70, 25))
-        .string_("Wavetable:")
-        .font_(Font("Arial", 10));
-    xPos = xPos + 75;
-
     // Get wav file names from TABLES directory
     presetNames = if(~nUPIC[\wavetablePresets].notNil and: { ~nUPIC[\wavetablePresets][\list].notNil }) {
         ["-- select --"] ++ ~nUPIC[\wavetablePresets][\list].value;
@@ -188,76 +179,57 @@
         ["-- no files --"]
     };
 
-    presetMenu = PopUpMenu(controlView, Rect(xPos, 10, 200, 25))
+    // Dropdown menu
+    presetMenu = PopUpMenu(controlView, Rect(5, 5, 120, 22))
         .items_(presetNames)
-        .font_(Font("Arial", 10))
+        .font_(Font("Arial", 9))
         .background_(Color.gray(0.95))
         .action_({ |menu|
             var selectedName;
             if(menu.value > 0) {
                 selectedName = presetNames[menu.value];
-
-                // Check if it's a wav file or programmatic preset
                 if(~nUPIC[\wavetablePresets][\wavFiles].includes(selectedName)) {
-                    // Load .wav file asynchronously
                     ~nUPIC[\wavetablePresets][\getWavData].value(selectedName, { |loadedData|
                         if(loadedData.notNil) {
                             wavetableData = loadedData;
                             { drawView.refresh }.defer;
                             ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
-                            ("Loaded: " ++ selectedName).postln;
                         };
                     });
                 } {
-                    // Programmatic preset (sync)
                     var presetData = ~nUPIC[\wavetablePresets][\get].value(selectedName.asSymbol);
                     if(presetData.notNil) {
                         wavetableData = presetData;
                         drawView.refresh;
                         ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
-                        ("Loaded preset: " ++ selectedName).postln;
                     };
                 };
             };
         });
-    xPos = xPos + 205;
 
-    // Refresh button
-    buttons[\refresh] = Button(controlView, Rect(xPos, 10, 50, 25))
-        .states_([["scan", Color.black, Color.gray(0.85)]])
-        .font_(Font("Arial", 10))
-        .action_({
-            ~nUPIC[\wavetablePresets][\scanWavFiles].value;
-            presetNames = ["-- select --"] ++ ~nUPIC[\wavetablePresets][\list].value;
-            presetMenu.items_(presetNames);
-            ("Found " ++ (~nUPIC[\wavetablePresets][\wavFiles].size) ++ " wav files").postln;
-        });
-    xPos = xPos + 55;
-
-    // Utility buttons
-    buttons[\reverse] = Button(controlView, Rect(xPos, 10, 55, 25))
-        .states_([["reverse", Color.black, Color.gray(0.9)]])
-        .font_(Font("Arial", 10))
+    // Utility buttons - compact layout
+    xPos = 130;
+    buttons[\reverse] = Button(controlView, Rect(xPos, 5, 32, 22))
+        .states_([["rev", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 9))
         .action_({
             wavetableData = wavetableData.reverse;
             drawView.refresh;
             ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
-    xPos = xPos + 60;
 
-    buttons[\invert] = Button(controlView, Rect(xPos, 10, 50, 25))
-        .states_([["invert", Color.black, Color.gray(0.9)]])
-        .font_(Font("Arial", 10))
+    buttons[\invert] = Button(controlView, Rect(xPos + 35, 5, 32, 22))
+        .states_([["inv", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 9))
         .action_({
             wavetableData = wavetableData.neg;
             drawView.refresh;
             ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
-    xPos = xPos + 55;
 
-    buttons[\smooth] = Button(controlView, Rect(xPos, 10, 55, 25))
-        .states_([["smooth", Color.black, Color.gray(0.9)]])
-        .font_(Font("Arial", 10))
+    buttons[\smooth] = Button(controlView, Rect(xPos + 70, 5, 32, 22))
+        .states_([["smo", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 9))
         .action_({
             var smoothed = wavetableData.copy;
             3.do {
@@ -271,11 +243,10 @@
             drawView.refresh;
             ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
         });
-    xPos = xPos + 60;
 
-    buttons[\normalize] = Button(controlView, Rect(xPos, 10, 50, 25))
-        .states_([["norm", Color.black, Color.gray(0.9)]])
-        .font_(Font("Arial", 10))
+    buttons[\normalize] = Button(controlView, Rect(xPos + 105, 5, 32, 22))
+        .states_([["nrm", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 9))
         .action_({
             var maxVal = wavetableData.abs.maxItem;
             if(maxVal > 0) {
@@ -284,30 +255,19 @@
                 ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
             };
         });
-    xPos = xPos + 55;
 
-    buttons[\test] = Button(controlView, Rect(xPos, 10, 40, 25))
+    buttons[\test] = Button(controlView, Rect(xPos + 140, 5, 32, 22))
         .states_([["test", Color.black, Color.gray(0.9)]])
-        .font_(Font("Arial", 10))
+        .font_(Font("Arial", 9))
         .action_({
             var buffer = ~nUPIC[\trajectories][\getWavetableBuffer].value(currentIndex);
             if(buffer.notNil) {
                 fork {
-                    var synth = Synth(\upicWavetable, [
-                        \freq, 440,
-                        \amp, 0.2,
-                        \gate, 1,
-                        \bufnum, buffer.bufnum
-                    ]);
-                    0.5.wait;
-                    synth.set(\freq, 550);
-                    0.5.wait;
-                    synth.set(\freq, 330);
-                    0.5.wait;
-                    synth.set(\gate, 0);
+                    var synth = Synth(\upicWavetable, [\freq, 440, \amp, 0.2, \gate, 1, \bufnum, buffer.bufnum]);
+                    0.5.wait; synth.set(\freq, 550);
+                    0.5.wait; synth.set(\freq, 330);
+                    0.5.wait; synth.set(\gate, 0);
                 };
-            } {
-                "No wavetable buffer available".warn;
             };
         });
 
