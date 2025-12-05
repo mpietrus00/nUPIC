@@ -83,7 +83,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
         ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
             if(what == \playDuration) {
-                { durationNumberBox.value = value }.defer;
+                {
+                    // Update the actual playback state
+                    ~nUPIC[\ui][\state][\playDuration] = value;
+                    // Update the UI
+                    durationNumberBox.value = value;
+                }.defer;
             };
         });
     };
@@ -1224,7 +1229,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
         ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
             if(what == \playDuration) {
-                { durationNumberBox.value = value }.defer;
+                {
+                    // Update the actual playback state
+                    ~nUPIC[\ui][\state][\playDuration] = value;
+                    // Update the UI
+                    durationNumberBox.value = value;
+                }.defer;
             };
         });
     };
@@ -1970,7 +1980,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
         ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
             if(what == \playDuration) {
-                { durationNumberBox.value = value }.defer;
+                {
+                    // Update the actual playback state
+                    ~nUPIC[\ui][\state][\playDuration] = value;
+                    // Update the UI
+                    durationNumberBox.value = value;
+                }.defer;
             };
         });
     };
