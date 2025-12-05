@@ -117,13 +117,87 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     serverAudioBusChannels: 512
 );
 
-// Defaults - mutable settings that can be changed at runtime
-~nUPIC[\defaults] = (
-    defaultSynthDef: \upicWavetable,  // Currently selected SynthDef for new trajectories (mono)
+// Defaults - reactive settings that notify UI when changed
+// Use ~nUPIC[\defaults].set(\key, value) to update and auto-refresh UI
+// Use ~nUPIC[\defaults][\key] or ~nUPIC[\defaults].get(\key) to read
+(
+var defaults = IdentityDictionary.new;
+var dependants = IdentitySet.new;
+var values = (
+    defaultSynthDef: \upicWavetable,
     playDuration: 10,
     showGrid: true,
     gridType: \equalTemperament
 );
+
+// Store values
+defaults[\values] = values;
+defaults[\dependants] = dependants;
+
+// Get value (also works with defaults[\key] syntax via doesNotUnderstand)
+defaults[\get] = { |key|
+    defaults[\values][key]
+};
+
+// Set value and notify dependants
+defaults[\set] = { |key, value|
+    var oldValue = defaults[\values][key];
+    defaults[\values][key] = value;
+    if(oldValue != value) {
+        ("defaults[" ++ key ++ "] changed: " ++ oldValue ++ " -> " ++ value).postln;
+        defaults[\changed].value(key, value, oldValue);
+    };
+    value
+};
+
+// Add dependant (UI element or other listener)
+defaults[\addDependant] = { |dep|
+    defaults[\dependants].add(dep);
+    ("Added dependant: " ++ dep).postln;
+};
+
+// Remove dependant
+defaults[\removeDependant] = { |dep|
+    defaults[\dependants].remove(dep);
+};
+
+// Notify all dependants of change
+defaults[\changed] = { |what, value, oldValue|
+    defaults[\dependants].do { |dep|
+        // Call update method on dependant (deferred for GUI safety)
+        {
+            if(dep.respondsTo(\update)) {
+                dep.update(defaults, what, value, oldValue);
+            } {
+                // If it's a function, just call it
+                if(dep.isKindOf(Function)) {
+                    dep.value(what, value, oldValue);
+                };
+            };
+        }.defer;
+    };
+};
+
+// Allow direct key access for reading (backwards compatible)
+defaults[\doesNotUnderstand] = { |selector ...args|
+    if(args.size == 0) {
+        // Getter: defaults[\playDuration]
+        defaults[\values][selector]
+    } {
+        // Setter attempt - redirect to set method
+        if(selector.asString.endsWith("_")) {
+            var key = selector.asString.drop(-1).asSymbol;
+            defaults[\set].value(key, args[0]);
+        } {
+            defaults[\values][selector]
+        }
+    }
+};
+
+// Make it accessible
+~nUPIC[\defaults] = defaults;
+);
+// End reactive defaults
 
 // Grid system definitions
 ~nUPIC[\gridSystems] = (

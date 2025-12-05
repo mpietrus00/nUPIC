@@ -50,7 +50,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Duration number box
     durationNumberBox = NumberBox(window, Rect(140, yStart, 80, 25))
-        .value_(state[\playDuration] ? defaults[\playDuration] ? 10)
+        .value_(state[\playDuration] ? defaults[\get].value(\playDuration) ? 10)
         .decimals_(1)
         .step_(0.5)
         .clipLo_(0.1)
@@ -58,23 +58,35 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .action_({ |nb|
             var newDuration = nb.value.clip(0.1, 240.0);
             state[\playDuration] = newDuration;
-            ("Total playback duration set to " ++ newDuration ++ " seconds").postln;
-            
+            // Update reactive defaults (notifies other dependants)
+            if(defaults[\set].notNil) {
+                defaults[\set].value(\playDuration, newDuration);
+            };
+
             // Update zoom system when duration changes
             if(~nUPIC[\ui][\onDurationChange].notNil) {
                 ~nUPIC[\ui][\onDurationChange].value;
             };
         });
-    
+
     // Duration status
     StaticText(window, Rect(230, yStart, 300, 20))
         .string_("(Range: 0.1-240 seconds, controls total playback time for entire trajectory drawing)")
         .stringColor_(Color.gray(0.6))
         .font_(Font("Arial", 10));
-    
+
     // Store references
     state[\controls][\durationNumberBox] = durationNumberBox;
     state[\controls][\durationLabel] = durationLabel;
+
+    // Register for reactive updates from defaults
+    if(defaults[\addDependant].notNil) {
+        defaults[\addDependant].value({ |what, value, oldValue|
+            if(what == \playDuration) {
+                { durationNumberBox.value = value }.defer;
+            };
+        });
+    };
 };
 
 // Duration controls removed - now using variable speed function
@@ -1190,7 +1202,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .font_(Font("Arial", 11));
     
     durationNumberBox = NumberBox(window, Rect(160, yStart, 60, 25))
-        .value_(state[\playDuration] ? defaults[\playDuration] ? 10)
+        .value_(state[\playDuration] ? defaults[\get].value(\playDuration) ? 10)
         .decimals_(1)
         .step_(0.5)
         .clipLo_(0.1)
@@ -1198,18 +1210,30 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .action_({ |nb|
             var newDuration = nb.value.clip(0.1, 240.0);
             state[\playDuration] = newDuration;
-            ("Total playback duration set to " ++ newDuration ++ " seconds").postln;
-            
+            // Update reactive defaults
+            if(defaults[\set].notNil) {
+                defaults[\set].value(\playDuration, newDuration);
+            };
+
             if(~nUPIC[\ui][\onDurationChange].notNil) {
                 ~nUPIC[\ui][\onDurationChange].value;
             };
         });
-    
+
+    // Register for reactive updates
+    if(defaults[\addDependant].notNil) {
+        defaults[\addDependant].value({ |what, value, oldValue|
+            if(what == \playDuration) {
+                { durationNumberBox.value = value }.defer;
+            };
+        });
+    };
+
     StaticText(window, Rect(230, yStart, 30, 20))
         .string_("sec")
         .stringColor_(Color.gray(0.6))
         .font_(Font("Arial", 10));
-    
+
     // Emergency Stop button
     Button(window, Rect(280, yStart, 80, 25))
         .states_([["STOP ALL", Color.white, Color.red]])
@@ -1900,7 +1924,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Duration number box (centered) - adjusted position for wider label, with 3px gap
     durationNumberBox = NumberBox(playbackGroupView, Rect(startX + 70 + 3 + 75 + 3, controlY, 50, 20))
-        .value_(state[\playDuration] ? defaults[\playDuration] ? 10)
+        .value_(state[\playDuration] ? defaults[\get].value(\playDuration) ? 10)
         .decimals_(1)
         .step_(0.5)
         .clipLo_(0.1)
@@ -1909,13 +1933,25 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .action_({ |nb|
             var newDuration = nb.value.clip(0.1, 240.0);
             state[\playDuration] = newDuration;
-            ("Duration: " ++ newDuration ++ "s").postln;
-            
+            // Update reactive defaults
+            if(defaults[\set].notNil) {
+                defaults[\set].value(\playDuration, newDuration);
+            };
+
             if(~nUPIC[\ui][\onDurationChange].notNil) {
                 ~nUPIC[\ui][\onDurationChange].value;
             };
         });
-    
+
+    // Register for reactive updates
+    if(defaults[\addDependant].notNil) {
+        defaults[\addDependant].value({ |what, value, oldValue|
+            if(what == \playDuration) {
+                { durationNumberBox.value = value }.defer;
+            };
+        });
+    };
+
     // Seconds label (centered) - adjusted position for wider duration label, with 3px gap
     StaticText(playbackGroupView, Rect(startX + 70 + 3 + 75 + 3 + 50 + 3, controlY, 25, 20))
         .string_("sec")
