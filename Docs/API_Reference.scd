@@ -69,11 +69,11 @@
 
 // --- Wavetable (per-trajectory) ---
 
-// Get wavetable data (512 samples, -1 to 1)
+// Get wavetable data (2048 samples, -1 to 1)
 ~nUPIC[\trajectories][\getWavetable].value(0);
 
 // Set wavetable data
-~nUPIC[\trajectories][\setWavetable].value(0, Array.fill(512, { |i| sin(2pi * i / 512) }));
+~nUPIC[\trajectories][\setWavetable].value(0, Array.fill(2048, { |i| sin(2pi * i / 2048) }));
 
 // Get the server buffer reference
 ~nUPIC[\trajectories][\getWavetableBuffer].value(0);

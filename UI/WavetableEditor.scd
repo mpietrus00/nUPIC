@@ -10,7 +10,7 @@
     var win, drawView, controlView, wavetableData, isDrawing = false;
     var width = 700, height = 400;
     var controlHeight = 110;
-    var numSamples = 512;
+    var numSamples = 2048;
     var lastX, lastY;
     var buttons = ();
     var xPos;
@@ -41,8 +41,8 @@
     wavetableData = manager[\getWavetable].value(currentIndex);
     if(wavetableData.isNil) {
         // Create default sine wavetable
-        wavetableData = Array.fill(numSamples, { |i|
-            sin(2pi * i / numSamples)
+        wavetableData = Array.fill(2048, { |i|
+            sin(2pi * i / 2048)
         });
         manager[\setWavetable].value(currentIndex, wavetableData);
     };

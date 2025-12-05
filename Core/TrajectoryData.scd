@@ -15,7 +15,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     var selectedTrajectories, copiedTrajectories;
     var undoStack, redoStack;
     var maxSynths, maxUndoSteps, maxChannels;
-    var numWavetableSamples = 512;  // Standard wavetable size
+    var numWavetableSamples = 2048;  // Standard wavetable size
     var defaultWavetable;  // Default sine wave
 
     // Initialize with safe defaults (will be updated when constants are available)
@@ -23,7 +23,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     amplitudeEnvelopes = List.new;
     spatialEnvelopes = List.new;  // Spatial envelope per trajectory: List of (x: time, channel: 0-maxChannels)
     trajectorySynthDefs = List.new;
-    wavetables = List.new;  // Per-trajectory wavetable data (Array of 512 floats)
+    wavetables = List.new;  // Per-trajectory wavetable data (Array of 2048 floats)
     wavetableBuffers = List.new;  // Per-trajectory Buffer references
     selectedTrajectories = Set.new;
     copiedTrajectories = List.new;
