@@ -303,7 +303,7 @@ SynthDef(\upicWavetable3ch, {
     sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
     sig = sig.tanh * 0.9;
 
-    Out.ar(0, PanAz.ar(3, sig, pan, 1, width));
+    Out.ar(0, PanAz.ar(3, sig, pan, 1, width, 0));  // orientation=0 so pos=0 is ch0
 }).add;
 
 // 4-channel version with PanAz
@@ -331,7 +331,7 @@ SynthDef(\upicWavetable4ch, {
     sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
     sig = sig.tanh * 0.9;
 
-    Out.ar(0, PanAz.ar(4, sig, pan, 1, width));
+    Out.ar(0, PanAz.ar(4, sig, pan, 1, width, 0));  // orientation=0 so pos=0 is ch0
 }).add;
 
 // 8-channel version with PanAz
@@ -359,7 +359,7 @@ SynthDef(\upicWavetable8ch, {
     sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
     sig = sig.tanh * 0.9;
 
-    Out.ar(0, PanAz.ar(8, sig, pan, 1, width));
+    Out.ar(0, PanAz.ar(8, sig, pan, 1, width, 0));  // orientation=0 so pos=0 is ch0
 }).add;
 
 // 12-channel version with PanAz
@@ -387,7 +387,7 @@ SynthDef(\upicWavetable12ch, {
     sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
     sig = sig.tanh * 0.9;
 
-    Out.ar(0, PanAz.ar(12, sig, pan, 1, width));
+    Out.ar(0, PanAz.ar(12, sig, pan, 1, width, 0));  // orientation=0 so pos=0 is ch0
 }).add;
 
 // 15-channel version with PanAz
@@ -415,7 +415,7 @@ SynthDef(\upicWavetable15ch, {
     sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
     sig = sig.tanh * 0.9;
 
-    Out.ar(0, PanAz.ar(15, sig, pan, 1, width));
+    Out.ar(0, PanAz.ar(15, sig, pan, 1, width, 0));  // orientation=0 so pos=0 is ch0
 }).add;
 
 // 24-channel version with PanAz
@@ -443,7 +443,7 @@ SynthDef(\upicWavetable24ch, {
     sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
     sig = sig.tanh * 0.9;
 
-    Out.ar(0, PanAz.ar(24, sig, pan, 1, width));
+    Out.ar(0, PanAz.ar(24, sig, pan, 1, width, 0));  // orientation=0 so pos=0 is ch0
 }).add;
 
 "✓ upicWavetable SynthDef loaded (mono)".postln;
