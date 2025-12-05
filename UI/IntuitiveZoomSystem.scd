@@ -99,10 +99,16 @@ BENEFITS:
     // Initialize zoom levels based on current duration
     ~nUPIC[\ui][\updateZoomLevels].value;
     
-    // Initialize frequency zoom system
+    // Initialize frequency zoom system (with nil-safe access)
     constants = ~nUPIC[\constants];
-    baseFreqMin = constants[\freqMin] ? 20;
-    baseFreqMax = constants[\freqMax] ? 7500;
+    if(constants.isNil) {
+        "[ZOOM] WARNING: ~nUPIC[\\constants] is nil, using hardcoded defaults".postln;
+        baseFreqMin = 20;
+        baseFreqMax = 7500;
+    } {
+        baseFreqMin = constants[\freqMin] ? 20;
+        baseFreqMax = constants[\freqMax] ? 7500;
+    };
     
     // Frequency zoom levels (frequency range in Hz)
     state[\freqZoomLevels] = [
@@ -414,8 +420,8 @@ BENEFITS:
     var oldFreqMin = state[\zoomFreqMin];
     var oldFreqMax = state[\zoomFreqMax];
     var constants = ~nUPIC[\constants];
-    var absFreqMin = constants[\freqMin] ? 20;
-    var absFreqMax = constants[\freqMax] ? 7500;
+    var absFreqMin = if(constants.notNil) { constants[\freqMin] ? 20 } { 20 };
+    var absFreqMax = if(constants.notNil) { constants[\freqMax] ? 7500 } { 7500 };
     
     case
     { direction == \up } {
@@ -509,10 +515,10 @@ BENEFITS:
     var fullFreqMin, fullFreqMax, minGrabAreaNorm = 0.025, range, center, newMinNorm, newMaxNorm;
     
     if(state.isNil) { ^nil };
-    
-    // Get full frequency range
-    fullFreqMin = constants[\freqMin] ? 20;
-    fullFreqMax = constants[\freqMax] ? 7500;
+
+    // Get full frequency range (nil-safe)
+    fullFreqMin = if(constants.notNil) { constants[\freqMin] ? 20 } { 20 };
+    fullFreqMax = if(constants.notNil) { constants[\freqMax] ? 7500 } { 7500 };
     
     // Calculate requested normalized range
     range = maxNorm - minNorm;
@@ -618,10 +624,10 @@ BENEFITS:
         }.defer;
     };
     
-    // Sync vertical (frequency) RangeSlider
+    // Sync vertical (frequency) RangeSlider (nil-safe)
     if(state[\verticalRangeSlider].notNil and: { state[\zoomFreqMin].notNil }) {
-        fullFreqMin = constants[\freqMin] ? 20;
-        fullFreqMax = constants[\freqMax] ? 7500;
+        fullFreqMin = if(constants.notNil) { constants[\freqMin] ? 20 } { 20 };
+        fullFreqMax = if(constants.notNil) { constants[\freqMax] ? 7500 } { 7500 };
         
         {
             // Convert frequency values back to normalized coordinates (correct mapping)

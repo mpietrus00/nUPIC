@@ -232,14 +232,27 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
 
     // Get existing envelope or create default
-    currentEnvelope = data[\spatializationEnvelopes][trajIndex];
+    // First check TrajectoryData storage (set when trajectory was drawn)
+    currentEnvelope = if(data[\getSpatialEnvelope].notNil) {
+        data[\getSpatialEnvelope].value(trajIndex)
+    } { nil };
+
+    // Fall back to spatializationEnvelopes (editor-specific storage)
     if(currentEnvelope.isNil) {
-        // Create default envelope (center position)
+        currentEnvelope = data[\spatializationEnvelopes][trajIndex];
+    };
+
+    if(currentEnvelope.isNil) {
+        // Create default envelope (first to last speaker sweep)
         currentEnvelope = List[
-            (x: 0, channel: maxChannel / 2),  // Start at center
-            (x: trajectoryLength, channel: maxChannel / 2)  // End at center
+            (x: 0, channel: 0),                    // Start at first speaker
+            (x: trajectoryLength, channel: maxChannel)  // End at last speaker
         ];
         data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
+        // Also save to TrajectoryData
+        if(data[\setSpatialEnvelope].notNil) {
+            data[\setSpatialEnvelope].value(trajIndex, currentEnvelope);
+        };
     };
 
     // Clear container
@@ -542,6 +555,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
                 // Store the envelope
                 data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
+                if(data[\setSpatialEnvelope].notNil) { data[\setSpatialEnvelope].value(trajIndex, currentEnvelope) };
 
                 ("Spatialization envelope saved for trajectory " ++ trajIndex).postln;
                 ("Points: " ++ currentEnvelope.size ++ " (interpolated to 2048)").postln;
@@ -572,6 +586,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 currentEnvelope.add((x: xPos, channel: center));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
+            if(data[\setSpatialEnvelope].notNil) { data[\setSpatialEnvelope].value(trajIndex, currentEnvelope) };
             spatialView.refresh;
         });
 
@@ -590,6 +605,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 currentEnvelope.add((x: xPos, channel: channel.clip(0, maxChannel)));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
+            if(data[\setSpatialEnvelope].notNil) { data[\setSpatialEnvelope].value(trajIndex, currentEnvelope) };
             spatialView.refresh;
         });
 
@@ -609,6 +625,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 currentEnvelope.add((x: xPos, channel: channel.clip(0, maxChannel)));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
+            if(data[\setSpatialEnvelope].notNil) { data[\setSpatialEnvelope].value(trajIndex, currentEnvelope) };
             spatialView.refresh;
         });
 
@@ -626,6 +643,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 currentEnvelope.add((x: xPos, channel: prevChannel));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
+            if(data[\setSpatialEnvelope].notNil) { data[\setSpatialEnvelope].value(trajIndex, currentEnvelope) };
             spatialView.refresh;
         });
 
@@ -642,6 +660,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 currentEnvelope.add((x: xPos, channel: channel));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
+            if(data[\setSpatialEnvelope].notNil) { data[\setSpatialEnvelope].value(trajIndex, currentEnvelope) };
             spatialView.refresh;
         });
 
@@ -658,6 +677,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 currentEnvelope.add((x: xPos, channel: channel));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
+            if(data[\setSpatialEnvelope].notNil) { data[\setSpatialEnvelope].value(trajIndex, currentEnvelope) };
             spatialView.refresh;
         });
 
@@ -682,6 +702,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     currentEnvelope = smoothed;
                 };
                 data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
+                if(data[\setSpatialEnvelope].notNil) { data[\setSpatialEnvelope].value(trajIndex, currentEnvelope) };
                 spatialView.refresh;
             };
         });

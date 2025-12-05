@@ -36,6 +36,7 @@ if(thisProcess.nowExecutingPath.notNil) {
         "UI/Controls.scd",
         "UI/AmplitudeEditor.scd",
         "UI/SpatializationEditor.scd",  // Spatialization editor
+        "TABLES/WavetablePresets.scd",  // Wavetable preset library
         "UI/WavetableEditor.scd",
         // "Utils/GridSystems.scd",
         // "Utils/FileIO.scd",

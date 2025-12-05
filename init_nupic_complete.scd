@@ -168,7 +168,7 @@ fork {
                 \upicWavetable, \upicWavetable2ch, \upicWavetable3ch, \upicWavetable4ch,
                 \upicWavetable8ch, \upicWavetable12ch, \upicWavetable15ch, \upicWavetable24ch
             ];
-            ~nUPIC_SynthDefs[\default] = \upicWavetable8ch;
+            ~nUPIC_SynthDefs[\default] = \upicWavetable;
         };
         
         // Now load the main system

@@ -50,7 +50,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Duration number box
     durationNumberBox = NumberBox(window, Rect(140, yStart, 80, 25))
-        .value_(state[\playDuration] ? defaults[\playDuration] ? 10)
+        .value_(state[\playDuration] ? (if(defaults.notNil) { defaults[\playDuration] }) ? 10)
         .decimals_(1)
         .step_(0.5)
         .clipLo_(0.1)
@@ -58,23 +58,40 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .action_({ |nb|
             var newDuration = nb.value.clip(0.1, 240.0);
             state[\playDuration] = newDuration;
-            ("Total playback duration set to " ++ newDuration ++ " seconds").postln;
-            
+            // Update reactive defaults (notifies other dependants)
+            if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\setValue].notNil }) {
+                ~nUPIC[\defaults][\setValue].value(\playDuration, newDuration);
+            };
+
             // Update zoom system when duration changes
             if(~nUPIC[\ui][\onDurationChange].notNil) {
                 ~nUPIC[\ui][\onDurationChange].value;
             };
         });
-    
+
     // Duration status
     StaticText(window, Rect(230, yStart, 300, 20))
         .string_("(Range: 0.1-240 seconds, controls total playback time for entire trajectory drawing)")
         .stringColor_(Color.gray(0.6))
         .font_(Font("Arial", 10));
-    
+
     // Store references
     state[\controls][\durationNumberBox] = durationNumberBox;
     state[\controls][\durationLabel] = durationLabel;
+
+    // Register for reactive updates from defaults
+    if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
+        ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
+            if(what == \playDuration) {
+                {
+                    // Update the actual playback state
+                    ~nUPIC[\ui][\state][\playDuration] = value;
+                    // Update the UI
+                    durationNumberBox.value = value;
+                }.defer;
+            };
+        });
+    };
 };
 
 // Duration controls removed - now using variable speed function
@@ -1190,7 +1207,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .font_(Font("Arial", 11));
     
     durationNumberBox = NumberBox(window, Rect(160, yStart, 60, 25))
-        .value_(state[\playDuration] ? defaults[\playDuration] ? 10)
+        .value_(state[\playDuration] ? (if(defaults.notNil) { defaults[\playDuration] }) ? 10)
         .decimals_(1)
         .step_(0.5)
         .clipLo_(0.1)
@@ -1198,18 +1215,35 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .action_({ |nb|
             var newDuration = nb.value.clip(0.1, 240.0);
             state[\playDuration] = newDuration;
-            ("Total playback duration set to " ++ newDuration ++ " seconds").postln;
-            
+            // Update reactive defaults
+            if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\setValue].notNil }) {
+                ~nUPIC[\defaults][\setValue].value(\playDuration, newDuration);
+            };
+
             if(~nUPIC[\ui][\onDurationChange].notNil) {
                 ~nUPIC[\ui][\onDurationChange].value;
             };
         });
-    
+
+    // Register for reactive updates
+    if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
+        ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
+            if(what == \playDuration) {
+                {
+                    // Update the actual playback state
+                    ~nUPIC[\ui][\state][\playDuration] = value;
+                    // Update the UI
+                    durationNumberBox.value = value;
+                }.defer;
+            };
+        });
+    };
+
     StaticText(window, Rect(230, yStart, 30, 20))
         .string_("sec")
         .stringColor_(Color.gray(0.6))
         .font_(Font("Arial", 10));
-    
+
     // Emergency Stop button
     Button(window, Rect(280, yStart, 80, 25))
         .states_([["STOP ALL", Color.white, Color.red]])
@@ -1547,13 +1581,36 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     };
                 };
             } {
-                // Always use fresh reference to ~nUPIC[\defaults]
-                if(~nUPIC[\defaults].notNil) {
-                    ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
+                // Use reactive setValue for defaultSynthDef
+                if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\setValue].notNil }) {
+                    ~nUPIC[\defaults][\setValue].value(\defaultSynthDef, selectedSynth);
+                } {
+                    // Fallback to direct assignment
+                    if(~nUPIC[\defaults].notNil) {
+                        ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
+                    };
                 };
                 ("Default SynthDef: " ++ selectedSynth).postln;
             };
         });
+
+    // Register for reactive updates to defaultSynthDef
+    if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
+        ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
+            if(what == \defaultSynthDef) {
+                {
+                    var menu = ~nUPIC[\ui][\state][\controls][\synthDefMenu];
+                    var synthDefNames = if(~nUPIC_SynthDefs.notNil and: { ~nUPIC_SynthDefs[\available].notNil }) {
+                        ~nUPIC_SynthDefs[\available]
+                    } { [] };
+                    var idx = synthDefNames.indexOf(value);
+                    if(idx.notNil and: { menu.notNil }) {
+                        menu.value = idx;
+                    };
+                }.defer;
+            };
+        });
+    };
 
     // Store references
     state[\controls][\eraseModeButton] = eraseModeButton;
@@ -1900,7 +1957,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Duration number box (centered) - adjusted position for wider label, with 3px gap
     durationNumberBox = NumberBox(playbackGroupView, Rect(startX + 70 + 3 + 75 + 3, controlY, 50, 20))
-        .value_(state[\playDuration] ? defaults[\playDuration] ? 10)
+        .value_(state[\playDuration] ? (if(defaults.notNil) { defaults[\playDuration] }) ? 10)
         .decimals_(1)
         .step_(0.5)
         .clipLo_(0.1)
@@ -1909,13 +1966,30 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .action_({ |nb|
             var newDuration = nb.value.clip(0.1, 240.0);
             state[\playDuration] = newDuration;
-            ("Duration: " ++ newDuration ++ "s").postln;
-            
+            // Update reactive defaults
+            if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\setValue].notNil }) {
+                ~nUPIC[\defaults][\setValue].value(\playDuration, newDuration);
+            };
+
             if(~nUPIC[\ui][\onDurationChange].notNil) {
                 ~nUPIC[\ui][\onDurationChange].value;
             };
         });
-    
+
+    // Register for reactive updates from defaults
+    if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
+        ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
+            if(what == \playDuration) {
+                {
+                    // Update the actual playback state
+                    ~nUPIC[\ui][\state][\playDuration] = value;
+                    // Update the UI
+                    durationNumberBox.value = value;
+                }.defer;
+            };
+        });
+    };
+
     // Seconds label (centered) - adjusted position for wider duration label, with 3px gap
     StaticText(playbackGroupView, Rect(startX + 70 + 3 + 75 + 3 + 50 + 3, controlY, 25, 20))
         .string_("sec")
@@ -2110,15 +2184,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     };
                 };
             } {
-                // Always use fresh reference to ~nUPIC[\defaults]
-                if(~nUPIC[\defaults].notNil) {
-                    ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
-                    ("DEBUG MENU: Set ~nUPIC[\\defaults][\\defaultSynthDef] = " ++ selectedSynth).postln;
-                    ("DEBUG MENU: Verify read back: " ++ ~nUPIC[\defaults][\defaultSynthDef]).postln;
+                // Use reactive setValue for defaultSynthDef
+                if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\setValue].notNil }) {
+                    ~nUPIC[\defaults][\setValue].value(\defaultSynthDef, selectedSynth);
                 } {
-                    "WARNING: ~nUPIC[\\defaults] is nil! Cannot set default SynthDef".postln;
+                    // Fallback to direct assignment
+                    if(~nUPIC[\defaults].notNil) {
+                        ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
+                    };
                 };
-                ("Default SynthDef set to " ++ selectedSynth ++ " for new trajectories").postln;
             };
         });
 
@@ -2426,6 +2500,24 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     state[\controls][\scMeterButton] = scMeterButton;
     state[\controls][\freqScopeButton] = freqScopeButton;
     
+    // Register for reactive updates to defaultSynthDef
+    if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
+        ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
+            if(what == \defaultSynthDef) {
+                {
+                    var menu = ~nUPIC[\ui][\state][\controls][\synthDefMenu];
+                    var synthDefNames = if(~nUPIC_SynthDefs.notNil and: { ~nUPIC_SynthDefs[\available].notNil }) {
+                        ~nUPIC_SynthDefs[\available]
+                    } { [] };
+                    var idx = synthDefNames.indexOf(value);
+                    if(idx.notNil and: { menu.notNil }) {
+                        menu.value = idx;
+                    };
+                }.defer;
+            };
+        });
+    };
+
     // Store references
     state[\controls][\playButton] = playButton;
     state[\controls][\durationNumberBox] = durationNumberBox;

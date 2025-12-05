@@ -452,23 +452,13 @@ fork {
                                 "✓ SynthDef menu auto-updated with " ++ menuItems.size ++ " items".postln;
                                 menuItems.do { |item| ("  - " ++ item).postln };
 
-                                // Set default to 8ch if available, else mono
-                                if(~nUPIC_SynthDefs[\available].includes(\upicWavetable8ch)) {
-                                    var idx = ~nUPIC_SynthDefs[\available].indexOf(\upicWavetable8ch);
+                                // Set default to mono (upicWavetable)
+                                if(~nUPIC_SynthDefs[\available].includes(\upicWavetable)) {
+                                    var idx = ~nUPIC_SynthDefs[\available].indexOf(\upicWavetable);
                                     if(idx.notNil) {
                                         controls[\synthDefMenu].value = idx;
-                                        ~nUPIC[\defaults][\defaultSynthDef] = \upicWavetable8ch;
-                                        "  Default set to upicWavetable8ch".postln;
-                                    };
-                                } {
-                                    // Fallback to mono
-                                    if(~nUPIC_SynthDefs[\available].includes(\upicWavetable)) {
-                                        var idx = ~nUPIC_SynthDefs[\available].indexOf(\upicWavetable);
-                                        if(idx.notNil) {
-                                            controls[\synthDefMenu].value = idx;
-                                            ~nUPIC[\defaults][\defaultSynthDef] = \upicWavetable;
-                                            "  Default set to upicWavetable (mono)".postln;
-                                        };
+                                        ~nUPIC[\defaults][\defaultSynthDef] = \upicWavetable;
+                                        "  Default set to upicWavetable (mono)".postln;
                                     };
                                 };
                             };
