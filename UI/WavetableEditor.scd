@@ -9,7 +9,7 @@
 ~nUPIC[\wavetableEditor][\open] = { |trajectoryIndex = nil|
     var win, drawView, controlView, wavetableData, isDrawing = false;
     var width = 700, height = 400;
-    var controlHeight = 110;
+    var controlHeight = 140;  // Increased for preset menu
     var numSamples = 2048;
     var lastX, lastY;
     var buttons = ();
@@ -18,6 +18,7 @@
     var titleText;
     var data = ~nUPIC[\data];
     var trajCount = ~nUPIC[\trajectories][\count].value;
+    var presetMenu, presetLabel, presetNames;
 
     // Determine which trajectory to edit
     if(trajectoryIndex.notNil) {
@@ -380,7 +381,7 @@
         });
 
     // Row 3: Test, Copy, and Close (y=70)
-    buttons[\test] = Button(controlView, Rect(10, 75, 60, 25))
+    buttons[\test] = Button(controlView, Rect(10, 65, 60, 25))
         .states_([["_test", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
@@ -406,7 +407,7 @@
         });
 
     // Copy wavetable to other selected trajectories
-    buttons[\copyToSelected] = Button(controlView, Rect(75, 75, 100, 25))
+    buttons[\copyToSelected] = Button(controlView, Rect(75, 65, 100, 25))
         .states_([["_copy to sel", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 10))
         .action_({
@@ -420,10 +421,59 @@
             };
         });
 
-    buttons[\close] = Button(controlView, Rect(width - 70, 75, 60, 25))
+    buttons[\close] = Button(controlView, Rect(width - 70, 65, 60, 25))
         .states_([["_close", Color.white, Color.red.alpha_(0.8)]])
         .font_(Font("Arial", 10))
         .action_({ win.close });
+
+    // Row 4: Preset dropdown menu (y=100)
+    presetLabel = StaticText(controlView, Rect(10, 100, 50, 25))
+        .string_("Preset:")
+        .font_(Font("Arial", 10));
+
+    // Get preset names if available
+    presetNames = if(~nUPIC[\wavetablePresets].notNil and: { ~nUPIC[\wavetablePresets][\list].notNil }) {
+        ["-- select preset --"] ++ ~nUPIC[\wavetablePresets][\list].value;
+    } {
+        ["-- no presets loaded --"]
+    };
+
+    presetMenu = PopUpMenu(controlView, Rect(65, 100, 180, 25))
+        .items_(presetNames)
+        .font_(Font("Arial", 10))
+        .background_(Color.gray(0.95))
+        .action_({ |menu|
+            var selectedName;
+            if(menu.value > 0) {
+                selectedName = presetNames[menu.value].asSymbol;
+                if(~nUPIC[\wavetablePresets].notNil and: { ~nUPIC[\wavetablePresets][\get].notNil }) {
+                    wavetableData = ~nUPIC[\wavetablePresets][\get].value(selectedName);
+                    if(wavetableData.notNil) {
+                        drawView.refresh;
+                        ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
+                        ("Loaded preset: " ++ selectedName).postln;
+                    };
+                };
+            };
+        });
+
+    // Category filter buttons
+    xPos = 255;
+    [\basic, \organ, \acoustic, \vocal, \fm, \synth].do { |cat, i|
+        Button(controlView, Rect(xPos + (i * 55), 100, 50, 25))
+            .states_([[cat.asString, Color.black, Color.gray(0.85)]])
+            .font_(Font("Arial", 9))
+            .action_({
+                var catPresets;
+                if(~nUPIC[\wavetablePresets].notNil and: { ~nUPIC[\wavetablePresets][\categories].notNil }) {
+                    catPresets = ~nUPIC[\wavetablePresets][\categories][cat];
+                    if(catPresets.notNil) {
+                        presetNames = ["-- " ++ cat ++ " --"] ++ catPresets.collect(_.asString);
+                        presetMenu.items_(presetNames);
+                    };
+                };
+            });
+    };
 
     // Store window reference
     ~nUPIC[\wavetableEditor][\window] = win;

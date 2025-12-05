@@ -87,6 +87,23 @@
 // Or open editor for selected trajectory (uses first selected)
 ~nUPIC[\wavetableEditor][\open].value;
 
+// --- Wavetable Presets ---
+
+// List all available presets
+~nUPIC[\wavetablePresets][\list].value;
+
+// Get preset data by name (returns 2048-sample array)
+~nUPIC[\wavetablePresets][\get].value(\sine);
+~nUPIC[\wavetablePresets][\get].value(\moog);
+~nUPIC[\wavetablePresets][\get].value(\fmBell);
+
+// Load preset directly to trajectory
+~nUPIC[\wavetablePresets][\loadToTrajectory].value(\brass, 0);
+
+// View preset categories
+~nUPIC[\wavetablePresets][\categories].keys;
+~nUPIC[\wavetablePresets][\categories][\organ];  // -> [organFlute, organReed, ...]
+
 
 // ============================================================================
 // TRAJECTORY TRANSFORMATIONS
@@ -228,4 +245,43 @@ Other:
     \prometheus, \enigmatic, \neapolitanMajor, \neapolitanMinor,
     \doubleHarmonic, \altered, \superlocrian, \lydianDominant,
     \tritone, \fifths, \fourths
+*/
+
+
+// ============================================================================
+// AVAILABLE WAVETABLE PRESETS
+// ============================================================================
+/*
+Basic Waveforms:
+    \sine, \cosine, \saw, \sawDown, \square, \triangle
+
+Pulse Width:
+    \pulse10, \pulse25, \pulse75
+
+Organ:
+    \organFlute, \organReed, \organPipe, \organFull
+
+Acoustic:
+    \brass, \strings, \clarinet, \oboe
+
+Vocal (formants):
+    \vowelA, \vowelE, \vowelI, \vowelO, \vowelU
+
+FM Synthesis:
+    \fmBell, \fmMetallic, \fmWarm, \fmBright
+
+Waveshaping:
+    \softClip, \hardClip, \cubic, \foldback, \wrap
+
+Complex / Textural:
+    \supersaw, \pwmSquare, \bitcrush, \digital
+
+Experimental:
+    \gendy, \chaotic, \noise, \smoothNoise
+
+Classic Synth:
+    \moog, \prophet, \dx7, \ppg
+
+Percussion:
+    \kick, \hat, \pluck
 */
