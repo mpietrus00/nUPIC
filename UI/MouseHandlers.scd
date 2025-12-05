@@ -300,37 +300,74 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 "Trajectory was drawn right-to-left - automatically sorted for correct playback".postln;
             };
             
-            // Use the trajectory manager if available, otherwise use direct data access
-            if(data.respondsTo(\addTrajectory)) {
-                // Using trajectory manager
-                synthDef = defaults[\defaultSynthDef] ? \upicWavetable;
-                data[\addTrajectory].value(sortedTrajectory, synthDef, nil);
+            // Get the SynthDef name
+            synthDef = if(~nUPIC[\defaults].notNil) {
+                ~nUPIC[\defaults][\defaultSynthDef] ? \upicWavetable
             } {
-                // Direct data access fallback
-                var maxSynths = constants[\maxTrajectories] ? 200;
-                
-                // Ensure data structures exist
-                if(data[\trajectories].isNil) { data[\trajectories] = List.new };
-                if(data[\amplitudeEnvelopes].isNil) { data[\amplitudeEnvelopes] = List.new };
-                if(data[\trajectorySynthDefs].isNil) { data[\trajectorySynthDefs] = List.new };
-                
-                if(data[\trajectories].size >= maxSynths) {
-                    // Remove oldest trajectory
-                    data[\trajectories].removeAt(0);
-                    data[\amplitudeEnvelopes].removeAt(0);
-                    data[\trajectorySynthDefs].removeAt(0);
+                defaults[\defaultSynthDef] ? \upicWavetable
+            };
+
+            // Create default spatial envelope for multi-channel SynthDefs
+            // Parse channel count from SynthDef name (e.g., upicWavetable8ch -> 8)
+            block { |break|
+                var synthDefStr = synthDef.asString;
+                var numChannels = 1;
+                var spatialEnv = nil;
+
+                // Check for channel count in SynthDef name
+                if(synthDefStr.contains("ch")) {
+                    var chIndex = synthDefStr.find("ch");
+                    if(chIndex.notNil and: { chIndex > 0 }) {
+                        // Extract number before "ch"
+                        var numStr = "";
+                        var i = chIndex - 1;
+                        while { i >= 0 and: { synthDefStr[i].isDecDigit } } {
+                            numStr = synthDefStr[i].asString ++ numStr;
+                            i = i - 1;
+                        };
+                        if(numStr.size > 0) {
+                            numChannels = numStr.asInteger;
+                        };
+                    };
                 };
-                
-                data[\trajectories].add(sortedTrajectory);
-                data[\amplitudeEnvelopes].add(nil);  // Add placeholder for amplitude envelope
-                
-                // Use currently selected SynthDef or default - read fresh from ~nUPIC[\defaults]
-                synthDef = if(~nUPIC[\defaults].notNil) {
-                    ~nUPIC[\defaults][\defaultSynthDef] ? \upicWavetable
+
+                // Create first-to-last spatial envelope for multi-channel SynthDefs
+                if(numChannels > 1) {
+                    var startX = sortedTrajectory[0].x;
+                    var endX = sortedTrajectory.last.x;
+                    spatialEnv = List[
+                        (x: startX, channel: 0),                  // Start at first speaker
+                        (x: endX, channel: numChannels - 1)       // End at last speaker
+                    ];
+                    ("Creating spatial envelope: speaker 0 -> speaker " ++ (numChannels - 1)).postln;
+                };
+
+                // Use the trajectory manager if available, otherwise use direct data access
+                if(data.respondsTo(\addTrajectory)) {
+                    data[\addTrajectory].value(sortedTrajectory, synthDef, nil, spatialEnv);
                 } {
-                    \upicWavetable
+                    // Direct data access fallback
+                    var maxSynths = constants[\maxTrajectories] ? 200;
+
+                    // Ensure data structures exist
+                    if(data[\trajectories].isNil) { data[\trajectories] = List.new };
+                    if(data[\amplitudeEnvelopes].isNil) { data[\amplitudeEnvelopes] = List.new };
+                    if(data[\trajectorySynthDefs].isNil) { data[\trajectorySynthDefs] = List.new };
+                    if(data[\spatialEnvelopes].isNil) { data[\spatialEnvelopes] = List.new };
+
+                    if(data[\trajectories].size >= maxSynths) {
+                        // Remove oldest trajectory
+                        data[\trajectories].removeAt(0);
+                        data[\amplitudeEnvelopes].removeAt(0);
+                        data[\trajectorySynthDefs].removeAt(0);
+                        if(data[\spatialEnvelopes].size > 0) { data[\spatialEnvelopes].removeAt(0) };
+                    };
+
+                    data[\trajectories].add(sortedTrajectory);
+                    data[\amplitudeEnvelopes].add(nil);
+                    data[\trajectorySynthDefs].add(synthDef);
+                    data[\spatialEnvelopes].add(spatialEnv);
                 };
-                data[\trajectorySynthDefs].add(synthDef);
             };
             
             ("New trajectory added (SynthDef: " ++ synthDef ++ ")").postln;

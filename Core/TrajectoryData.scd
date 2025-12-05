@@ -374,6 +374,23 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             } { nil };
         },
 
+        // Create spatial envelope that sweeps from first speaker to last speaker
+        createFirstToLastSpatialEnvelope: { |index, numChannels = 8|
+            if(index >= 0 and: { index < trajectories.size }) {
+                var traj = trajectories[index];
+                var startX = traj[0].x;
+                var endX = traj.last.x;
+
+                var envelope = List[
+                    (x: startX, channel: 0),                    // Start at first speaker
+                    (x: endX, channel: numChannels - 1)         // End at last speaker
+                ];
+
+                spatialEnvelopes[index] = envelope;
+                envelope;
+            } { nil };
+        },
+
         // Get interpolated channel position at a given x position
         getChannelAtPosition: { |index, xPos|
             var envelope = spatialEnvelopes[index];
