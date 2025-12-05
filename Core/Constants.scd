@@ -117,6 +117,14 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     serverAudioBusChannels: 512
 );
 
+// Defaults - mutable settings that can be changed at runtime
+~nUPIC[\defaults] = (
+    defaultSynthDef: \upicWavetable,  // Currently selected SynthDef for new trajectories (mono)
+    playDuration: 10,
+    showGrid: true,
+    gridType: \equalTemperament
+);
+
 // Grid system definitions
 ~nUPIC[\gridSystems] = (
     equalTemperament: (

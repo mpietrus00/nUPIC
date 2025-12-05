@@ -29,29 +29,55 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var colors = ~nUPIC[\colors];
     var winWidth = 800, winHeight = 500;
     var tabHeight = 30;
-    
+    var existingWindow;
+
     if(trajIndices.isNil or: { trajIndices.size == 0 }) {
         "No trajectories to edit".postln;
         ^nil;
     };
-    
+
+    // Check if spatial editor already open for any of these trajectories
+    existingWindow = ~nUPIC[\ui][\spatializationEditorWindow];
+    if(existingWindow.notNil and: { existingWindow.isClosed.not }) {
+        var existingIndices = ~nUPIC[\ui][\spatializationEditorTrajIndices];
+        if(existingIndices.notNil) {
+            trajIndices.do { |idx|
+                if(existingIndices.asArray.includes(idx)) {
+                    ("Spatial editor already open for trajectory " ++ idx ++ " - bringing to front").postln;
+                    existingWindow.front;
+                    ^nil;
+                };
+            };
+        };
+        // Close existing and open new one
+        existingWindow.close;
+    };
+
     // Initialize spatialization envelopes storage if needed
     if(data[\spatializationEnvelopes].isNil) {
         data[\spatializationEnvelopes] = List.new;
     };
-    
+
     // Ensure we have envelope for each trajectory
     data[\trajectories].size.do { |i|
         if(i >= data[\spatializationEnvelopes].size) {
             data[\spatializationEnvelopes].add(nil);
         };
     };
-    
+
     // Create window
-    window = Window("Spatialization Envelope Editor - " ++ trajIndices.size ++ " trajectories", 
+    window = Window("Spatialization Envelope Editor - " ++ trajIndices.size ++ " trajectories",
         Rect(400, 200, winWidth, winHeight));
-    window.background = Color.gray(0.95);
-    
+    window.background = Color.new(205/255, 250/255, 205/255); // B&K green
+
+    // Clean up references when window closes
+    window.onClose = {
+        ~nUPIC[\ui][\spatializationEditorWindow] = nil;
+        ~nUPIC[\ui][\spatializationEditorTrajIndices] = nil;
+        ~nUPIC[\ui][\spatializationEditorContentViews] = nil;
+        ~nUPIC[\ui][\spatializationEditorContainer] = nil;
+    };
+
     // Create tab buttons if multiple trajectories
     if(trajIndices.size > 1) {
         tabButtons = List.new;
@@ -63,7 +89,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 .states_([[
                     "Traj " ++ trajIdx, 
                     Color.black, 
-                    if(i == 0) { Color.white } { Color.gray(0.85) }
+                    if(i == 0) { Color.white } { Color.new(180/255, 230/255, 180/255) }
                 ]])
                 .action_({ |btn|
                     // Hide all content views
@@ -75,7 +101,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         b.states_([[
                             b.states[0][0],
                             Color.black,
-                            if(i == j) { Color.white } { Color.gray(0.85) }
+                            if(i == j) { Color.white } { Color.new(180/255, 230/255, 180/255) }
                         ]]);
                     };
                     currentTab = i;
@@ -99,358 +125,565 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
     
     window.front;
-    
-    // Store window reference
+
+    // Store window reference and trajectory indices for refresh
     ~nUPIC[\ui][\spatializationEditorWindow] = window;
+    ~nUPIC[\ui][\spatializationEditorTrajIndices] = trajIndices;
+    ~nUPIC[\ui][\spatializationEditorContentViews] = contentViews;
+    ~nUPIC[\ui][\spatializationEditorContainer] = container;  // For single trajectory case
+};
+
+// Refresh spatialization editor when SynthDef changes
+~nUPIC[\ui][\refreshSpatializationEditor] = { |changedTrajIndex|
+    var trajIndices = ~nUPIC[\ui][\spatializationEditorTrajIndices];
+    var contentViews = ~nUPIC[\ui][\spatializationEditorContentViews];
+    var container = ~nUPIC[\ui][\spatializationEditorContainer];
+    var window = ~nUPIC[\ui][\spatializationEditorWindow];
+    var trajIndicesArray;
+
+    // Only refresh if editor is open
+    if(window.notNil and: { window.isClosed.not } and: { trajIndices.notNil }) {
+        trajIndicesArray = trajIndices.asArray;
+
+        if(trajIndicesArray.includes(changedTrajIndex)) {
+            {
+                // Multiple trajectories case
+                if(contentViews.notNil and: { contentViews.size > 0 }) {
+                    var tabIndex = trajIndicesArray.indexOf(changedTrajIndex);
+                    if(tabIndex.notNil and: { tabIndex < contentViews.size }) {
+                        ~nUPIC[\ui][\createSpatializationEditorContent].value(
+                            contentViews[tabIndex], changedTrajIndex
+                        );
+                        ("Spatial editor refreshed for trajectory " ++ changedTrajIndex).postln;
+                    };
+                } {
+                    // Single trajectory case
+                    if(container.notNil) {
+                        ~nUPIC[\ui][\createSpatializationEditorContent].value(
+                            container, changedTrajIndex
+                        );
+                        ("Spatial editor refreshed for trajectory " ++ changedTrajIndex).postln;
+                    };
+                };
+            }.defer;  // Ensure GUI updates happen on AppClock
+        };
+    };
+};
+
+// Helper function to get channel count from SynthDef name
+~nUPIC[\ui][\getChannelCountFromSynthDef] = { |synthDefName|
+    var name = synthDefName.asString;
+    var numChannels = 1;  // Default mono
+
+    if(name.contains("24ch")) { numChannels = 24 }
+    { if(name.contains("15ch")) { numChannels = 15 }
+    { if(name.contains("12ch")) { numChannels = 12 }
+    { if(name.contains("8ch")) { numChannels = 8 }
+    { if(name.contains("4ch")) { numChannels = 4 }
+    { if(name.contains("3ch")) { numChannels = 3 }
+    { if(name.contains("2ch")) { numChannels = 2 }
+    }}}}}};
+
+    numChannels;
 };
 
 // Create spatialization editor content for a single trajectory
 ~nUPIC[\ui][\createSpatializationEditorContent] = { |container, trajIndex|
-    var spatialView, overlayView, controlView;
+    var spatialView, overlayView, controlView, channelLabelView;
     var winWidth = container.bounds.width, winHeight = container.bounds.height;
-    var viewHeight = winHeight - 100;  // Leave space for controls
+    var channelLabelWidth = 60;  // Width for channel labels (like freq labels in main UI)
+    var channelLabelGap = 5;     // Gap between labels and drawing area
+    var viewHeight = winHeight - 40;  // Compact control area
+    var editorLeft = channelLabelWidth + channelLabelGap;
+    var editorWidth = winWidth - editorLeft - 10;
     var data = ~nUPIC[\data];
     var colors = ~nUPIC[\colors];
+    var defaults = ~nUPIC[\defaults];
     var currentEnvelope, isDrawing = false;
     var trajectory = data[\trajectories][trajIndex];
     var trajectoryLength;
-    var channelLabels;
-    var lastX = 0, lastChannel = 3.5;  // Start in middle
-    
+    var numChannels, maxChannel;
+    var trajSynthDef;
+    var lastX = 0, lastChannel;
+
+    // Get SynthDef for this trajectory
+    trajSynthDef = if(data[\trajectorySynthDefs].notNil and: {
+        trajIndex < data[\trajectorySynthDefs].size and: {
+            data[\trajectorySynthDefs][trajIndex].notNil
+        }
+    }) {
+        data[\trajectorySynthDefs][trajIndex]
+    } {
+        defaults[\defaultSynthDef] ? \upicWavetable
+    };
+
+    // Get channel count from SynthDef
+    numChannels = ~nUPIC[\ui][\getChannelCountFromSynthDef].value(trajSynthDef);
+    maxChannel = numChannels - 1;
+    lastChannel = maxChannel / 2;  // Start in middle
+
     // Calculate trajectory length
     if(trajectory.notNil and: { trajectory.size > 0 }) {
         var firstX = trajectory[0].x;
-        var lastX = trajectory.last.x;
-        trajectoryLength = lastX - firstX;
+        var lastXVal = trajectory.last.x;
+        trajectoryLength = lastXVal - firstX;
     } {
         trajectoryLength = 600;  // Default
     };
-    
+
     // Get existing envelope or create default
     currentEnvelope = data[\spatializationEnvelopes][trajIndex];
     if(currentEnvelope.isNil) {
         // Create default envelope (center position)
         currentEnvelope = List[
-            (x: 0, channel: 3.5),  // Start at center (between channels 3 and 4)
-            (x: trajectoryLength, channel: 3.5)  // End at center
+            (x: 0, channel: maxChannel / 2),  // Start at center
+            (x: trajectoryLength, channel: maxChannel / 2)  // End at center
         ];
         data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
     };
-    
+
     // Clear container
     container.children.do({ |child| child.remove });
-    
-    // Channel labels on the left
-    channelLabels = UserView(container, Rect(0, 30, 50, viewHeight - 30));
-    channelLabels.drawFunc = {
-        8.do { |i|
-            var y = ((7 - i) / 7) * (viewHeight - 30);
-            var label = "Ch " ++ (i + 1);
-            
-            Pen.fillColor = Color.black;
-            Pen.stringAtPoint(label, Point(10, y - 5), Font("Arial", 10));
-            
-            // Draw horizontal guide line
-            Pen.strokeColor = Color.gray(0.8);
-            Pen.width = 0.5;
-            Pen.line(Point(45, y), Point(winWidth, y));
+
+    // Vertical padding so top and bottom labels are visible
+    ~nUPIC[\ui][\spatialVerticalPadding] = 15;
+
+    // Channel labels view on the left (styled like frequency labels in main UI)
+    channelLabelView = UserView(container, Rect(0, 0, channelLabelWidth, viewHeight));
+    channelLabelView.background = Color.white;
+    channelLabelView.drawFunc = {
+        var labelHeight = viewHeight;
+        var vPad = ~nUPIC[\ui][\spatialVerticalPadding];
+        var drawableHeight = labelHeight - (2 * vPad);  // Area for drawing channels
+
+        // Clear background
+        Pen.fillColor = Color.white;
+        Pen.fillRect(Rect(0, 0, channelLabelWidth, labelHeight));
+
+        // Draw channel labels with padding
+        numChannels.do { |i|
+            var y = vPad + (((maxChannel - i) / maxChannel.max(1)) * drawableHeight);
+            var label = "Ch" ++ i;
+
+            // Draw label text
+            Pen.fillColor = Color.gray(0.3);
+            Pen.stringAtPoint(
+                label,
+                Point(8, y - 6),
+                Font("Arial", 9, true),
+                Color.gray(0.3)
+            );
+
+            // Draw tick mark extending to right edge
+            Pen.strokeColor = Color.gray(0.4);
+            Pen.width = 1.5;
+            Pen.line(Point(channelLabelWidth - 12, y), Point(channelLabelWidth, y));
             Pen.stroke;
         };
     };
-    
+
     // Main spatialization drawing view
-    spatialView = UserView(container, Rect(50, 30, winWidth - 60, viewHeight - 30));
+    spatialView = UserView(container, Rect(editorLeft, 0, editorWidth, viewHeight));
     spatialView.background = Color.white;
-    
+
     // Overlay for interactive elements
-    overlayView = UserView(container, Rect(50, 30, winWidth - 60, viewHeight - 30));
+    overlayView = UserView(container, Rect(editorLeft, 0, editorWidth, viewHeight));
     overlayView.background = Color.clear;
-    
-    // Drawing function
+
+    // Drawing function for spatial view
     spatialView.drawFunc = {
         var width = spatialView.bounds.width;
         var height = spatialView.bounds.height;
-        
-        // Draw grid
-        Pen.strokeColor = Color.gray(0.9);
-        Pen.width = 0.5;
-        
-        // Vertical grid lines (time)
+        var vPad = ~nUPIC[\ui][\spatialVerticalPadding];
+        var drawableHeight = height - (2 * vPad);
+
+        // Draw dotted horizontal grid lines for each channel (with padding)
+        numChannels.do { |i|
+            var y = vPad + (((maxChannel - i) / maxChannel.max(1)) * drawableHeight);
+            var dashLength = 4;
+            var gapLength = 4;
+            var x = 0;
+
+            // Thicker lines for first and last channels
+            if(i == 0 or: { i == maxChannel }) {
+                Pen.strokeColor = Color.gray(0.5);
+                Pen.width = 1;
+            } {
+                Pen.strokeColor = Color.gray(0.7);
+                Pen.width = 0.5;
+            };
+
+            // Draw dotted line
+            while { x < width } {
+                Pen.line(Point(x, y), Point((x + dashLength).min(width), y));
+                Pen.stroke;
+                x = x + dashLength + gapLength;
+            };
+        };
+
+        // Draw vertical grid lines (time divisions) - lighter, also dotted
         10.do { |i|
             var x = (i + 1) / 11 * width;
-            Pen.line(Point(x, 0), Point(x, height));
-            Pen.stroke;
+            var y = 0;
+            var dashLength = 3;
+            var gapLength = 5;
+
+            Pen.strokeColor = Color.gray(0.85);
+            Pen.width = 0.5;
+
+            while { y < height } {
+                Pen.line(Point(x, y), Point(x, (y + dashLength).min(height)));
+                Pen.stroke;
+                y = y + dashLength + gapLength;
+            };
         };
-        
-        // Horizontal grid lines (channels)
-        8.do { |i|
-            var y = i / 7 * height;
-            Pen.strokeColor = if(i == 0 or: { i == 7 }) { Color.gray(0.6) } { Color.gray(0.85) };
-            Pen.width = if(i == 0 or: { i == 7 }) { 1 } { 0.5 };
-            Pen.line(Point(0, y), Point(width, y));
-            Pen.stroke;
-        };
-        
-        // Draw current spatialization envelope
+
+        // Draw current spatialization envelope (with padding)
         if(currentEnvelope.notNil and: { currentEnvelope.size > 1 }) {
             Pen.strokeColor = Color.blue;
             Pen.width = 2;
-            
-            // Draw the curve
+
+            // Draw the curve as a solid line
             currentEnvelope.do { |point, i|
-                var x = (point.x / trajectoryLength) * width;
-                var y = ((7 - point.channel) / 7) * height;  // Invert Y so channel 7 is at top
-                
+                var ptX = (point.x / trajectoryLength) * width;
+                var ptY = vPad + (((maxChannel - point.channel) / maxChannel.max(1)) * drawableHeight);
+
                 if(i == 0) {
-                    Pen.moveTo(Point(x, y));
+                    Pen.moveTo(Point(ptX, ptY));
                 } {
-                    Pen.lineTo(Point(x, y));
+                    Pen.lineTo(Point(ptX, ptY));
                 };
             };
             Pen.stroke;
-            
-            // Draw control points
-            Pen.fillColor = Color.red;
-            currentEnvelope.do { |point|
-                var x = (point.x / trajectoryLength) * width;
-                var y = ((7 - point.channel) / 7) * height;
-                Pen.fillOval(Rect(x - 4, y - 4, 8, 8));
-            };
-            
-            // Draw channel position indicators
-            Pen.font = Font("Arial", 9);
-            currentEnvelope.do { |point, i|
-                if(i % 5 == 0 or: { i == (currentEnvelope.size - 1) }) {  // Show every 5th point
-                    var x = (point.x / trajectoryLength) * width;
-                    var y = ((7 - point.channel) / 7) * height;
-                    var channelText = point.channel.round(0.1).asString;
-                    
-                    Pen.fillColor = Color.blue.alpha_(0.8);
-                    Pen.stringAtPoint(channelText, Point(x + 5, y - 10));
+        };
+
+        // Draw active drawing buffer (while user is drawing) in different color
+        if(~nUPIC[\ui][\spatialDrawingBuffer].notNil and: { ~nUPIC[\ui][\spatialDrawingBuffer].size > 1 }) {
+            var drawBuf = ~nUPIC[\ui][\spatialDrawingBuffer];
+            Pen.strokeColor = Color.red;  // Red for active drawing
+            Pen.width = 2.5;
+
+            drawBuf.do { |point, i|
+                var ptX = (point.x / trajectoryLength) * width;
+                var ptY = vPad + (((maxChannel - point.channel) / maxChannel.max(1)) * drawableHeight);
+
+                if(i == 0) {
+                    Pen.moveTo(Point(ptX, ptY));
+                } {
+                    Pen.lineTo(Point(ptX, ptY));
                 };
             };
+            Pen.stroke;
         };
-        
-        // Draw instructions
-        Pen.fillColor = Color.black;
-        Pen.font = Font("Arial", 11);
-        Pen.stringAtPoint("Draw spatialization curve: Vertical = Channels 1-8, Horizontal = Trajectory length", 
-            Point(10, 5));
+
+        // Info text inside drawing area - upper right corner
+        Pen.fillColor = Color.gray(0.4);
+        Pen.stringAtPoint(
+            "Traj " ++ trajIndex ++ " | " ++ trajSynthDef ++ " | Ch0-Ch" ++ maxChannel,
+            Point(width - 180, 5),
+            Font("Arial", 9),
+            Color.gray(0.4)
+        );
     };
-    
+
+    // Store for partial drawing (editing sections)
+    ~nUPIC[\ui][\spatialDrawingBuffer] = List.new;
+    ~nUPIC[\ui][\spatialDrawingStartX] = nil;
+    ~nUPIC[\ui][\spatialDrawingEndX] = nil;
+
     // Mouse interaction for drawing
     overlayView.mouseDownAction = { |view, x, y, modifiers, buttonNumber, clickCount|
         var width = view.bounds.width;
         var height = view.bounds.height;
+        var vPad = ~nUPIC[\ui][\spatialVerticalPadding];
+        var drawableHeight = height - (2 * vPad);
         var timePos, channel;
-        
+
         isDrawing = true;
-        
-        // Calculate position
+
+        // Calculate position (accounting for vertical padding)
         timePos = (x / width) * trajectoryLength;
-        channel = 7 - ((y / height) * 7);  // Invert Y axis
-        channel = channel.clip(0, 7);
-        
-        // Start new envelope or add to existing
-        if(modifiers.isShift) {
-            // Shift-click: clear and start fresh
-            currentEnvelope = List.new;
-        };
-        
-        // Add first point
-        currentEnvelope.add((x: timePos, channel: channel));
+        channel = maxChannel - (((y - vPad) / drawableHeight) * maxChannel);  // Invert Y axis with padding
+        channel = channel.clip(0, maxChannel);
+
+        // Start new drawing buffer (keep existing envelope)
+        ~nUPIC[\ui][\spatialDrawingBuffer] = List.new;
+        ~nUPIC[\ui][\spatialDrawingStartX] = timePos;
+        ~nUPIC[\ui][\spatialDrawingEndX] = timePos;
+
+        // Add first point to drawing buffer
+        ~nUPIC[\ui][\spatialDrawingBuffer].add((x: timePos, channel: channel));
         lastX = x;
         lastChannel = channel;
-        
+
         view.refresh;
         spatialView.refresh;
     };
-    
+
     overlayView.mouseMoveAction = { |view, x, y, modifiers|
         var width = view.bounds.width;
         var height = view.bounds.height;
+        var vPad = ~nUPIC[\ui][\spatialVerticalPadding];
+        var drawableHeight = height - (2 * vPad);
         var timePos, channel;
-        
+
         if(isDrawing) {
             timePos = (x / width) * trajectoryLength;
-            channel = 7 - ((y / height) * 7);
-            channel = channel.clip(0, 7);
-            
-            // Add point if moved enough
-            if((x - lastX).abs > 5 or: { (channel - lastChannel).abs > 0.2 }) {
-                currentEnvelope.add((x: timePos, channel: channel));
+            channel = maxChannel - (((y - vPad) / drawableHeight) * maxChannel);
+            channel = channel.clip(0, maxChannel);
+
+            // Update drawing range
+            if(timePos < ~nUPIC[\ui][\spatialDrawingStartX]) {
+                ~nUPIC[\ui][\spatialDrawingStartX] = timePos;
+            };
+            if(timePos > ~nUPIC[\ui][\spatialDrawingEndX]) {
+                ~nUPIC[\ui][\spatialDrawingEndX] = timePos;
+            };
+
+            // Add point if moved enough (very sensitive for detailed curves)
+            if((x - lastX).abs > 2 or: { (channel - lastChannel).abs > 0.05 }) {
+                ~nUPIC[\ui][\spatialDrawingBuffer].add((x: timePos, channel: channel));
                 lastX = x;
                 lastChannel = channel;
                 view.refresh;
                 spatialView.refresh;
+                channelLabelView.refresh;
             };
         };
     };
-    
+
     overlayView.mouseUpAction = { |view, x, y, modifiers, buttonNumber|
         if(isDrawing) {
             isDrawing = false;
-            
-            // Ensure envelope spans full trajectory
-            if(currentEnvelope.size > 0) {
-                // Add start point if needed
-                if(currentEnvelope[0].x > 0) {
-                    currentEnvelope = List[(x: 0, channel: currentEnvelope[0].channel)] ++ currentEnvelope;
+
+            // Merge drawing buffer with existing envelope
+            if(~nUPIC[\ui][\spatialDrawingBuffer].size > 0) {
+                var drawingBuffer = ~nUPIC[\ui][\spatialDrawingBuffer];
+                var startX = ~nUPIC[\ui][\spatialDrawingStartX];
+                var endX = ~nUPIC[\ui][\spatialDrawingEndX];
+                var mergedEnvelope = List.new;
+                var interpolated;
+                var numOutputPoints = 2048;
+
+                // Keep points from existing envelope that are OUTSIDE the drawn range
+                if(currentEnvelope.notNil and: { currentEnvelope.size > 0 }) {
+                    currentEnvelope.do { |point|
+                        if(point.x < startX or: { point.x > endX }) {
+                            mergedEnvelope.add(point);
+                        };
+                    };
                 };
-                
-                // Add end point if needed
-                if(currentEnvelope.last.x < trajectoryLength) {
-                    currentEnvelope.add((x: trajectoryLength, channel: currentEnvelope.last.channel));
+
+                // Add all points from the drawing buffer
+                drawingBuffer.do { |point|
+                    mergedEnvelope.add(point);
                 };
-                
+
                 // Sort by x position
-                currentEnvelope = currentEnvelope.sort({ |a, b| a.x < b.x });
-                
+                mergedEnvelope = mergedEnvelope.sort({ |a, b| a.x < b.x });
+
+                // Add start point if needed
+                if(mergedEnvelope.size == 0 or: { mergedEnvelope[0].x > 0 }) {
+                    var startChannel = if(mergedEnvelope.size > 0) { mergedEnvelope[0].channel } { maxChannel / 2 };
+                    mergedEnvelope = List[(x: 0, channel: startChannel)] ++ mergedEnvelope;
+                };
+
+                // Add end point if needed
+                if(mergedEnvelope.last.x < trajectoryLength) {
+                    mergedEnvelope.add((x: trajectoryLength, channel: mergedEnvelope.last.channel));
+                };
+
                 // Remove duplicates at same x position (keep last)
-                currentEnvelope = currentEnvelope.inject(List.new, { |result, point|
+                mergedEnvelope = mergedEnvelope.inject(List.new, { |result, point|
                     if(result.size == 0 or: { result.last.x != point.x }) {
                         result.add(point);
                     } {
-                        result[result.size - 1] = point;  // Replace with newer point
+                        result[result.size - 1] = point;
                     };
                     result;
                 });
-                
+
+                // Interpolate to 2048 points for super detailed curve
+                if(mergedEnvelope.size >= 2) {
+                    interpolated = List.new;
+                    numOutputPoints.do { |i|
+                        var t = i / (numOutputPoints - 1);
+                        var targetX = t * trajectoryLength;
+                        var channel = 0;
+                        var foundSegment = false;
+
+                        block { |break|
+                            (mergedEnvelope.size - 1).do { |j|
+                                if(mergedEnvelope[j].x <= targetX and: { mergedEnvelope[j + 1].x >= targetX }) {
+                                    var segmentT = (targetX - mergedEnvelope[j].x) /
+                                        (mergedEnvelope[j + 1].x - mergedEnvelope[j].x).max(0.001);
+                                    channel = mergedEnvelope[j].channel.blend(
+                                        mergedEnvelope[j + 1].channel, segmentT);
+                                    foundSegment = true;
+                                    break.value;
+                                };
+                            };
+                        };
+
+                        if(foundSegment.not) {
+                            if(targetX <= mergedEnvelope.first.x) {
+                                channel = mergedEnvelope.first.channel;
+                            } {
+                                channel = mergedEnvelope.last.channel;
+                            };
+                        };
+
+                        interpolated.add((x: targetX, channel: channel.clip(0, maxChannel)));
+                    };
+                    currentEnvelope = interpolated;
+                } {
+                    currentEnvelope = mergedEnvelope;
+                };
+
                 // Store the envelope
                 data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
-                
+
                 ("Spatialization envelope saved for trajectory " ++ trajIndex).postln;
-                ("Points: " ++ currentEnvelope.size).postln;
+                ("Points: " ++ currentEnvelope.size ++ " (interpolated to 2048)").postln;
             };
-            
+
+            // Clear drawing buffer
+            ~nUPIC[\ui][\spatialDrawingBuffer] = List.new;
+
             view.refresh;
             spatialView.refresh;
         };
     };
     
-    // Control area
-    controlView = CompositeView(container, Rect(0, viewHeight, winWidth, 100));
-    controlView.background = Color.gray(0.9);
-    
-    // Preset buttons
-    Button(controlView, Rect(10, 10, 80, 25))
-        .states_([["Center", Color.black, Color.gray(0.8)]])
+    // Control area - compact single row
+    controlView = CompositeView(container, Rect(0, viewHeight, winWidth, 40));
+    controlView.background = Color.new(190/255, 240/255, 190/255); // Light B&K green
+
+    // Preset buttons (60x25, all gray for single-state, y=5 for proper centering)
+    Button(controlView, Rect(10, 5, 60, 25))
+        .states_([["_center", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 10))
         .action_({
-            currentEnvelope = List[
-                (x: 0, channel: 3.5),
-                (x: trajectoryLength, channel: 3.5)
-            ];
-            data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
-            spatialView.refresh;
-        });
-    
-    Button(controlView, Rect(100, 10, 80, 25))
-        .states_([["Circle", Color.black, Color.cyan]])
-        .action_({
-            var numPoints = 32;
+            var center = maxChannel / 2;
+            var numPts = 2048;
             currentEnvelope = List.new;
-            numPoints.do { |i|
-                var phase = i / (numPoints - 1) * 2pi;
-                var channel = 3.5 + (3.5 * sin(phase));
-                var x = i / (numPoints - 1) * trajectoryLength;
-                currentEnvelope.add((x: x, channel: channel));
+            numPts.do { |i|
+                var xPos = i / (numPts - 1) * trajectoryLength;
+                currentEnvelope.add((x: xPos, channel: center));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
             spatialView.refresh;
         });
-    
-    Button(controlView, Rect(190, 10, 80, 25))
-        .states_([["Spiral", Color.black, Color.green]])
+
+    Button(controlView, Rect(75, 5, 60, 25))
+        .states_([["_circle", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 10))
         .action_({
-            var numPoints = 64;
+            var numPts = 2048;
+            var center = maxChannel / 2;
+            var radius = maxChannel / 2;
             currentEnvelope = List.new;
-            numPoints.do { |i|
-                var t = i / (numPoints - 1);
-                var phase = t * 4pi;  // Two full rotations
-                var radius = t * 3.5;  // Expanding radius
-                var channel = 3.5 + (radius * sin(phase));
-                var x = t * trajectoryLength;
-                currentEnvelope.add((x: x, channel: channel.clip(0, 7)));
+            numPts.do { |i|
+                var phase = i / (numPts - 1) * 2pi;
+                var channel = center + (radius * sin(phase));
+                var xPos = i / (numPts - 1) * trajectoryLength;
+                currentEnvelope.add((x: xPos, channel: channel.clip(0, maxChannel)));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
             spatialView.refresh;
         });
-    
-    Button(controlView, Rect(280, 10, 80, 25))
-        .states_([["Random", Color.black, Color.red]])
+
+    Button(controlView, Rect(140, 5, 60, 25))
+        .states_([["_spiral", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 10))
         .action_({
-            var numPoints = 20;
+            var numPts = 2048;
+            var center = maxChannel / 2;
             currentEnvelope = List.new;
-            numPoints.do { |i|
-                var x = i / (numPoints - 1) * trajectoryLength;
-                var channel = 7.0.rand;
-                currentEnvelope.add((x: x, channel: channel));
+            numPts.do { |i|
+                var t = i / (numPts - 1);
+                var phase = t * 4pi;
+                var radius = t * center;
+                var channel = center + (radius * sin(phase));
+                var xPos = t * trajectoryLength;
+                currentEnvelope.add((x: xPos, channel: channel.clip(0, maxChannel)));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
             spatialView.refresh;
         });
-    
-    Button(controlView, Rect(370, 10, 80, 25))
-        .states_([["Front→Back", Color.black, Color.blue]])
+
+    Button(controlView, Rect(205, 5, 60, 25))
+        .states_([["_random", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 10))
         .action_({
-            currentEnvelope = List[
-                (x: 0, channel: 0),
-                (x: trajectoryLength, channel: 7)
-            ];
+            var numPts = 2048;
+            var prevChannel = maxChannel / 2;
+            currentEnvelope = List.new;
+            numPts.do { |i|
+                var xPos = i / (numPts - 1) * trajectoryLength;
+                var delta = rrand(-0.1, 0.1) * maxChannel;
+                prevChannel = (prevChannel + delta).clip(0, maxChannel);
+                currentEnvelope.add((x: xPos, channel: prevChannel));
+            };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
             spatialView.refresh;
         });
-    
-    Button(controlView, Rect(460, 10, 80, 25))
-        .states_([["Back→Front", Color.black, Color.blue]])
+
+    Button(controlView, Rect(270, 5, 60, 25))
+        .states_([["_0tomax", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 10))
         .action_({
-            currentEnvelope = List[
-                (x: 0, channel: 7),
-                (x: trajectoryLength, channel: 0)
-            ];
+            var numPts = 2048;
+            currentEnvelope = List.new;
+            numPts.do { |i|
+                var t = i / (numPts - 1);
+                var xPos = t * trajectoryLength;
+                var channel = t * maxChannel;
+                currentEnvelope.add((x: xPos, channel: channel));
+            };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
             spatialView.refresh;
         });
-    
-    // Smoothing button
-    Button(controlView, Rect(550, 10, 80, 25))
-        .states_([["Smooth", Color.white, Color.gray(0.5)]])
+
+    Button(controlView, Rect(335, 5, 60, 25))
+        .states_([["_maxto0", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 10))
+        .action_({
+            var numPts = 2048;
+            currentEnvelope = List.new;
+            numPts.do { |i|
+                var t = i / (numPts - 1);
+                var xPos = t * trajectoryLength;
+                var channel = maxChannel - (t * maxChannel);
+                currentEnvelope.add((x: xPos, channel: channel));
+            };
+            data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
+            spatialView.refresh;
+        });
+
+    Button(controlView, Rect(400, 5, 60, 25))
+        .states_([["_smooth", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 10))
         .action_({
             if(currentEnvelope.size > 2) {
                 var smoothed = List.new;
-                currentEnvelope.do { |point, i|
-                    if(i == 0 or: { i == (currentEnvelope.size - 1) }) {
-                        smoothed.add(point);
-                    } {
-                        var prevChannel = currentEnvelope[i - 1].channel;
-                        var nextChannel = currentEnvelope[i + 1].channel;
-                        var smoothChannel = (prevChannel + point.channel + nextChannel) / 3;
-                        smoothed.add((x: point.x, channel: smoothChannel));
+                3.do {
+                    smoothed = List.new;
+                    currentEnvelope.do { |point, i|
+                        if(i == 0 or: { i == (currentEnvelope.size - 1) }) {
+                            smoothed.add(point);
+                        } {
+                            var prevChannel = currentEnvelope[i - 1].channel;
+                            var nextChannel = currentEnvelope[i + 1].channel;
+                            var smoothChannel = (prevChannel + point.channel + nextChannel) / 3;
+                            smoothed.add((x: point.x, channel: smoothChannel));
+                        };
                     };
+                    currentEnvelope = smoothed;
                 };
-                currentEnvelope = smoothed;
                 data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
                 spatialView.refresh;
             };
-        });
-    
-    // Info display
-    StaticText(controlView, Rect(10, 45, 300, 20))
-        .string_("Trajectory " ++ trajIndex ++ " - Length: " ++ trajectoryLength.round(0.1))
-        .font_(Font("Arial", 11));
-    
-    StaticText(controlView, Rect(10, 65, 600, 20))
-        .string_("Click and drag to draw. Shift-click to clear and redraw. Channels 1-8 map to speaker positions.")
-        .font_(Font("Arial", 10))
-        .stringColor_(Color.gray(0.5));
-    
-    // Apply button
-    Button(controlView, Rect(winWidth - 100, 10, 80, 30))
-        .states_([["Apply", Color.white, Color.green]])
-        .font_(Font("Arial", 12, true))
-        .action_({
-            "Spatialization envelope applied to trajectory".postln;
-            ~nUPIC[\ui][\refreshDisplay].value;
         });
 };
 

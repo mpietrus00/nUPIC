@@ -854,27 +854,33 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 ~nUPIC_SynthDefs[\available]
             } { [\upicWavetable] };
             var selectedSynth = synthDefNames[menu.value];
-            if(data.notNil and: { data[\selectedTrajectories].notNil } and: { 
-                data[\selectedTrajectories].size > 0 
+            if(data.notNil and: { data[\selectedTrajectories].notNil } and: {
+                data[\selectedTrajectories].size > 0
             }) {
                 if(data[\trajectorySynthDefs].isNil) {
                     data[\trajectorySynthDefs] = List.new;
                 };
                 data[\selectedTrajectories].do { |idx|
-                    if(idx < data[\trajectorySynthDefs].size) {
-                        data[\trajectorySynthDefs][idx] = selectedSynth;
-                        ("Trajectory " ++ idx ++ " set to use " ++ selectedSynth).postln;
+                    // Expand list if needed
+                    while { idx >= data[\trajectorySynthDefs].size } {
+                        data[\trajectorySynthDefs].add(nil);
+                    };
+                    data[\trajectorySynthDefs][idx] = selectedSynth;
+                    ("Trajectory " ++ idx ++ " set to use " ++ selectedSynth).postln;
+                    // Refresh spatial editor if open
+                    if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
+                        ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
                     };
                 };
             } {
-                // Set default for new trajectories
-                if(defaults.notNil) {
-                    defaults[\defaultSynthDef] = selectedSynth;
+                // Set default for new trajectories - always use fresh reference
+                if(~nUPIC[\defaults].notNil) {
+                    ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
                 };
                 ("Default SynthDef set to " ++ selectedSynth ++ " for new trajectories").postln;
             };
         });
-    
+
     // Help text
     StaticText(window, Rect(540, yStart, 300, 20))
         .string_("(Select trajectories then choose SynthDef)")
@@ -1522,26 +1528,33 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 ~nUPIC_SynthDefs[\available]
             } { [\simpleGravObject, \percNoise, \auditoryDistortion, \richTexture] };
             var selectedSynth = synthDefNames[menu.value];
-            if(data.notNil and: { data[\selectedTrajectories].notNil } and: { 
-                data[\selectedTrajectories].size > 0 
+            if(data.notNil and: { data[\selectedTrajectories].notNil } and: {
+                data[\selectedTrajectories].size > 0
             }) {
                 if(data[\trajectorySynthDefs].isNil) {
                     data[\trajectorySynthDefs] = List.new;
                 };
                 data[\selectedTrajectories].do { |idx|
-                    if(idx < data[\trajectorySynthDefs].size) {
-                        data[\trajectorySynthDefs][idx] = selectedSynth;
-                        ("Trajectory " ++ idx ++ " → " ++ selectedSynth).postln;
+                    // Expand list if needed
+                    while { idx >= data[\trajectorySynthDefs].size } {
+                        data[\trajectorySynthDefs].add(nil);
+                    };
+                    data[\trajectorySynthDefs][idx] = selectedSynth;
+                    ("Trajectory " ++ idx ++ " → " ++ selectedSynth).postln;
+                    // Refresh spatial editor if open
+                    if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
+                        ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
                     };
                 };
             } {
-                if(defaults.notNil) {
-                    defaults[\defaultSynthDef] = selectedSynth;
+                // Always use fresh reference to ~nUPIC[\defaults]
+                if(~nUPIC[\defaults].notNil) {
+                    ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
                 };
                 ("Default SynthDef: " ++ selectedSynth).postln;
             };
         });
-    
+
     // Store references
     state[\controls][\eraseModeButton] = eraseModeButton;
     state[\controls][\gridButton] = gridButton;
@@ -1747,13 +1760,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     };
                 };
             } {
-                if(defaults.notNil) {
-                    defaults[\defaultSynthDef] = selectedSynth;
+                // Always use fresh reference to ~nUPIC[\defaults]
+                if(~nUPIC[\defaults].notNil) {
+                    ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
                 };
                 ("Default: " ++ selectedSynth).postln;
             };
         });
-    
+
     // Status displays
     StaticText(window, Rect(x, y + 100, sidebarWidth, 15))
         .string_("View Status:")
@@ -2084,14 +2098,25 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     data[\trajectorySynthDefs] = List.new;
                 };
                 data[\selectedTrajectories].do { |idx|
-                    if(idx < data[\trajectorySynthDefs].size) {
-                        data[\trajectorySynthDefs][idx] = selectedSynth;
-                        ("Trajectory " ++ idx ++ " set to use " ++ selectedSynth).postln;
+                    // Expand list if needed
+                    while { idx >= data[\trajectorySynthDefs].size } {
+                        data[\trajectorySynthDefs].add(nil);
+                    };
+                    data[\trajectorySynthDefs][idx] = selectedSynth;
+                    ("Trajectory " ++ idx ++ " set to use " ++ selectedSynth).postln;
+                    // Refresh spatial editor if open
+                    if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
+                        ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
                     };
                 };
             } {
-                if(defaults.notNil) {
-                    defaults[\defaultSynthDef] = selectedSynth;
+                // Always use fresh reference to ~nUPIC[\defaults]
+                if(~nUPIC[\defaults].notNil) {
+                    ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
+                    ("DEBUG MENU: Set ~nUPIC[\\defaults][\\defaultSynthDef] = " ++ selectedSynth).postln;
+                    ("DEBUG MENU: Verify read back: " ++ ~nUPIC[\defaults][\defaultSynthDef]).postln;
+                } {
+                    "WARNING: ~nUPIC[\\defaults] is nil! Cannot set default SynthDef".postln;
                 };
                 ("Default SynthDef set to " ++ selectedSynth ++ " for new trajectories").postln;
             };

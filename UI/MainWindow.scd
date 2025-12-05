@@ -600,6 +600,87 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                     amp = 0.2;  // Increased default amplitude
                                 };
 
+                                // Check if we have a spatial envelope
+                                if(data[\spatializationEnvelopes].notNil and: {
+                                    data[\spatializationEnvelopes][i].notNil and: {
+                                        data[\spatializationEnvelopes][i].size > 1
+                                    }
+                                }) {
+                                    var spatialEnv = data[\spatializationEnvelopes][i];
+                                    var spatialPoint1, spatialPoint2, spatialFound = false;
+                                    var spatialRelativeX, spatialPixelLength, firstTimeForSpatial;
+                                    var channelValue, maxChannels;
+                                    var trajSynthDefName;
+
+                                    // Get channel count from trajectory's SynthDef
+                                    trajSynthDefName = if(data[\trajectorySynthDefs].notNil and: {
+                                        i < data[\trajectorySynthDefs].size and: {
+                                            data[\trajectorySynthDefs][i].notNil
+                                        }
+                                    }) {
+                                        data[\trajectorySynthDefs][i].asString
+                                    } {
+                                        (defaults[\defaultSynthDef] ? \upicWavetable).asString
+                                    };
+
+                                    // Extract channel count from SynthDef name
+                                    maxChannels = case
+                                        { trajSynthDefName.contains("24ch") } { 24 }
+                                        { trajSynthDefName.contains("15ch") } { 15 }
+                                        { trajSynthDefName.contains("12ch") } { 12 }
+                                        { trajSynthDefName.contains("8ch") } { 8 }
+                                        { trajSynthDefName.contains("4ch") } { 4 }
+                                        { trajSynthDefName.contains("3ch") } { 3 }
+                                        { trajSynthDefName.contains("2ch") } { 2 }
+                                        { true } { 1 };  // mono
+
+                                    // Calculate trajectory-relative position for spatial envelope lookup
+                                    // Use same coordinate system as amplitude envelope
+                                    firstTimeForSpatial = firstTime;
+                                    spatialRelativeX = (currentTime - firstTimeForSpatial) * (lastPoint.x - firstPoint.x).max(1) / (lastTime - firstTimeForSpatial);
+
+                                    // Find spatial points to interpolate
+                                    block { |break|
+                                        (spatialEnv.size - 1).do { |j|
+                                            if((spatialEnv[j].x <= spatialRelativeX) and: { (spatialEnv[j + 1].x >= spatialRelativeX) }) {
+                                                spatialPoint1 = spatialEnv[j];
+                                                spatialPoint2 = spatialEnv[j + 1];
+                                                spatialFound = true;
+                                                break.value;
+                                            };
+                                        };
+                                    };
+
+                                    if(spatialFound) {
+                                        var spatialInterpFactor = (spatialRelativeX - spatialPoint1.x) / (spatialPoint2.x - spatialPoint1.x).max(0.001);
+                                        channelValue = spatialPoint1.channel.blend(spatialPoint2.channel, spatialInterpFactor);
+                                    } {
+                                        // Check edges
+                                        if(spatialRelativeX <= spatialEnv.first.x) {
+                                            channelValue = spatialEnv.first.channel;
+                                        } {
+                                            if(spatialRelativeX >= spatialEnv.last.x) {
+                                                channelValue = spatialEnv.last.channel;
+                                            } {
+                                                // Default to center
+                                                channelValue = (maxChannels - 1) / 2;
+                                            };
+                                        };
+                                    };
+
+                                    // Convert channel to pan based on SynthDef type
+                                    // Pan2 (2ch): uses range -1 to 1
+                                    // PanAz (3ch+): uses range 0 to 2
+                                    if(maxChannels == 2) {
+                                        // 2ch uses Pan2: map channel 0→-1, channel 1→1
+                                        pan = channelValue * 2 - 1;
+                                    } {
+                                        // 3ch+ uses PanAz: pos=0 is channel 0, pos=2/n is channel 1
+                                        pan = channelValue * 2 / maxChannels;
+                                    };
+                                };
+                                // If no spatial envelope, pan keeps its time-based value from above
+
                                 // Check if synth is still running before updating
                                 if(state[\synths][i].notNil) {
                                     state[\synths][i].set(
@@ -619,11 +700,51 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                             } {
                                 // Edge case: exactly on first point
                                 if(currentTime == firstTime) {
+                                    var edgePan;
                                     freq = firstPoint.freq ?? { firstPoint.y.linlin(0, height, state[\zoomFreqMax], state[\zoomFreqMin]) };
-                                    // Pan based on actual time position in playback
-                                    pan = currentTime.linlin(0, state[\playDuration], -1, 1);
+                                    // Check for spatial envelope at start
+                                    if(data[\spatializationEnvelopes].notNil and: {
+                                        data[\spatializationEnvelopes][i].notNil and: {
+                                            data[\spatializationEnvelopes][i].size > 0
+                                        }
+                                    }) {
+                                        var startChannel = data[\spatializationEnvelopes][i].first.channel;
+                                        var maxChannels;
+                                        var edgeSynthDefName;
+
+                                        // Get channel count from trajectory's SynthDef
+                                        edgeSynthDefName = if(data[\trajectorySynthDefs].notNil and: {
+                                            i < data[\trajectorySynthDefs].size and: {
+                                                data[\trajectorySynthDefs][i].notNil
+                                            }
+                                        }) {
+                                            data[\trajectorySynthDefs][i].asString
+                                        } {
+                                            (defaults[\defaultSynthDef] ? \upicWavetable).asString
+                                        };
+
+                                        maxChannels = case
+                                            { edgeSynthDefName.contains("24ch") } { 24 }
+                                            { edgeSynthDefName.contains("15ch") } { 15 }
+                                            { edgeSynthDefName.contains("12ch") } { 12 }
+                                            { edgeSynthDefName.contains("8ch") } { 8 }
+                                            { edgeSynthDefName.contains("4ch") } { 4 }
+                                            { edgeSynthDefName.contains("3ch") } { 3 }
+                                            { edgeSynthDefName.contains("2ch") } { 2 }
+                                            { true } { 1 };
+
+                                        // Pan2 (2ch) vs PanAz (3ch+) use different ranges
+                                        if(maxChannels == 2) {
+                                            edgePan = startChannel * 2 - 1;
+                                        } {
+                                            edgePan = startChannel * 2 / maxChannels;
+                                        };
+                                    } {
+                                        // No spatial envelope - use time-based pan
+                                        edgePan = currentTime.linlin(0, state[\playDuration], -1, 1);
+                                    };
                                     if(state[\synths][i].notNil) {
-                                        state[\synths][i].set(\freq, freq, \pan, pan, \amp, 0.2);
+                                        state[\synths][i].set(\freq, freq, \pan, edgePan, \amp, 0.2);
                                         activeSynthCount = activeSynthCount + 1;
                                     };
                                 };

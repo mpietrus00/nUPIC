@@ -164,8 +164,11 @@ fork {
         // Make sure we have the global registry
         if(~nUPIC_SynthDefs.isNil) {
             ~nUPIC_SynthDefs = IdentityDictionary.new;
-            ~nUPIC_SynthDefs[\available] = [\trajectoryVarSaw, \simpleGravObject];
-            ~nUPIC_SynthDefs[\default] = \trajectoryVarSaw;
+            ~nUPIC_SynthDefs[\available] = [
+                \upicWavetable, \upicWavetable2ch, \upicWavetable3ch, \upicWavetable4ch,
+                \upicWavetable8ch, \upicWavetable12ch, \upicWavetable15ch, \upicWavetable24ch
+            ];
+            ~nUPIC_SynthDefs[\default] = \upicWavetable8ch;
         };
         
         // Now load the main system

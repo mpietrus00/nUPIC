@@ -10,59 +10,46 @@ if(SynthDescLib.global.synthDescs[\upicWavetable].notNil) {
     "✓ Removed existing upicWavetable".postln;
 };
 
-// Create simple mono upicWavetable based on upicWavetablePrecise template
+// Create simple mono upicWavetable using OscOS with Phasor
 SynthDef(\upicWavetable, {
     arg freq = 440, amp = 0.1, pan = 0, gate = 1,
-        bufnum = 0,           // Wavetable buffer number (0 = default sine)
+        bufnum, // Wavetable buffer number
         mass = 1, velocity = 0, distance = 100, width = 0.5,
         radialVel = 0, dopplerSens = 0, numSynths = 1;
-    
-    var sig, dopplerShift, finalFreq, distAmp;
-    var phase, env;
-    
-    // Use default wavetable if bufnum is 0 or not provided
-    if(bufnum == 0) {
-        if(~nUPIC_DefaultWaveTable.notNil) {
-            bufnum = ~nUPIC_DefaultWaveTable.bufnum;
-        };
-    };
-    
+
+    var sig, phase, dopplerShift, finalFreq, distAmp, env;
+
+    // Use the global wavetable buffer
+    bufnum = \bufnum.kr(~nUPIC_wavetableBuffer.bufnum);
+
     // Calculate frequency with optional Doppler
     dopplerShift = 1 + (radialVel * dopplerSens * 0.01);
     finalFreq = freq * dopplerShift.clip(0.5, 2.0);
-    
+
     // Simple envelope for clean start/stop
     env = EnvGen.kr(
         Env.asr(0.01, 1, 0.01),
         gate,
         doneAction: 2
     );
-    
-    // Phase generation - simple and clean
+
+    // Phase from LFSaw (0-1 range) - matches OscOS documentation
     phase = LFSaw.ar(finalFreq).range(0, 1);
-    
-    // Main oscillator - clean wavetable synthesis
-    sig = OscOS.ar(
-        bufnum,
-        phase,
-        1,        // Single wavetable
-        0,        // No phase offset
-        2,        // 4x oversampling for quality
-        1,        // Full amplitude
-        0         // No interpolation offset
-    );
-    
-    // Distance-based amplitude (for spatial positioning if needed)
+
+    // OscOS with named args for clarity (single wavetable buffer)
+    sig = OscOS.ar(bufnum, phase, oversample: 1);
+
+    // Distance-based amplitude
     distAmp = (100 / distance.max(10)).sqrt.clip(0, 2);
-    
+
     // Apply amplitude scaling
     sig = sig * amp * env * distAmp * (1 / numSynths.sqrt.max(1));
-    
+
     // Simple soft limiting to prevent clipping
     sig = sig.tanh * 0.9;
-    
-    // TRUE MONO OUTPUT - single channel
-    Out.ar(0, sig); // Single channel output
+
+    // Mono output to bus 0
+    Out.ar(0, sig);
 }).add;
 
 // Wait for synthdef to compile

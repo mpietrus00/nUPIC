@@ -289,14 +289,20 @@
         Out.ar(0, Pan2.ar(sig, pan));
     }).add;
     
-    // Store available SynthDef names
+    // Store available SynthDef names - channel variants only
     ~nUPIC_SynthDefs[\available] = [
-        \upicWavetable,        // Main UPIC wavetable synthesis
-        \upicWavetablePrecise  // Precise amplitude control version
+        \upicWavetable,      // mono
+        \upicWavetable2ch,   // stereo
+        \upicWavetable3ch,   // 3 channels
+        \upicWavetable4ch,   // 4 channels
+        \upicWavetable8ch,   // 8 channels
+        \upicWavetable12ch,  // 12 channels
+        \upicWavetable15ch,  // 15 channels
+        \upicWavetable24ch   // 24 channels
     ];
-    
-    // Set default to precise version for better amplitude control
-    ~nUPIC_SynthDefs[\default] = \upicWavetablePrecise;
+
+    // Set default to 8ch
+    ~nUPIC_SynthDefs[\default] = \upicWavetable8ch;
     
     // Initialize default wavetable if server is running
     if(s.serverRunning) {
@@ -304,8 +310,7 @@
     };
     
     "nUPIC UPIC-inspired SynthDefs loaded successfully".postln;
-    "✓ upicWavetable - Standard version with envelope".postln;
-    "✓ upicWavetablePrecise - Precise amplitude control version".postln;
+    "Channel variants available: mono, 2ch, 3ch, 4ch, 8ch, 12ch, 15ch, 24ch".postln;
     "Drawable wavetable synthesis ready".postln;
 };
 

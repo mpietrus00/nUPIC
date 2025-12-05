@@ -73,7 +73,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         // Create new window
         ampWin = Window("nUPIC Amplitude Editor", 
             Rect(200, 100, winWidth, winHeight));
-        ampWin.background = Color.gray(0.95);
+        ampWin.background = Color.new(205/255, 250/255, 205/255); // B&K green
         // Window created with fixed size
         ("Amplitude editor opened with " ++ tabs.size ++ " trajectory tabs").postln;
     };
@@ -122,7 +122,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Create tab buttons (if multiple trajectories)
     if(tabs.size > 1) {
         tabContainer = CompositeView(ampWin, Rect(0, 0, winWidth, 30));
-        tabContainer.background = Color.gray(0.8);
+        tabContainer.background = Color.new(180/255, 230/255, 180/255); // Darker B&K green for tabs
         
         tabs.do { |trajIndex, i|
             var tabBtn = Button(tabContainer, 
@@ -202,7 +202,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 ~nUPIC[\ui][\createAmplitudeEditorContent] = { |container, trajIndex|
     var ampView, overlayView, presetContainer, toolbarContainer, levelMeterContainer;
     var winWidth = container.bounds.width, winHeight = container.bounds.height;
-    var viewHeight = winHeight - 180;  // More space for enhanced controls
+    var viewHeight = winHeight - 70;  // Compact control area
     var meterWidth = 30;  // Width for level meter
     var editorWidth = winWidth - meterWidth - 10;  // Editor width minus meter and spacing
     var data = ~nUPIC[\data];
@@ -353,7 +353,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Create level meter container on the right side (initially hidden)
     levelMeterContainer = CompositeView(container, Rect(editorWidth + 5, 0, meterWidth, viewHeight));
-    levelMeterContainer.background = Color.gray(0.9);
+    levelMeterContainer.background = Color.new(190/255, 240/255, 190/255); // Light B&K green
     levelMeterContainer.visible = true;  // Always visible now
     
     // Create vertical level meter
@@ -372,7 +372,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Create toolbar area (above main editor)
     toolbarContainer = CompositeView(container, Rect(0, 0, winWidth, 30));
-    toolbarContainer.background = Color.gray(0.85);
+    toolbarContainer.background = Color.new(180/255, 230/255, 180/255); // Darker B&K green for toolbar
     ~nUPIC[\ui][\createAmplitudeToolbar].value(toolbarContainer, trajIndex);
     
     // Adjust editor position to account for toolbar
@@ -381,8 +381,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     levelMeterContainer.bounds = Rect(editorWidth + 5, 30, meterWidth, viewHeight - 30);
     
     // Create control area
-    presetContainer = CompositeView(container, Rect(0, viewHeight, winWidth, winHeight - viewHeight));
-    presetContainer.background = Color.gray(0.9);
+    presetContainer = CompositeView(container, Rect(0, viewHeight, winWidth, 40));
+    presetContainer.background = Color.new(190/255, 240/255, 190/255); // Light B&K green
     
     // Add enhanced controls
     ~nUPIC[\ui][\createAmplitudeControls].value(presetContainer, trajIndex, ampZoomMin, ampZoomMax);
@@ -437,9 +437,6 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Instructions
     Pen.fillColor = Color.black;
-    Pen.stringAtPoint(
-        "Draw amplitude envelope - higher = louder",
-        Point(10, 5), Font("Arial", 10));
 };
 
 // Create amplitude toolbar with playback and analysis tools
@@ -452,136 +449,77 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Preview button
     Button(container, Rect(5, 5, 60, 20))
-        .states_([["Preview", Color.black, Color.green.alpha_(0.3)]])
-        .font_(Font("Arial", 8))
-        .action_({ 
+        .states_([["_preview", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 9))
+        .action_({
             ~nUPIC[\ui][\previewTrajectoryAmplitude].value(trajIndex);
         });
-    
-    // Analysis display
-    StaticText(container, Rect(70, 5, 200, 20))
-        .string_("Peak: -- dB | RMS: -- dB")
-        .font_(Font("Arial", 8))
-        .stringColor_(Color.gray(0.2))
-        .background_(Color.white.alpha_(0.8));
-    
-    // Store reference for updates
-    container.setProperty(\analysisText, container.children.last);
-    
+
+    // Trajectory info
+    StaticText(container, Rect(70, 5, 150, 20))
+        .string_("Trajectory " ++ trajIndex)
+        .font_(Font("Arial", 9))
+        .stringColor_(Color.gray(0.3));
+
     // Undo/Redo buttons
-    Button(container, Rect(container.bounds.width - 100, 5, 40, 20))
-        .states_([["Undo", Color.black, Color.gray(0.8)]])
-        .font_(Font("Arial", 8))
-        .action_({ 
+    Button(container, Rect(container.bounds.width - 100, 5, 45, 20))
+        .states_([["_undo", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 9))
+        .action_({
             ~nUPIC[\ui][\undoAmplitudeEdit].value(trajIndex);
         });
-    
-    Button(container, Rect(container.bounds.width - 55, 5, 40, 20))
-        .states_([["Redo", Color.black, Color.gray(0.8)]])
-        .font_(Font("Arial", 8))
-        .action_({ 
+
+    Button(container, Rect(container.bounds.width - 50, 5, 45, 20))
+        .states_([["_redo", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 9))
+        .action_({
             ~nUPIC[\ui][\redoAmplitudeEdit].value(trajIndex);
         });
 };
 
-// Create amplitude controls
+// Create amplitude controls - compact single row
 ~nUPIC[\ui][\createAmplitudeControls] = { |container, trajIndex, ampZoomMin, ampZoomMax|
-    var containerBounds = container.bounds;
     var data = ~nUPIC[\data];
-    var colors = ~nUPIC[\colors];
-    var trajColor = if(colors.notNil and: { colors[\trajectory].notNil }) {
-        var maxTrajs = ~nUPIC[\data][\trajectories].size.max(1);
-        colors[\trajectory].value(trajIndex, ~nUPIC[\constants][\maxTrajectories] ? maxTrajs)
-    } { 
-        var maxTrajs = ~nUPIC[\data][\trajectories].size.max(1);
-        Color.hsv((trajIndex / maxTrajs) * 0.8, 0.7, 0.9)
-    };
-    var row1Y = 5, row2Y = 30, row3Y = 55, row4Y = 80;
-    
-    // Trajectory label
-    StaticText(container, Rect(10, row1Y, 200, 20))
-        .string_("Trajectory " ++ trajIndex)
-        .font_(Font("Arial", 12, true))
-        .stringColor_(trajColor);
-    
-    // Enhanced preset buttons with more shapes
-    [\fadeIn, \fadeOut, \constant, \pulse, \exponential, \adsr].do { |preset, i|
-        var btnWidth = 60;
-        Button(container, Rect(10 + (i * (btnWidth + 5)), row2Y, btnWidth, 20))
-            .states_([[preset.asString, Color.black, Color.gray(0.9)]])
-            .font_(Font("Arial", 8))
+    var xPos = 10;
+
+    // Preset buttons (60x25, all gray for single-state, y=5 for proper centering)
+    [\fadeIn, \fadeOut, \constant, \pulse, \adsr].do { |preset, i|
+        Button(container, Rect(xPos, 5, 55, 25))
+            .states_([["_" ++ preset.asString.toLower, Color.black, Color.gray(0.9)]])
+            .font_(Font("Arial", 9))
             .action_({
-                ~nUPIC[\ui][\saveAmplitudeState].value(trajIndex);  // Save for undo
+                ~nUPIC[\ui][\saveAmplitudeState].value(trajIndex);
                 ~nUPIC[\ui][\applyAmplitudePreset].value(trajIndex, preset);
             });
+        xPos = xPos + 60;
     };
-    
-    // Advanced operations row
-    Button(container, Rect(10, row3Y, 70, 20))
-        .states_([["Normalize", Color.black, Color.blue.alpha_(0.3)]])
-        .font_(Font("Arial", 8))
+
+    // Operations
+    Button(container, Rect(xPos, 5, 60, 25))
+        .states_([["_normalize", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 9))
         .action_({
             ~nUPIC[\ui][\saveAmplitudeState].value(trajIndex);
             ~nUPIC[\ui][\normalizeAmplitude].value(trajIndex);
         });
-    
-    Button(container, Rect(85, row3Y, 70, 20))
-        .states_([["Smooth", Color.black, Color.cyan.alpha_(0.3)]])
-        .font_(Font("Arial", 8))
+    xPos = xPos + 65;
+
+    Button(container, Rect(xPos, 5, 55, 25))
+        .states_([["_smooth", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 9))
         .action_({
             ~nUPIC[\ui][\saveAmplitudeState].value(trajIndex);
             ~nUPIC[\ui][\smoothAmplitude].value(trajIndex);
         });
-    
-    Button(container, Rect(160, row3Y, 80, 20))
-        .states_([["Apply to All", Color.black, Color.green.alpha_(0.5)]])
-        .font_(Font("Arial", 8))
-        .action_({
-            ~nUPIC[\ui][\applyAmplitudeToSelected].value(trajIndex);
-        });
-    
-    Button(container, Rect(245, row3Y, 50, 20))
-        .states_([["Clear", Color.white, Color.red.alpha_(0.7)]])
-        .font_(Font("Arial", 8))
+    xPos = xPos + 60;
+
+    Button(container, Rect(xPos, 5, 50, 25))
+        .states_([["_clear", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 9))
         .action_({
             ~nUPIC[\ui][\saveAmplitudeState].value(trajIndex);
             ~nUPIC[\ui][\clearAmplitude].value(trajIndex);
         });
-    
-    // Enhanced zoom controls with pan
-    StaticText(container, Rect(10, row4Y, 40, 20))
-        .string_("Zoom:")
-        .font_(Font("Arial", 9));
-    
-    Slider(container, Rect(50, row4Y, 80, 20))
-        .value_(0)
-        .action_({ |slider|
-            ~nUPIC[\ui][\updateAmplitudeZoom].value(trajIndex, slider.value);
-        });
-    
-    StaticText(container, Rect(135, row4Y, 50, 20))
-        .string_("Position:")
-        .font_(Font("Arial", 9));
-    
-    Slider(container, Rect(185, row4Y, 80, 20))
-        .value_(0)
-        .action_({ |slider|
-            ~nUPIC[\ui][\updateAmplitudePan].value(trajIndex, slider.value);
-        });
-    
-    // Scale display toggle
-    Button(container, Rect(270, row4Y, 60, 20))
-        .states_([["Linear", Color.black, Color.gray(0.9)], ["dB Scale", Color.white, Color.black]])
-        .font_(Font("Arial", 8))
-        .action_({ |btn|
-            ~nUPIC[\ui][\toggleAmplitudeScale].value(trajIndex, btn.value == 1);
-        });
-    
-    // Enhanced instructions
-    StaticText(container, Rect(10, row4Y + 25, 600, 35))
-        .string_("• Click and drag to shape amplitude envelope  • Use presets for common shapes  • Normalize to optimize levels\n• Preview to hear trajectory  • Undo/Redo available  • Zoom/Position to focus on sections  • Apply envelope to other selected trajectories")
-        .font_(Font("Arial", 8))
-        .stringColor_(Color.gray(0.4));
 };
 
 // Update amplitude display
@@ -1266,7 +1204,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         synthDefName = if(data[\trajectorySynthDefs].notNil and: { trajIndex < data[\trajectorySynthDefs].size }) {
             data[\trajectorySynthDefs][trajIndex]
         } {
-            defaults[\defaultSynthDef] ? \simpleGravObject
+            defaults[\defaultSynthDef] ? \upicWavetable
         };
         
         firstPoint = if(traj[0].isKindOf(Event)) { traj[0] } { (x: traj[0].x, y: traj[0].y, freq: nil) };

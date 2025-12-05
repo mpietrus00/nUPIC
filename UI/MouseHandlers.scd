@@ -303,7 +303,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             // Use the trajectory manager if available, otherwise use direct data access
             if(data.respondsTo(\addTrajectory)) {
                 // Using trajectory manager
-                synthDef = defaults[\defaultSynthDef] ? \simpleGravObject;
+                synthDef = defaults[\defaultSynthDef] ? \upicWavetable;
                 data[\addTrajectory].value(sortedTrajectory, synthDef, nil);
             } {
                 // Direct data access fallback
@@ -324,8 +324,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 data[\trajectories].add(sortedTrajectory);
                 data[\amplitudeEnvelopes].add(nil);  // Add placeholder for amplitude envelope
                 
-                // Use currently selected SynthDef or default
-                synthDef = defaults[\defaultSynthDef] ? \simpleGravObject;
+                // Use currently selected SynthDef or default - read fresh from ~nUPIC[\defaults]
+                synthDef = if(~nUPIC[\defaults].notNil) {
+                    ~nUPIC[\defaults][\defaultSynthDef] ? \upicWavetable
+                } {
+                    \upicWavetable
+                };
                 data[\trajectorySynthDefs].add(synthDef);
             };
             
@@ -692,7 +696,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         }) {
             data[\trajectorySynthDefs].add(data[\clipboard][\synthDefs][i]);
         } {
-            data[\trajectorySynthDefs].add(defaults[\defaultSynthDef] ? \simpleGravObject);
+            data[\trajectorySynthDefs].add(defaults[\defaultSynthDef] ? \upicWavetable);
         };
     };
     
