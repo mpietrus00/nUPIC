@@ -312,6 +312,223 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     count
 };
 
+// ============================================================================
+// Trajectory Transformation Functions
+// ============================================================================
+// Apply mathematical functions to modulate trajectory values
+// Supports periodic, stochastic, and custom functions
+
+// Transform trajectory with arbitrary function
+// func receives: (point, index, totalPoints, normalizedPosition)
+// func should return modified point or new (x:, y:, freq:) event
+~nUPIC[\trajectories][\transform] = { |index, func|
+    var points = ~nUPIC[\trajectories][\getPoints].value(index);
+    if(points.notNil and: { func.notNil }) {
+        var newPoints = points.collect { |point, i|
+            var normalized = i / (points.size - 1).max(1);
+            func.value(point, i, points.size, normalized);
+        };
+        ~nUPIC[\trajectories][\setPoints].value(index, newPoints);
+        newPoints
+    } { nil };
+};
+
+// Modulate frequency/y values with a function
+// func receives: (freq, normalizedPosition, index) and returns new freq
+~nUPIC[\trajectories][\modulateFreq] = { |index, func|
+    var points = ~nUPIC[\trajectories][\getPoints].value(index);
+    if(points.notNil and: { func.notNil }) {
+        var newPoints = points.collect { |point, i|
+            var normalized = i / (points.size - 1).max(1);
+            var newFreq = func.value(point.freq ? point.y, normalized, i);
+            (x: point.x, y: point.y, freq: newFreq)
+        };
+        ~nUPIC[\trajectories][\setPoints].value(index, newPoints);
+        newPoints
+    } { nil };
+};
+
+// Modulate time/x values with a function
+// func receives: (x, normalizedPosition, index) and returns new x
+~nUPIC[\trajectories][\modulateTime] = { |index, func|
+    var points = ~nUPIC[\trajectories][\getPoints].value(index);
+    if(points.notNil and: { func.notNil }) {
+        var newPoints = points.collect { |point, i|
+            var normalized = i / (points.size - 1).max(1);
+            var newX = func.value(point.x, normalized, i);
+            (x: newX, y: point.y, freq: point.freq)
+        };
+        // Sort by x to maintain proper order
+        newPoints = newPoints.sort({ |a, b| a.x < b.x });
+        ~nUPIC[\trajectories][\setPoints].value(index, newPoints);
+        newPoints
+    } { nil };
+};
+
+// ============================================================================
+// Preset Modulation Functions
+// ============================================================================
+
+// Sine modulation: value * (1 + depth * sin(freq * 2pi * position + phase))
+~nUPIC[\trajectories][\sineModulation] = { |depth = 0.2, freq = 4, phase = 0|
+    { |val, pos, idx|
+        val * (1 + (depth * sin((freq * 2pi * pos) + phase)))
+    }
+};
+
+// Add sine wave to value: value + amplitude * sin(freq * 2pi * position + phase)
+~nUPIC[\trajectories][\sineAdd] = { |amplitude = 100, freq = 4, phase = 0|
+    { |val, pos, idx|
+        val + (amplitude * sin((freq * 2pi * pos) + phase))
+    }
+};
+
+// Noise modulation: value * (1 + depth * random)
+~nUPIC[\trajectories][\noiseModulation] = { |depth = 0.1|
+    { |val, pos, idx|
+        val * (1 + (depth * rrand(-1.0, 1.0)))
+    }
+};
+
+// Add noise to value
+~nUPIC[\trajectories][\noiseAdd] = { |amplitude = 50|
+    { |val, pos, idx|
+        val + (amplitude * rrand(-1.0, 1.0))
+    }
+};
+
+// Sawtooth modulation
+~nUPIC[\trajectories][\sawModulation] = { |depth = 0.2, freq = 4|
+    { |val, pos, idx|
+        var sawVal = ((pos * freq) % 1) * 2 - 1;  // -1 to 1 sawtooth
+        val * (1 + (depth * sawVal))
+    }
+};
+
+// Exponential decay: value * exp(-decay * position)
+~nUPIC[\trajectories][\expDecay] = { |decay = 2|
+    { |val, pos, idx|
+        val * exp(decay * pos.neg)
+    }
+};
+
+// Exponential growth: value * exp(growth * position)
+~nUPIC[\trajectories][\expGrowth] = { |growth = 1|
+    { |val, pos, idx|
+        val * exp(growth * pos)
+    }
+};
+
+// ============================================================================
+// Xenakis-style Dynamic Stochastic Synthesis
+// ============================================================================
+// Based on Xenakis' GENDYN algorithm - random walks with barriers
+
+~nUPIC[\trajectories][\stochasticModulation] = { |
+    ampStep = 0.1,      // Max amplitude step size (as fraction of value)
+    durStep = 0.1,      // Max duration/time step size
+    ampBarrier = 0.5,   // Amplitude barrier (max deviation from original)
+    mirror = true       // Mirror at barriers (true) or wrap (false)
+|
+    var ampAccum = 0;
+    { |val, pos, idx|
+        var step = rrand(ampStep.neg, ampStep);
+        ampAccum = ampAccum + step;
+
+        // Apply barriers
+        if(mirror) {
+            // Mirror/reflect at barriers
+            while { ampAccum.abs > ampBarrier } {
+                if(ampAccum > ampBarrier) {
+                    ampAccum = ampBarrier - (ampAccum - ampBarrier);
+                };
+                if(ampAccum < ampBarrier.neg) {
+                    ampAccum = ampBarrier.neg - (ampAccum + ampBarrier);
+                };
+            };
+        } {
+            // Wrap at barriers
+            ampAccum = ampAccum.wrap(ampBarrier.neg, ampBarrier);
+        };
+
+        val * (1 + ampAccum)
+    }
+};
+
+// Full Xenakis GENDYN-style transformation
+// Modulates both amplitude and time with random walks
+~nUPIC[\trajectories][\gendyn] = { |index,
+    freqStep = 0.05,
+    freqBarrier = 0.3,
+    timeStep = 0.02,
+    timeBarrier = 0.1
+|
+    var points = ~nUPIC[\trajectories][\getPoints].value(index);
+    if(points.notNil) {
+        var freqAccum = 0;
+        var timeAccum = 0;
+        var newPoints;
+
+        newPoints = points.collect { |point, i|
+            var normalized = i / (points.size - 1).max(1);
+            var newFreq, newX;
+
+            // Random walk for frequency
+            freqAccum = freqAccum + rrand(freqStep.neg, freqStep);
+            freqAccum = freqAccum.fold(freqBarrier.neg, freqBarrier);
+            newFreq = point.freq * (1 + freqAccum);
+
+            // Random walk for time (smaller effect)
+            timeAccum = timeAccum + rrand(timeStep.neg, timeStep);
+            timeAccum = timeAccum.fold(timeBarrier.neg, timeBarrier);
+            newX = point.x * (1 + timeAccum);
+
+            (x: newX, y: point.y, freq: newFreq)
+        };
+
+        // Sort by x
+        newPoints = newPoints.sort({ |a, b| a.x < b.x });
+        ~nUPIC[\trajectories][\setPoints].value(index, newPoints);
+        ("Trajectory " ++ index ++ " transformed with GENDYN stochastic").postln;
+        newPoints
+    } { nil };
+};
+
+// Brownian motion / random walk modulation
+~nUPIC[\trajectories][\brownian] = { |index, stepSize = 0.02, barrier = 0.3|
+    var points = ~nUPIC[\trajectories][\getPoints].value(index);
+    if(points.notNil) {
+        var accum = 0;
+        var newPoints = points.collect { |point, i|
+            accum = accum + rrand(stepSize.neg, stepSize);
+            accum = accum.fold(barrier.neg, barrier);
+            (x: point.x, y: point.y, freq: point.freq * (1 + accum))
+        };
+        ~nUPIC[\trajectories][\setPoints].value(index, newPoints);
+        ("Trajectory " ++ index ++ " transformed with Brownian motion").postln;
+        newPoints
+    } { nil };
+};
+
+// Quantize frequencies to a scale
+~nUPIC[\trajectories][\quantizeToScale] = { |index, scale, root = 60|
+    var points = ~nUPIC[\trajectories][\getPoints].value(index);
+    if(points.notNil and: { scale.notNil }) {
+        var newPoints = points.collect { |point, i|
+            var midi = point.freq.cpsmidi;
+            var degree = ((midi - root) % 12);
+            var octave = ((midi - root) / 12).floor;
+            var nearestDegree = scale.minIndex { |scaleDegree| (degree - scaleDegree).abs };
+            var quantizedMidi = root + (octave * 12) + scale[nearestDegree];
+            var newFreq = quantizedMidi.midicps;
+            (x: point.x, y: point.y, freq: newFreq)
+        };
+        ~nUPIC[\trajectories][\setPoints].value(index, newPoints);
+        ("Trajectory " ++ index ++ " quantized to scale").postln;
+        newPoints
+    } { nil };
+};
+
 // Grid system definitions
 ~nUPIC[\gridSystems] = (
     equalTemperament: (
