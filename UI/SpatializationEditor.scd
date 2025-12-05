@@ -1,6 +1,6 @@
 // nUPIC Spatialization Envelope Editor
-// Draw spatialization curves for each trajectory
-// Vertical axis = 8 channels (0-7), Horizontal axis = trajectory length
+// Draw spatialization curves for each arc
+// Vertical axis = 8 channels (0-7), Horizontal axis = arc length
 // Similar to amplitude envelope but for spatial positioning
 
 (
@@ -13,8 +13,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var data = ~nUPIC[\data];
     var selectedIndices;
     
-    if(data[\selectedTrajectories].notNil and: { data[\selectedTrajectories].size > 0 }) {
-        selectedIndices = data[\selectedTrajectories].asArray.sort;
+    if(data[\selectedArcs].notNil and: { data[\selectedArcs].size > 0 }) {
+        selectedIndices = data[\selectedArcs].asArray.sort;
         ~nUPIC[\ui][\openSpatializationEditor].value(selectedIndices);
     } {
         "No trajectories selected. Use 'G' key to enter select mode, then click on trajectories.".postln;
@@ -43,7 +43,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         if(existingIndices.notNil) {
             trajIndices.do { |idx|
                 if(existingIndices.asArray.includes(idx)) {
-                    ("Spatial editor already open for trajectory " ++ idx ++ " - bringing to front").postln;
+                    ("Spatial editor already open for arc " ++ idx ++ " - bringing to front").postln;
                     existingWindow.front;
                     ^nil;
                 };
@@ -58,8 +58,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         data[\spatializationEnvelopes] = List.new;
     };
 
-    // Ensure we have envelope for each trajectory
-    data[\trajectories].size.do { |i|
+    // Ensure we have envelope for each arc
+    data[\arcs].size.do { |i|
         if(i >= data[\spatializationEnvelopes].size) {
             data[\spatializationEnvelopes].add(nil);
         };
@@ -109,28 +109,28 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             tabButtons.add(button);
         };
         
-        // Create content containers for each trajectory
+        // Create content containers for each arc
         trajIndices.do { |trajIdx, i|
             var contentView = CompositeView(window, Rect(5, tabHeight + 5, winWidth - 10, winHeight - tabHeight - 10));
             contentView.visible = (i == 0);  // Only first tab visible initially
             contentViews.add(contentView);
             
-            // Create spatialization editor content for this trajectory
+            // Create spatialization editor content for this arc
             ~nUPIC[\ui][\createSpatializationEditorContent].value(contentView, trajIdx);
         };
     } {
-        // Single trajectory - no tabs needed
+        // Single arc - no tabs needed
         container = CompositeView(window, Rect(5, 5, winWidth - 10, winHeight - 10));
         ~nUPIC[\ui][\createSpatializationEditorContent].value(container, trajIndices[0]);
     };
     
     window.front;
 
-    // Store window reference and trajectory indices for refresh
+    // Store window reference and arc indices for refresh
     ~nUPIC[\ui][\spatializationEditorWindow] = window;
     ~nUPIC[\ui][\spatializationEditorTrajIndices] = trajIndices;
     ~nUPIC[\ui][\spatializationEditorContentViews] = contentViews;
-    ~nUPIC[\ui][\spatializationEditorContainer] = container;  // For single trajectory case
+    ~nUPIC[\ui][\spatializationEditorContainer] = container;  // For single arc case
 };
 
 // Refresh spatialization editor when SynthDef changes
@@ -154,15 +154,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         ~nUPIC[\ui][\createSpatializationEditorContent].value(
                             contentViews[tabIndex], changedTrajIndex
                         );
-                        ("Spatial editor refreshed for trajectory " ++ changedTrajIndex).postln;
+                        ("Spatial editor refreshed for arc " ++ changedTrajIndex).postln;
                     };
                 } {
-                    // Single trajectory case
+                    // Single arc case
                     if(container.notNil) {
                         ~nUPIC[\ui][\createSpatializationEditorContent].value(
                             container, changedTrajIndex
                         );
-                        ("Spatial editor refreshed for trajectory " ++ changedTrajIndex).postln;
+                        ("Spatial editor refreshed for arc " ++ changedTrajIndex).postln;
                     };
                 };
             }.defer;  // Ensure GUI updates happen on AppClock
@@ -187,7 +187,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     numChannels;
 };
 
-// Create spatialization editor content for a single trajectory
+// Create spatialization editor content for a single arc
 ~nUPIC[\ui][\createSpatializationEditorContent] = { |container, trajIndex|
     var spatialView, overlayView, controlView, channelLabelView;
     var winWidth = container.bounds.width, winHeight = container.bounds.height;
@@ -200,19 +200,19 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var colors = ~nUPIC[\colors];
     var defaults = ~nUPIC[\defaults];
     var currentEnvelope, isDrawing = false;
-    var trajectory = data[\trajectories][trajIndex];
-    var trajectoryLength;
+    var arc = data[\arcs][trajIndex];
+    var arcLength;
     var numChannels, maxChannel;
     var trajSynthDef;
     var lastX = 0, lastChannel;
 
-    // Get SynthDef for this trajectory
-    trajSynthDef = if(data[\trajectorySynthDefs].notNil and: {
-        trajIndex < data[\trajectorySynthDefs].size and: {
-            data[\trajectorySynthDefs][trajIndex].notNil
+    // Get SynthDef for this arc
+    trajSynthDef = if(data[\arcSynthDefs].notNil and: {
+        trajIndex < data[\arcSynthDefs].size and: {
+            data[\arcSynthDefs][trajIndex].notNil
         }
     }) {
-        data[\trajectorySynthDefs][trajIndex]
+        data[\arcSynthDefs][trajIndex]
     } {
         defaults[\defaultSynthDef] ? \upicWavetable
     };
@@ -222,17 +222,17 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     maxChannel = numChannels - 1;
     lastChannel = maxChannel / 2;  // Start in middle
 
-    // Calculate trajectory length
-    if(trajectory.notNil and: { trajectory.size > 0 }) {
-        var firstX = trajectory[0].x;
-        var lastXVal = trajectory.last.x;
-        trajectoryLength = lastXVal - firstX;
+    // Calculate arc length
+    if(arc.notNil and: { arc.size > 0 }) {
+        var firstX = arc[0].x;
+        var lastXVal = arc.last.x;
+        arcLength = lastXVal - firstX;
     } {
-        trajectoryLength = 600;  // Default
+        arcLength = 600;  // Default
     };
 
     // Get existing envelope or create default
-    // First check TrajectoryData storage (set when trajectory was drawn)
+    // First check ArcData storage (set when arc was drawn)
     currentEnvelope = if(data[\getSpatialEnvelope].notNil) {
         data[\getSpatialEnvelope].value(trajIndex)
     } { nil };
@@ -246,10 +246,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         // Create default envelope (first to last speaker sweep)
         currentEnvelope = List[
             (x: 0, channel: 0),                    // Start at first speaker
-            (x: trajectoryLength, channel: maxChannel)  // End at last speaker
+            (x: arcLength, channel: maxChannel)  // End at last speaker
         ];
         data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
-        // Also save to TrajectoryData
+        // Also save to ArcData
         if(data[\setSpatialEnvelope].notNil) {
             data[\setSpatialEnvelope].value(trajIndex, currentEnvelope);
         };
@@ -358,7 +358,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
             // Draw the curve as a solid line
             currentEnvelope.do { |point, i|
-                var ptX = (point.x / trajectoryLength) * width;
+                var ptX = (point.x / arcLength) * width;
                 var ptY = vPad + (((maxChannel - point.channel) / maxChannel.max(1)) * drawableHeight);
 
                 if(i == 0) {
@@ -377,7 +377,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             Pen.width = 2.5;
 
             drawBuf.do { |point, i|
-                var ptX = (point.x / trajectoryLength) * width;
+                var ptX = (point.x / arcLength) * width;
                 var ptY = vPad + (((maxChannel - point.channel) / maxChannel.max(1)) * drawableHeight);
 
                 if(i == 0) {
@@ -415,7 +415,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         isDrawing = true;
 
         // Calculate position (accounting for vertical padding)
-        timePos = (x / width) * trajectoryLength;
+        timePos = (x / width) * arcLength;
         channel = maxChannel - (((y - vPad) / drawableHeight) * maxChannel);  // Invert Y axis with padding
         channel = channel.clip(0, maxChannel);
 
@@ -441,7 +441,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         var timePos, channel;
 
         if(isDrawing) {
-            timePos = (x / width) * trajectoryLength;
+            timePos = (x / width) * arcLength;
             channel = maxChannel - (((y - vPad) / drawableHeight) * maxChannel);
             channel = channel.clip(0, maxChannel);
 
@@ -502,8 +502,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 };
 
                 // Add end point if needed
-                if(mergedEnvelope.last.x < trajectoryLength) {
-                    mergedEnvelope.add((x: trajectoryLength, channel: mergedEnvelope.last.channel));
+                if(mergedEnvelope.last.x < arcLength) {
+                    mergedEnvelope.add((x: arcLength, channel: mergedEnvelope.last.channel));
                 };
 
                 // Remove duplicates at same x position (keep last)
@@ -521,7 +521,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     interpolated = List.new;
                     numOutputPoints.do { |i|
                         var t = i / (numOutputPoints - 1);
-                        var targetX = t * trajectoryLength;
+                        var targetX = t * arcLength;
                         var channel = 0;
                         var foundSegment = false;
 
@@ -557,7 +557,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
                 if(data[\setSpatialEnvelope].notNil) { data[\setSpatialEnvelope].value(trajIndex, currentEnvelope) };
 
-                ("Spatialization envelope saved for trajectory " ++ trajIndex).postln;
+                ("Spatialization envelope saved for arc " ++ trajIndex).postln;
                 ("Points: " ++ currentEnvelope.size ++ " (interpolated to 2048)").postln;
             };
 
@@ -582,7 +582,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var numPts = 2048;
             currentEnvelope = List.new;
             numPts.do { |i|
-                var xPos = i / (numPts - 1) * trajectoryLength;
+                var xPos = i / (numPts - 1) * arcLength;
                 currentEnvelope.add((x: xPos, channel: center));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
@@ -601,7 +601,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             numPts.do { |i|
                 var phase = i / (numPts - 1) * 2pi;
                 var channel = center + (radius * sin(phase));
-                var xPos = i / (numPts - 1) * trajectoryLength;
+                var xPos = i / (numPts - 1) * arcLength;
                 currentEnvelope.add((x: xPos, channel: channel.clip(0, maxChannel)));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
@@ -621,7 +621,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 var phase = t * 4pi;
                 var radius = t * center;
                 var channel = center + (radius * sin(phase));
-                var xPos = t * trajectoryLength;
+                var xPos = t * arcLength;
                 currentEnvelope.add((x: xPos, channel: channel.clip(0, maxChannel)));
             };
             data[\spatializationEnvelopes][trajIndex] = currentEnvelope;
@@ -637,7 +637,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var prevChannel = maxChannel / 2;
             currentEnvelope = List.new;
             numPts.do { |i|
-                var xPos = i / (numPts - 1) * trajectoryLength;
+                var xPos = i / (numPts - 1) * arcLength;
                 var delta = rrand(-0.1, 0.1) * maxChannel;
                 prevChannel = (prevChannel + delta).clip(0, maxChannel);
                 currentEnvelope.add((x: xPos, channel: prevChannel));
@@ -655,7 +655,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             currentEnvelope = List.new;
             numPts.do { |i|
                 var t = i / (numPts - 1);
-                var xPos = t * trajectoryLength;
+                var xPos = t * arcLength;
                 var channel = t * maxChannel;
                 currentEnvelope.add((x: xPos, channel: channel));
             };
@@ -672,7 +672,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             currentEnvelope = List.new;
             numPts.do { |i|
                 var t = i / (numPts - 1);
-                var xPos = t * trajectoryLength;
+                var xPos = t * arcLength;
                 var channel = maxChannel - (t * maxChannel);
                 currentEnvelope.add((x: xPos, channel: channel));
             };

@@ -1,5 +1,5 @@
 // nUPIC Amplitude Editor Module
-// Single tabbed amplitude envelope editing window that responds to trajectory selection
+// Single tabbed amplitude envelope editing window that responds to arc selection
 // Part of the nUPIC (nu-UPIC) modular system
 
 (
@@ -33,11 +33,11 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Use selected trajectories or all trajectories with data
     if(selectedIndices.isNil) {
-        if(data[\selectedTrajectories].notNil and: { data[\selectedTrajectories].size > 0 }) {
-            tabs = data[\selectedTrajectories].asArray.sort;
+        if(data[\selectedArcs].notNil and: { data[\selectedArcs].size > 0 }) {
+            tabs = data[\selectedArcs].asArray.sort;
         } {
-            if(data[\trajectories].notNil) {
-                tabs = (0..(data[\trajectories].size - 1)).asArray;
+            if(data[\arcs].notNil) {
+                tabs = (0..(data[\arcs].size - 1)).asArray;
             } {
                 "No trajectories available".postln;
                 ^nil;
@@ -68,14 +68,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         
         // Clear existing content but keep window
         ampWin.view.children.do({ |child| child.remove });
-        ("Updated amplitude editor with " ++ tabs.size ++ " trajectory tabs").postln;
+        ("Updated amplitude editor with " ++ tabs.size ++ " arc tabs").postln;
     } {
         // Create new window
         ampWin = Window("nUPIC Amplitude Editor", 
             Rect(200, 100, winWidth, winHeight));
         ampWin.background = Color.new(205/255, 250/255, 205/255); // B&K green
         // Window created with fixed size
-        ("Amplitude editor opened with " ++ tabs.size ++ " trajectory tabs").postln;
+        ("Amplitude editor opened with " ++ tabs.size ++ " arc tabs").postln;
     };
     
     // Update window references
@@ -103,9 +103,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         
         // Create default envelope if needed
         if(data[\amplitudeEnvelopes][trajIndex].isNil and: {
-            trajIndex < data[\trajectories].size
+            trajIndex < data[\arcs].size
         }) {
-            traj = data[\trajectories][trajIndex];
+            traj = data[\arcs][trajIndex];
             trajLength = if(traj.size > 0) {
                 var trajFirstX = if(traj[0].isKindOf(Event)) { traj[0].x } { traj[0].x };
                 var trajLastX = if(traj.last.isKindOf(Event)) { traj.last.x } { traj.last.x };
@@ -127,17 +127,17 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         tabs.do { |trajIndex, i|
             var tabBtn = Button(tabContainer, 
                 Rect(i * (winWidth / tabs.size), 0, winWidth / tabs.size, 30));
-            var trajColor = if(colors.notNil and: { colors[\trajectory].notNil }) {
-                var maxTrajs = data[\trajectories].size.max(1);
-                colors[\trajectory].value(trajIndex, constants[\maxTrajectories] ? maxTrajs)
+            var trajColor = if(colors.notNil and: { colors[\arc].notNil }) {
+                var maxTrajs = data[\arcs].size.max(1);
+                colors[\arc].value(trajIndex, constants[\maxTrajectories] ? maxTrajs)
             } { 
-                var maxTrajs = data[\trajectories].size.max(1);
+                var maxTrajs = data[\arcs].size.max(1);
                 Color.hsv((trajIndex / maxTrajs) * 0.8, 0.7, 0.9)
             };
             
             tabBtn.states = [
-                ["Trajectory " ++ trajIndex, Color.black, Color.gray(0.9)],
-                ["Trajectory " ++ trajIndex, Color.white, trajColor]
+                ["Arc " ++ trajIndex, Color.black, Color.gray(0.9)],
+                ["Arc " ++ trajIndex, Color.white, trajColor]
             ];
             tabBtn.font = Font("Arial", 10, true);
             tabBtn.action = { |btn|
@@ -198,7 +198,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
 };
 
-// Create amplitude editor content for current trajectory
+// Create amplitude editor content for current arc
 ~nUPIC[\ui][\createAmplitudeEditorContent] = { |container, trajIndex|
     var ampView, overlayView, presetContainer, toolbarContainer, levelMeterContainer;
     var winWidth = container.bounds.width, winHeight = container.bounds.height;
@@ -214,7 +214,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Clear existing content
     container.children.do({ |child| child.remove });
     
-    // Get zoom values for current trajectory
+    // Get zoom values for current arc
     ampZoomMin = ~nUPIC[\ui][\ampEditorZooms][trajIndex][\ampZoomMin] ? 0;
     ampZoomMax = ~nUPIC[\ui][\ampEditorZooms][trajIndex][\ampZoomMax] ? 1;
     
@@ -230,10 +230,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     ampView.isFilled = true;
     ampView.elasticMode = true;
     
-    // Update amplitude envelope when multislider changes - ONLY for current trajectory
+    // Update amplitude envelope when multislider changes - ONLY for current arc
     ampView.action = { |view|
         var values = view.value;
-        var currentTraj = data[\trajectories][trajIndex];
+        var currentTraj = data[\arcs][trajIndex];
         var trajLen = if(currentTraj.size > 0) {
             var firstX = if(currentTraj[0].isKindOf(Event)) { currentTraj[0].x } { currentTraj[0].x };
             var lastX = if(currentTraj.last.isKindOf(Event)) { currentTraj.last.x } { currentTraj.last.x };
@@ -246,9 +246,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         var zoomStartX = ampZoomMin * trajLen;
         var zoomEndX = ampZoomMax * trajLen;
         
-        // Ensure we're only editing THIS trajectory's envelope
+        // Ensure we're only editing THIS arc's envelope
         if(trajIndex >= data[\amplitudeEnvelopes].size) {
-            ("WARNING: Trajectory index " ++ trajIndex ++ " out of range, ignoring edit").postln;
+            ("WARNING: Arc index " ++ trajIndex ++ " out of range, ignoring edit").postln;
             ^nil;
         };
         
@@ -261,7 +261,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
         };
         
-        // Add points from multislider values (zoomed portion) - ONLY for this trajectory
+        // Add points from multislider values (zoomed portion) - ONLY for this arc
         values.do { |amp, i|
             var normalizedPos = i / (values.size - 1);
             var zoomedPos = normalizedPos.linlin(0, 1, ampZoomMin, ampZoomMax);
@@ -287,10 +287,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
         };
         
-        // Update ONLY this trajectory's envelope
+        // Update ONLY this arc's envelope
         data[\amplitudeEnvelopes][trajIndex] = cleanEnv;
         
-        ("Updated amplitude envelope for trajectory " ++ trajIndex ++ " with " ++ cleanEnv.size ++ " points").postln;
+        ("Updated amplitude envelope for arc " ++ trajIndex ++ " with " ++ cleanEnv.size ++ " points").postln;
         
         // Don't update level meter during drawing - only during preview
         // The level meter will be updated only when preview is playing
@@ -303,16 +303,16 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     overlayView.acceptsMouse = false;
     
     overlayView.drawFunc = {
-        var traj = data[\trajectories][trajIndex];
-        var trajColor = if(colors.notNil and: { colors[\trajectory].notNil }) {
-            var maxTrajs = data[\trajectories].size.max(1);
-            colors[\trajectory].value(trajIndex, constants[\maxTrajectories] ? maxTrajs)
+        var traj = data[\arcs][trajIndex];
+        var trajColor = if(colors.notNil and: { colors[\arc].notNil }) {
+            var maxTrajs = data[\arcs].size.max(1);
+            colors[\arc].value(trajIndex, constants[\maxTrajectories] ? maxTrajs)
         } { 
-            var maxTrajs = data[\trajectories].size.max(1);
+            var maxTrajs = data[\arcs].size.max(1);
             Color.hsv((trajIndex / maxTrajs) * 0.8, 0.7, 0.9)
         };
         
-        // Draw trajectory shape as light background
+        // Draw arc shape as light background
         if(traj.notNil and: { traj.size > 1 }) {
             var trajFirstX = if(traj[0].isKindOf(Event)) { traj[0].x } { traj[0].x };
             var trajLastX = if(traj.last.isKindOf(Event)) { traj.last.x } { traj.last.x };
@@ -443,8 +443,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 ~nUPIC[\ui][\createAmplitudeToolbar] = { |container, trajIndex|
     var data = ~nUPIC[\data];
     var colors = ~nUPIC[\colors];
-    var trajColor = if(colors.notNil and: { colors[\trajectory].notNil }) {
-        colors[\trajectory].value(trajIndex, ~nUPIC[\constants][\maxTrajectories] ? 200)
+    var trajColor = if(colors.notNil and: { colors[\arc].notNil }) {
+        colors[\arc].value(trajIndex, ~nUPIC[\constants][\maxTrajectories] ? 200)
     } { Color.hsv((trajIndex / 200) * 0.8, 0.7, 0.9) };
     
     // Preview button
@@ -452,12 +452,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .states_([["_preview", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 9))
         .action_({
-            ~nUPIC[\ui][\previewTrajectoryAmplitude].value(trajIndex);
+            ~nUPIC[\ui][\previewArcAmplitude].value(trajIndex);
         });
 
-    // Trajectory info
+    // Arc info
     StaticText(container, Rect(70, 5, 150, 20))
-        .string_("Trajectory " ++ trajIndex)
+        .string_("Arc " ++ trajIndex)
         .font_(Font("Arial", 9))
         .stringColor_(Color.gray(0.3));
 
@@ -526,7 +526,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 ~nUPIC[\ui][\updateAmplitudeDisplay] = { |ampView, trajIndex|
     var data = ~nUPIC[\data];
     var ampEnv = data[\amplitudeEnvelopes][trajIndex];
-    var currentTraj = data[\trajectories][trajIndex];
+    var currentTraj = data[\arcs][trajIndex];
     var trajLen, ampZoomMin, ampZoomMax;
     
     if(ampEnv.isNil) { ^nil };
@@ -541,7 +541,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     } { 600 };
     
     if(ampEnv.size > 0) {
-        // Calculate dynamic resolution based on zoom level and trajectory length
+        // Calculate dynamic resolution based on zoom level and arc length
         var zoomRange = ampZoomMax - ampZoomMin;
         var baseResolution = 200;  // Base resolution for full view
         var maxResolution = 800;   // Maximum resolution when zoomed in
@@ -586,7 +586,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 // Helper functions for presets
 ~nUPIC[\ui][\applyAmplitudePreset] = { |trajIndex, preset|
     var data = ~nUPIC[\data];
-    var traj = data[\trajectories][trajIndex];
+    var traj = data[\arcs][trajIndex];
     var trajLen = if(traj.size > 0) {
         var firstX = if(traj[0].isKindOf(Event)) { traj[0].x } { traj[0].x };
         var lastX = if(traj.last.isKindOf(Event)) { traj.last.x } { traj.last.x };
@@ -626,14 +626,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         };
     };
     
-    ("Applied " ++ preset ++ " envelope to trajectory " ++ trajIndex).postln;
+    ("Applied " ++ preset ++ " envelope to arc " ++ trajIndex).postln;
     
     // Level meter will only animate during preview playback
 };
 
 // Update amplitude zoom
 ~nUPIC[\ui][\updateAmplitudeZoom] = { |trajIndex, zoomValue|
-    var zoomRange = 0.2 + (zoomValue * 0.6);  // Zoom range from 20% to 80% of trajectory
+    var zoomRange = 0.2 + (zoomValue * 0.6);  // Zoom range from 20% to 80% of arc
     var currentPan = ~nUPIC[\ui][\ampEditorZooms][trajIndex][\currentPan] ? 0;
     var maxPan = 1 - zoomRange;
     var zoomStart = (currentPan * maxPan).max(0).min(maxPan);
@@ -644,7 +644,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     ~nUPIC[\ui][\ampEditorZooms][trajIndex][\ampZoomMax] = zoomEnd;
     ~nUPIC[\ui][\ampEditorZooms][trajIndex][\zoomValue] = zoomValue;
     
-    // Refresh the current editor content if this is the active trajectory
+    // Refresh the current editor content if this is the active arc
     if(~nUPIC[\ui][\ampEditorContainer].notNil) {
         var currentTrajIndex = ~nUPIC[\ui][\ampEditorContainer].getProperty(\trajIndex);
         if(currentTrajIndex == trajIndex) {
@@ -659,44 +659,44 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         };
     };
     
-    ("Zoom updated for trajectory " ++ trajIndex ++ ": " ++ (zoomRange * 100).round(1) ++ "% range at " ++ (zoomStart * 100).round(1) ++ "%").postln;
+    ("Zoom updated for arc " ++ trajIndex ++ ": " ++ (zoomRange * 100).round(1) ++ "% range at " ++ (zoomStart * 100).round(1) ++ "%").postln;
 };
 
-// Apply current trajectory's amplitude to all selected trajectories
+// Apply current arc's amplitude to all selected trajectories
 ~nUPIC[\ui][\applyAmplitudeToSelected] = { |sourceTrajIndex|
     var data = ~nUPIC[\data];
     var sourceEnv = data[\amplitudeEnvelopes][sourceTrajIndex];
     
     if(sourceEnv.isNil) {
-        ("No amplitude envelope to copy from trajectory " ++ sourceTrajIndex).postln;
+        ("No amplitude envelope to copy from arc " ++ sourceTrajIndex).postln;
         ^nil;
     };
     
-    if(data[\selectedTrajectories].isNil or: { data[\selectedTrajectories].size == 0 }) {
+    if(data[\selectedArcs].isNil or: { data[\selectedArcs].size == 0 }) {
         "No trajectories selected. Use G key and click trajectories first.".postln;
         ^nil;
     };
     
-    data[\selectedTrajectories].do { |trajIndex|
+    data[\selectedArcs].do { |trajIndex|
         if(trajIndex != sourceTrajIndex) {
-            var targetTraj = data[\trajectories][trajIndex];
+            var targetTraj = data[\arcs][trajIndex];
             var targetLen = if(targetTraj.size > 0) {
                 var firstX = if(targetTraj[0].isKindOf(Event)) { targetTraj[0].x } { targetTraj[0].x };
                 var lastX = if(targetTraj.last.isKindOf(Event)) { targetTraj.last.x } { targetTraj.last.x };
                 lastX - firstX;
             } { 600 };
             
-            var sourceLen = if(data[\trajectories][sourceTrajIndex].size > 0) {
-                var firstX = if(data[\trajectories][sourceTrajIndex][0].isKindOf(Event)) {
-                    data[\trajectories][sourceTrajIndex][0].x
-                } { data[\trajectories][sourceTrajIndex][0].x };
-                var lastX = if(data[\trajectories][sourceTrajIndex].last.isKindOf(Event)) {
-                    data[\trajectories][sourceTrajIndex].last.x
-                } { data[\trajectories][sourceTrajIndex].last.x };
+            var sourceLen = if(data[\arcs][sourceTrajIndex].size > 0) {
+                var firstX = if(data[\arcs][sourceTrajIndex][0].isKindOf(Event)) {
+                    data[\arcs][sourceTrajIndex][0].x
+                } { data[\arcs][sourceTrajIndex][0].x };
+                var lastX = if(data[\arcs][sourceTrajIndex].last.isKindOf(Event)) {
+                    data[\arcs][sourceTrajIndex].last.x
+                } { data[\arcs][sourceTrajIndex].last.x };
                 lastX - firstX;
             } { 600 };
             
-            // Scale the envelope to fit the target trajectory
+            // Scale the envelope to fit the target arc
             var scaledEnv = sourceEnv.collect { |point|
                 var scaledX = point.x * (targetLen / sourceLen);
                 (x: scaledX, amp: point.amp)
@@ -711,14 +711,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         };
     };
     
-    ("Applied amplitude envelope from trajectory " ++ sourceTrajIndex ++ 
-     " to " ++ data[\selectedTrajectories].size ++ " selected trajectories").postln;
+    ("Applied amplitude envelope from arc " ++ sourceTrajIndex ++ 
+     " to " ++ data[\selectedArcs].size ++ " selected trajectories").postln;
 };
 
-// Clear amplitude envelope for a trajectory
+// Clear amplitude envelope for a arc
 ~nUPIC[\ui][\clearAmplitude] = { |trajIndex|
     var data = ~nUPIC[\data];
-    var traj = data[\trajectories][trajIndex];
+    var traj = data[\arcs][trajIndex];
     var trajLen = if(traj.size > 0) {
         var firstX = if(traj[0].isKindOf(Event)) { traj[0].x } { traj[0].x };
         var lastX = if(traj.last.isKindOf(Event)) { traj.last.x } { traj.last.x };
@@ -739,7 +739,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         };
     };
     
-    ("Cleared amplitude envelope for trajectory " ++ trajIndex).postln;
+    ("Cleared amplitude envelope for arc " ++ trajIndex).postln;
 };
 
 // Legacy compatibility - redirect old function to new system
@@ -750,8 +750,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 // Function to open amplitude editor for selected trajectories
 ~nUPIC[\ui][\openAmplitudeEditorForSelected] = {
     var data = ~nUPIC[\data];
-    if(data[\selectedTrajectories].notNil and: { data[\selectedTrajectories].size > 0 }) {
-        ~nUPIC[\ui][\createAmplitudeEditor].value(data[\selectedTrajectories].asArray);
+    if(data[\selectedArcs].notNil and: { data[\selectedArcs].size > 0 }) {
+        ~nUPIC[\ui][\createAmplitudeEditor].value(data[\selectedArcs].asArray);
         // Enable auto-update when opening amplitude editor
         ~nUPIC[\ui][\setupAmplitudeEditorAutoUpdate].value;
     } {
@@ -768,10 +768,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
 };
 
-// Automatic amplitude editor update on trajectory selection
+// Automatic amplitude editor update on arc selection
 ~nUPIC[\ui][\setupAmplitudeEditorAutoUpdate] = {
     // Set up callback for when trajectories are selected
-    ~nUPIC[\ui][\onTrajectorySelectionChanged] = {
+    ~nUPIC[\ui][\onArcSelectionChanged] = {
         var data = ~nUPIC[\data];
         
         // Only update if amplitude editor is open
@@ -779,11 +779,11 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             ~nUPIC[\ui][\ampEditorWindow].isClosed.not
         }) {
             // Check if we have selected trajectories
-            if(data[\selectedTrajectories].notNil and: {
-                data[\selectedTrajectories].size > 0
+            if(data[\selectedArcs].notNil and: {
+                data[\selectedArcs].size > 0
             }) {
                 // Update amplitude editor with current selection
-                var selectedArray = data[\selectedTrajectories].asArray.sort;
+                var selectedArray = data[\selectedArcs].asArray.sort;
                 
                 // Only update if selection actually changed
                 if(~nUPIC[\ui][\ampEditorCurrentTabs].asArray.sort != selectedArray) {
@@ -800,7 +800,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
 // Remove auto-update callback
 ~nUPIC[\ui][\removeAmplitudeEditorAutoUpdate] = {
-    ~nUPIC[\ui][\onTrajectorySelectionChanged] = nil;
+    ~nUPIC[\ui][\onArcSelectionChanged] = nil;
     "Amplitude editor auto-update disabled".postln;
 };
 
@@ -881,9 +881,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
         };
         
-        ("Undid amplitude edit for trajectory " ++ trajIndex).postln;
+        ("Undid amplitude edit for arc " ++ trajIndex).postln;
     } {
-        "No undo history for trajectory " ++ trajIndex;
+        "No undo history for arc " ++ trajIndex;
     };
 };
 
@@ -919,16 +919,16 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
         };
         
-        ("Redid amplitude edit for trajectory " ++ trajIndex).postln;
+        ("Redid amplitude edit for arc " ++ trajIndex).postln;
     } {
-        ("No redo history for trajectory " ++ trajIndex).postln;
+        ("No redo history for arc " ++ trajIndex).postln;
     };
 };
 
 // Enhanced presets with more sophisticated envelopes
 ~nUPIC[\ui][\applyAmplitudePreset] = { |trajIndex, preset|
     var data = ~nUPIC[\data];
-    var traj = data[\trajectories][trajIndex];
+    var traj = data[\arcs][trajIndex];
     var trajLen = if(traj.size > 0) {
         var firstX = if(traj[0].isKindOf(Event)) { traj[0].x } { traj[0].x };
         var lastX = if(traj.last.isKindOf(Event)) { traj.last.x } { traj.last.x };
@@ -989,7 +989,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         };
     };
     
-    ("Applied " ++ preset ++ " envelope to trajectory " ++ trajIndex).postln;
+    ("Applied " ++ preset ++ " envelope to arc " ++ trajIndex).postln;
 };
 
 // Normalize amplitude envelope
@@ -1014,7 +1014,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 };
             };
             
-            ("Normalized amplitude envelope for trajectory " ++ trajIndex).postln;
+            ("Normalized amplitude envelope for arc " ++ trajIndex).postln;
         };
     };
 };
@@ -1052,7 +1052,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
         };
         
-        ("Smoothed amplitude envelope for trajectory " ++ trajIndex).postln;
+        ("Smoothed amplitude envelope for arc " ++ trajIndex).postln;
     };
 };
 
@@ -1070,7 +1070,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         zoomSettings[\ampZoomMax] = newMax;
         zoomSettings[\currentPan] = panValue;
         
-        // Refresh display if this is the active trajectory
+        // Refresh display if this is the active arc
         if(~nUPIC[\ui][\ampEditorContainer].notNil) {
             var currentTrajIndex = ~nUPIC[\ui][\ampEditorContainer].getProperty(\trajIndex);
             if(currentTrajIndex == trajIndex) {
@@ -1085,7 +1085,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
         };
         
-        ("Position updated for trajectory " ++ trajIndex ++ ": " ++ (newMin * 100).round(1) ++ "% to " ++ (newMax * 100).round(1) ++ "%").postln;
+        ("Position updated for arc " ++ trajIndex ++ ": " ++ (newMin * 100).round(1) ++ "% to " ++ (newMax * 100).round(1) ++ "%").postln;
     };
 };
 
@@ -1111,11 +1111,11 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
     
     scaleType = if(useDbScale) { "dB" } { "linear" };
-    ("Switched to " ++ scaleType ++ " scale for trajectory " ++ trajIndex).postln;
+    ("Switched to " ++ scaleType ++ " scale for arc " ++ trajIndex).postln;
 };
 
-// Solo trajectory (mute all others during playback)
-~nUPIC[\ui][\soloTrajectory] = { |trajIndex, solo|
+// Solo arc (mute all others during playback)
+~nUPIC[\ui][\soloArc] = { |trajIndex, solo|
     var data, action;
     data = ~nUPIC[\data];
     if(data[\soloedTrajectories].isNil) {
@@ -1129,11 +1129,11 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
     
     action = if(solo) { "Soloed" } { "Unsoloed" };
-    (action ++ " trajectory " ++ trajIndex).postln;
+    (action ++ " arc " ++ trajIndex).postln;
 };
 
-// Mute trajectory
-~nUPIC[\ui][\muteTrajectory] = { |trajIndex, mute|
+// Mute arc
+~nUPIC[\ui][\muteArc] = { |trajIndex, mute|
     var data, action;
     data = ~nUPIC[\data];
     if(data[\mutedTrajectories].isNil) {
@@ -1147,19 +1147,19 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
     
     action = if(mute) { "Muted" } { "Unmuted" };
-    (action ++ " trajectory " ++ trajIndex).postln;
+    (action ++ " arc " ++ trajIndex).postln;
 };
 
-// Preview single trajectory using the main playback system for consistent timing
-~nUPIC[\ui][\previewTrajectoryAmplitude] = { |trajIndex|
+// Preview single arc using the main playback system for consistent timing
+~nUPIC[\ui][\previewArcAmplitude] = { |trajIndex|
     var data, traj, ampEnv, container, levelMeter;
     var constants, defaults, width, height, freqMin, freqMax;
     var trajFirstX, trajLastX, previewDuration, frameRate;
-    var mainPlayDuration, timeScaling, trajectoryWidthInPixels;
+    var mainPlayDuration, timeScaling, arcWidthInPixels;
     var synthDefName, firstPoint, startFreq, startPan, state, zoomFreqMax, zoomFreqMin;
     
     data = ~nUPIC[\data];
-    traj = data[\trajectories][trajIndex];
+    traj = data[\arcs][trajIndex];
     ampEnv = data[\amplitudeEnvelopes][trajIndex];
     container = ~nUPIC[\ui][\ampEditorContainer];
     constants = ~nUPIC[\constants];
@@ -1186,23 +1186,23 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         freqMax = constants[\freqMax] ? 7500;
         frameRate = constants[\frameRate] ? 30;
         
-        // Get trajectory time bounds
+        // Get arc time bounds
         trajFirstX = if(traj[0].isKindOf(Event)) { traj[0].x } { traj[0].x };
         trajLastX = if(traj.last.isKindOf(Event)) { traj.last.x } { traj.last.x };
         
         // Calculate preview duration using same time scaling as main system
         // Main system uses: timeScaling = playDuration / width
-        // We want to play just this trajectory's portion
+        // We want to play just this arc's portion
         mainPlayDuration = ~nUPIC[\ui][\state][\playDuration] ? defaults[\playDuration] ? 10;
         timeScaling = mainPlayDuration / width;
-        trajectoryWidthInPixels = trajLastX - trajFirstX;
-        previewDuration = (trajectoryWidthInPixels * timeScaling).min(4.0);
+        arcWidthInPixels = trajLastX - trajFirstX;
+        previewDuration = (arcWidthInPixels * timeScaling).min(4.0);
         
-        ("Previewing trajectory " ++ trajIndex ++ " (" ++ previewDuration.round(2) ++ "s) using main playback timing").postln;
+        ("Previewing arc " ++ trajIndex ++ " (" ++ previewDuration.round(2) ++ "s) using main playback timing").postln;
         
         // Create synth using same parameters as main system
-        synthDefName = if(data[\trajectorySynthDefs].notNil and: { trajIndex < data[\trajectorySynthDefs].size }) {
-            data[\trajectorySynthDefs][trajIndex]
+        synthDefName = if(data[\arcSynthDefs].notNil and: { trajIndex < data[\arcSynthDefs].size }) {
+            data[\arcSynthDefs][trajIndex]
         } {
             defaults[\defaultSynthDef] ? \upicWavetable
         };
@@ -1235,18 +1235,18 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var synthStarted = false;
             
             while { playbackPosition < previewDuration and: { ~nUPIC[\ui][\previewSynth].notNil } } {
-                var x = trajFirstX + (playbackPosition / previewDuration * trajectoryWidthInPixels);
+                var x = trajFirstX + (playbackPosition / previewDuration * arcWidthInPixels);
                 var point1, point2, interpFactor, foundPoints = false;
                 var freq, pan, velocity, amp;
                 var lastPoint = if(traj.last.isKindOf(Event)) { traj.last } { (x: traj.last.x, y: traj.last.y, freq: nil) };
                 
-                // Start synth when trajectory begins (same logic as main system)
+                // Start synth when arc begins (same logic as main system)
                 if(synthStarted.not and: { x >= trajFirstX }) {
                     synthStarted = true;
                     ~nUPIC[\ui][\previewSynth].set(\amp, 0.1);
                 };
                 
-                // Only process if within trajectory range
+                // Only process if within arc range
                 if(x >= trajFirstX and: { x <= trajLastX }) {
                     // Find interpolation points (same logic as main system)
                     block { |break|
@@ -1344,7 +1344,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             "Preview completed".postln;
         }.play;
     } {
-        ("No trajectory data for trajectory " ++ trajIndex).postln;
+        ("No arc data for arc " ++ trajIndex).postln;
     };
 };
 
@@ -1409,7 +1409,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
         };
         
-        ("Level meter updated for trajectory " ++ trajIndex ++ ": Peak = " ++ (maxAmp * 100).round(1) ++ "%").postln;
+        ("Level meter updated for arc " ++ trajIndex ++ ": Peak = " ++ (maxAmp * 100).round(1) ++ "%").postln;
     };
 };
 
@@ -1428,7 +1428,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
 // ===================== TRAJECTORY TRANSFORMATION SUPPORT =====================
 
-// Transform amplitude envelope when trajectory is moved in time
+// Transform amplitude envelope when arc is moved in time
 ~nUPIC[\ui][\transformAmplitudeEnvelopeTime] = { |trajIndex, deltaX|
     var data = ~nUPIC[\data];
     var ampEnv = data[\amplitudeEnvelopes][trajIndex];
@@ -1441,14 +1441,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         
         data[\amplitudeEnvelopes][trajIndex] = transformedEnv;
         
-        // Update display if amplitude editor is open for this trajectory
+        // Update display if amplitude editor is open for this arc
         ~nUPIC[\ui][\refreshAmplitudeEditorIfOpen].value(trajIndex);
         
-        ("Moved amplitude envelope for trajectory " ++ trajIndex ++ " by " ++ deltaX ++ " pixels").postln;
+        ("Moved amplitude envelope for arc " ++ trajIndex ++ " by " ++ deltaX ++ " pixels").postln;
     };
 };
 
-// Scale amplitude envelope when trajectory length changes
+// Scale amplitude envelope when arc length changes
 ~nUPIC[\ui][\scaleAmplitudeEnvelopeLength] = { |trajIndex, oldLength, newLength|
     var data = ~nUPIC[\data];
     var ampEnv = data[\amplitudeEnvelopes][trajIndex];
@@ -1463,24 +1463,24 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         
         data[\amplitudeEnvelopes][trajIndex] = scaledEnv;
         
-        // Update display if amplitude editor is open for this trajectory
+        // Update display if amplitude editor is open for this arc
         ~nUPIC[\ui][\refreshAmplitudeEditorIfOpen].value(trajIndex);
         
-        ("Scaled amplitude envelope for trajectory " ++ trajIndex ++ " by factor " ++ scaleFactor.round(0.01)).postln;
+        ("Scaled amplitude envelope for arc " ++ trajIndex ++ " by factor " ++ scaleFactor.round(0.01)).postln;
     };
 };
 
-// Remove amplitude envelope when trajectory is deleted
+// Remove amplitude envelope when arc is deleted
 ~nUPIC[\ui][\removeAmplitudeEnvelope] = { |trajIndex|
     var data = ~nUPIC[\data];
     
     if(data[\amplitudeEnvelopes].notNil and: { trajIndex < data[\amplitudeEnvelopes].size }) {
         data[\amplitudeEnvelopes][trajIndex] = nil;
-        ("Removed amplitude envelope for deleted trajectory " ++ trajIndex).postln;
+        ("Removed amplitude envelope for deleted arc " ++ trajIndex).postln;
     };
 };
 
-// Refresh amplitude editor if open for the given trajectory
+// Refresh amplitude editor if open for the given arc
 ~nUPIC[\ui][\refreshAmplitudeEditorIfOpen] = { |trajIndex|
     if(~nUPIC[\ui][\ampEditorWindow].notNil and: {
         ~nUPIC[\ui][\ampEditorWindow].isClosed.not

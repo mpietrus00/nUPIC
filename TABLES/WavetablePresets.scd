@@ -171,12 +171,12 @@
     ~nUPIC[\wavetablePresets][\wavFiles];
 };
 
-// Load wav to trajectory (async)
-~nUPIC[\wavetablePresets][\loadWavToTrajectory] = { |filename, trajectoryIndex|
+// Load wav to arc (async)
+~nUPIC[\wavetablePresets][\loadWavToTrajectory] = { |filename, arcIndex|
     ~nUPIC[\wavetablePresets][\getWavData].value(filename, { |data|
         if(data.notNil) {
-            ~nUPIC[\trajectories][\setWavetable].value(trajectoryIndex, data);
-            ("Loaded " ++ filename ++ " to trajectory " ++ trajectoryIndex).postln;
+            ~nUPIC[\arcs][\setWavetable].value(arcIndex, data);
+            ("Loaded " ++ filename ++ " to arc " ++ arcIndex).postln;
         };
     });
 };
@@ -226,20 +226,20 @@
     wavFiles ++ presets.collect(_.asString);
 };
 
-// Load any wavetable to trajectory (handles both wav and programmatic)
-~nUPIC[\wavetablePresets][\loadToTrajectory] = { |name, trajectoryIndex|
+// Load any wavetable to arc (handles both wav and programmatic)
+~nUPIC[\wavetablePresets][\loadToTrajectory] = { |name, arcIndex|
     var nameStr = name.asString;
     var wavFiles = ~nUPIC[\wavetablePresets][\wavFiles];
 
     if(wavFiles.includes(nameStr)) {
         // It's a wav file
-        ~nUPIC[\wavetablePresets][\loadWavToTrajectory].value(nameStr, trajectoryIndex);
+        ~nUPIC[\wavetablePresets][\loadWavToTrajectory].value(nameStr, arcIndex);
     } {
         // Try programmatic preset
         var data = ~nUPIC[\wavetablePresets][\get].value(name.asSymbol);
         if(data.notNil) {
-            ~nUPIC[\trajectories][\setWavetable].value(trajectoryIndex, data);
-            ("Loaded preset " ++ name ++ " to trajectory " ++ trajectoryIndex).postln;
+            ~nUPIC[\arcs][\setWavetable].value(arcIndex, data);
+            ("Loaded preset " ++ name ++ " to arc " ++ arcIndex).postln;
         } {
             ("Wavetable not found: " ++ name).warn;
         };

@@ -1,9 +1,9 @@
 // nUPIC Main Application
-// Modular trajectory synthesis system inspired by Xenakis' UPIC
+// Modular arc synthesis system inspired by Xenakis' UPIC
 // Version 2.0.0
 
 (
-"Loading nUPIC (nu-UPIC) Trajectory Synthesis System...".postln;
+"Loading nUPIC (nu-UPIC) Arc Synthesis System...".postln;
 "=================================================".postln;
 
 // Initialize nUPIC namespace
@@ -27,7 +27,7 @@ if(thisProcess.nowExecutingPath.notNil) {
         "Audio/SynthDefs.scd",
         "Audio/SynthDefs_8ch_envelope.scd",  // Envelope-based 8ch synthdefs
         "Audio/upicWavetable.scd",
-        "Core/TrajectoryData.scd",
+        "Core/ArcData.scd",
         "UI/IntuitiveZoomSystem.scd",
         "UI/MainWindow.scd",
         "UI/Drawing.scd",
@@ -107,42 +107,42 @@ if(thisProcess.nowExecutingPath.notNil) {
 
     // Wait for server if needed
     s.waitForBoot {
-        // Initialize trajectory data manager
-        // Check if trajectoryData was loaded properly
-        if(~nUPIC.notNil and: { ~nUPIC.includesKey(\trajectoryData) and: { ~nUPIC[\trajectoryData].notNil } }) {
-            if(~nUPIC[\trajectoryData].includesKey(\manager) and: { ~nUPIC[\trajectoryData][\manager].notNil }) {
-                ~nUPIC[\data] = ~nUPIC[\trajectoryData][\manager];
-                "✓ TrajectoryData manager loaded".postln;
+        // Initialize arc data manager
+        // Check if arcData was loaded properly
+        if(~nUPIC.notNil and: { ~nUPIC.includesKey(\arcData) and: { ~nUPIC[\arcData].notNil } }) {
+            if(~nUPIC[\arcData].includesKey(\manager) and: { ~nUPIC[\arcData][\manager].notNil }) {
+                ~nUPIC[\data] = ~nUPIC[\arcData][\manager];
+                "✓ ArcData manager loaded".postln;
             } {
-                "ERROR: TrajectoryData manager not found".postln;
-                "~nUPIC.trajectoryData keys: %".format(~nUPIC[\trajectoryData].keys.asArray).postln;
+                "ERROR: ArcData manager not found".postln;
+                "~nUPIC.arcData keys: %".format(~nUPIC[\arcData].keys.asArray).postln;
 
                 // Create an empty manager as fallback
                 ~nUPIC[\data] = IdentityDictionary.new;
                 "✓ Created empty data manager as fallback".postln;
             };
         } {
-            "ERROR: trajectoryData not loaded properly".postln;
+            "ERROR: arcData not loaded properly".postln;
             "Available nUPIC keys: %".format(~nUPIC.keys.asArray).postln;
 
             // Initialize empty structures as fallback
-            ~nUPIC[\trajectoryData] = IdentityDictionary.new;
+            ~nUPIC[\arcData] = IdentityDictionary.new;
             ~nUPIC[\data] = IdentityDictionary.new;
             "✓ Created empty data structures as fallback".postln;
         };
 
         // Ensure basic data arrays exist for GUI compatibility
-        if(~nUPIC[\data][\trajectories].isNil) {
-            ~nUPIC[\data][\trajectories] = List.new;
+        if(~nUPIC[\data][\arcs].isNil) {
+            ~nUPIC[\data][\arcs] = List.new;
         };
         if(~nUPIC[\data][\amplitudeEnvelopes].isNil) {
             ~nUPIC[\data][\amplitudeEnvelopes] = List.new;
         };
-        if(~nUPIC[\data][\trajectorySynthDefs].isNil) {
-            ~nUPIC[\data][\trajectorySynthDefs] = List.new;
+        if(~nUPIC[\data][\arcSynthDefs].isNil) {
+            ~nUPIC[\data][\arcSynthDefs] = List.new;
         };
-        if(~nUPIC[\data][\selectedTrajectories].isNil) {
-            ~nUPIC[\data][\selectedTrajectories] = Set.new;
+        if(~nUPIC[\data][\selectedArcs].isNil) {
+            ~nUPIC[\data][\selectedArcs] = Set.new;
         };
 
         "=================================================".postln;
@@ -150,7 +150,7 @@ if(thisProcess.nowExecutingPath.notNil) {
             ~nUPIC[\constants][\version] ? "2.0.0"
         } { "2.0.0" };
         ("nUPIC " ++ ~version ++ " initialization complete!").postln;
-        "Ready to create trajectory-based compositions.".postln;
+        "Ready to create arc-based compositions.".postln;
         "=================================================".postln;
 
         // Launch the main interface
@@ -171,7 +171,7 @@ if(thisProcess.nowExecutingPath.notNil) {
 
         // Show available functions
         "Available nUPIC functions:".postln;
-        "~nUPIC.data - Trajectory data manager".postln;
+        "~nUPIC.data - Arc data manager".postln;
         "~nUPIC.constants - System constants".postln;
         "~nUPIC.colors - Color palette".postln;
         "~nUPIC.defaults - Default settings".postln;
@@ -179,20 +179,20 @@ if(thisProcess.nowExecutingPath.notNil) {
         "~nUPIC.amplitudePresets - Amplitude envelope presets".postln;
         "".postln;
         "Data manager functions:".postln;
-        "~nUPIC.data.addTrajectory(trajectory, synthDef, ampEnv)".postln;
-        "~nUPIC.data.selectTrajectory(index)".postln;
+        "~nUPIC.data.addArc(arc, synthDef, ampEnv)".postln;
+        "~nUPIC.data.selectArc(index)".postln;
         "~nUPIC.data.copy() / ~nUPIC.data.paste()".postln;
         "~nUPIC.data.undo() / ~nUPIC.data.redo()".postln;
         "~nUPIC.data.getStats()".postln;
         "".postln;
         "Example usage:".postln;
-        "// Create a simple trajectory".postln;
+        "// Create a simple arc".postln;
         "~traj = List[".postln;
         "    (x: 100, y: 400, freq: 440),".postln;
         "    (x: 200, y: 300, freq: 880),".postln;
         "    (x: 300, y: 200, freq: 1320)".postln;
         "];".postln;
-        "~nUPIC.data.addTrajectory(~traj);".postln;
+        "~nUPIC.data.addArc(~traj);".postln;
         "~nUPIC.data.getStats();".postln;
     };
 };

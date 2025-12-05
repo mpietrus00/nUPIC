@@ -1,17 +1,17 @@
-// nUPIC Trajectory Data Management
-// Handles trajectory storage, manipulation, and validation
-// Includes amplitude envelopes and spatial envelopes per trajectory
+// nUPIC Arc Data Management
+// Handles arc storage, manipulation, and validation
+// Includes amplitude envelopes and spatial envelopes per arc
 
 (
-// Initialize trajectory data management
+// Initialize arc data management
 // Ensure nUPIC namespace exists
 if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
-~nUPIC[\trajectoryData] = IdentityDictionary.new;
+~nUPIC[\arcData] = IdentityDictionary.new;
 
-// Trajectory data structure
-~nUPIC[\trajectoryData][\manager] = {
-    var trajectories, amplitudeEnvelopes, spatialEnvelopes, trajectorySynthDefs;
-    var wavetables, wavetableBuffers;  // Per-trajectory wavetable data and server buffers
+// Arc data structure
+~nUPIC[\arcData][\manager] = {
+    var trajectories, amplitudeEnvelopes, spatialEnvelopes, arcSynthDefs;
+    var wavetables, wavetableBuffers;  // Per-arc wavetable data and server buffers
     var selectedTrajectories, copiedTrajectories;
     var undoStack, redoStack;
     var maxSynths, maxUndoSteps, maxChannels;
@@ -21,10 +21,10 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     // Initialize with safe defaults (will be updated when constants are available)
     trajectories = List.new;
     amplitudeEnvelopes = List.new;
-    spatialEnvelopes = List.new;  // Spatial envelope per trajectory: List of (x: time, channel: 0-maxChannels)
-    trajectorySynthDefs = List.new;
-    wavetables = List.new;  // Per-trajectory wavetable data (Array of 2048 floats)
-    wavetableBuffers = List.new;  // Per-trajectory Buffer references
+    spatialEnvelopes = List.new;  // Spatial envelope per arc: List of (x: time, channel: 0-maxChannels)
+    arcSynthDefs = List.new;
+    wavetables = List.new;  // Per-arc wavetable data (Array of 2048 floats)
+    wavetableBuffers = List.new;  // Per-arc Buffer references
     selectedTrajectories = Set.new;
     copiedTrajectories = List.new;
     undoStack = List.new;
@@ -44,7 +44,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         trajectories: trajectories,
         amplitudeEnvelopes: amplitudeEnvelopes,
         spatialEnvelopes: spatialEnvelopes,
-        trajectorySynthDefs: trajectorySynthDefs,
+        arcSynthDefs: arcSynthDefs,
         wavetables: wavetables,
         wavetableBuffers: wavetableBuffers,
         selectedTrajectories: selectedTrajectories,
@@ -53,13 +53,13 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         numWavetableSamples: numWavetableSamples,
         defaultWavetable: defaultWavetable,
 
-        // Trajectory management
-        addTrajectory: { |trajectory, synthDef = nil, amplitudeEnv = nil, spatialEnv = nil, wavetableData = nil|
+        // Arc management
+        addArc: { |arc, synthDef = nil, amplitudeEnv = nil, spatialEnv = nil, wavetableData = nil|
             var actualSynthDef = synthDef ?? { \upicWavetable };  // Safe default - mono wavetable
             var actualWavetable = wavetableData ?? { defaultWavetable.copy };
             var newBuffer;
 
-            // Check if we need to remove old trajectory
+            // Check if we need to remove old arc
             if(trajectories.size >= maxSynths) {
                 // Free the oldest buffer before removing
                 if(wavetableBuffers[0].notNil) {
@@ -68,19 +68,19 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 trajectories.removeAt(0);
                 amplitudeEnvelopes.removeAt(0);
                 spatialEnvelopes.removeAt(0);
-                trajectorySynthDefs.removeAt(0);
+                arcSynthDefs.removeAt(0);
                 wavetables.removeAt(0);
                 wavetableBuffers.removeAt(0);
             };
 
-            // Add new trajectory
-            trajectories.add(trajectory);
+            // Add new arc
+            trajectories.add(arc);
             amplitudeEnvelopes.add(amplitudeEnv);
             spatialEnvelopes.add(spatialEnv);  // nil = default center position
-            trajectorySynthDefs.add(actualSynthDef);
+            arcSynthDefs.add(actualSynthDef);
             wavetables.add(actualWavetable);
 
-            // Create server buffer for this trajectory's wavetable
+            // Create server buffer for this arc's wavetable
             if(Server.default.serverRunning) {
                 newBuffer = Buffer.loadCollection(Server.default, actualWavetable);
                 wavetableBuffers.add(newBuffer);
@@ -88,11 +88,11 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 wavetableBuffers.add(nil);  // Will be created when server starts
             };
 
-            // Return index of added trajectory
+            // Return index of added arc
             trajectories.size - 1;
         },
 
-        removeTrajectory: { |index|
+        removeArc: { |index|
             if(index >= 0 and: { index < trajectories.size }) {
                 var newSelected;
 
@@ -104,7 +104,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 trajectories.removeAt(index);
                 amplitudeEnvelopes.removeAt(index);
                 spatialEnvelopes.removeAt(index);
-                trajectorySynthDefs.removeAt(index);
+                arcSynthDefs.removeAt(index);
                 wavetables.removeAt(index);
                 wavetableBuffers.removeAt(index);
                 selectedTrajectories.remove(index);
@@ -131,7 +131,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             trajectories.clear;
             amplitudeEnvelopes.clear;
             spatialEnvelopes.clear;
-            trajectorySynthDefs.clear;
+            arcSynthDefs.clear;
             wavetables.clear;
             wavetableBuffers.clear;
             selectedTrajectories.clear;
@@ -141,13 +141,13 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         },
         
         // Selection management
-        selectTrajectory: { |index|
+        selectArc: { |index|
             if(index >= 0 and: { index < trajectories.size }) {
                 selectedTrajectories.add(index);
             };
         },
         
-        deselectTrajectory: { |index|
+        deselectArc: { |index|
             selectedTrajectories.remove(index);
         },
         
@@ -174,14 +174,14 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             selectedTrajectories.do { |i|
                 if(i < trajectories.size) {
                     copiedTrajectories.add((
-                        trajectory: trajectories[i].deepCopy,
+                        arc: trajectories[i].deepCopy,
                         amplitude: if(amplitudeEnvelopes[i].notNil) {
                             amplitudeEnvelopes[i].deepCopy
                         } { nil },
                         spatial: if(spatialEnvelopes[i].notNil) {
                             spatialEnvelopes[i].deepCopy
                         } { nil },
-                        synthDef: trajectorySynthDefs[i],
+                        synthDef: arcSynthDefs[i],
                         wavetable: if(wavetables[i].notNil) {
                             wavetables[i].copy
                         } { nil }
@@ -195,7 +195,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             var pastedIndices = [];
 
             copiedTrajectories.do { |item, idx|
-                var newTraj = item.trajectory.collect { |point|
+                var newTraj = item.arc.collect { |point|
                     if(point.isKindOf(Event)) {
                         (
                             x: point.x + offsetX,
@@ -226,7 +226,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                     item.wavetable.copy
                 } { nil };
 
-                var newIndex = this.addTrajectory(newTraj, item.synthDef, newAmp, newSpatial, newWavetable);
+                var newIndex = this.addArc(newTraj, item.synthDef, newAmp, newSpatial, newWavetable);
                 pastedIndices = pastedIndices.add(newIndex);
             };
 
@@ -243,7 +243,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 trajectories: trajectories.deepCopy,
                 amplitudeEnvelopes: amplitudeEnvelopes.deepCopy,
                 spatialEnvelopes: spatialEnvelopes.deepCopy,
-                trajectorySynthDefs: trajectorySynthDefs.deepCopy,
+                arcSynthDefs: arcSynthDefs.deepCopy,
                 selectedTrajectories: selectedTrajectories.copy
             );
 
@@ -262,7 +262,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                     trajectories: trajectories.deepCopy,
                     amplitudeEnvelopes: amplitudeEnvelopes.deepCopy,
                     spatialEnvelopes: spatialEnvelopes.deepCopy,
-                    trajectorySynthDefs: trajectorySynthDefs.deepCopy,
+                    arcSynthDefs: arcSynthDefs.deepCopy,
                     selectedTrajectories: selectedTrajectories.copy
                 );
 
@@ -272,7 +272,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 trajectories = previousState.trajectories;
                 amplitudeEnvelopes = previousState.amplitudeEnvelopes;
                 spatialEnvelopes = previousState.spatialEnvelopes;
-                trajectorySynthDefs = previousState.trajectorySynthDefs;
+                arcSynthDefs = previousState.arcSynthDefs;
                 selectedTrajectories = previousState.selectedTrajectories;
 
                 true; // Successfully undone
@@ -289,7 +289,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                     trajectories: trajectories.deepCopy,
                     amplitudeEnvelopes: amplitudeEnvelopes.deepCopy,
                     spatialEnvelopes: spatialEnvelopes.deepCopy,
-                    trajectorySynthDefs: trajectorySynthDefs.deepCopy,
+                    arcSynthDefs: arcSynthDefs.deepCopy,
                     selectedTrajectories: selectedTrajectories.copy
                 );
 
@@ -299,7 +299,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 trajectories = nextState.trajectories;
                 amplitudeEnvelopes = nextState.amplitudeEnvelopes;
                 spatialEnvelopes = nextState.spatialEnvelopes;
-                trajectorySynthDefs = nextState.trajectorySynthDefs;
+                arcSynthDefs = nextState.arcSynthDefs;
                 selectedTrajectories = nextState.selectedTrajectories;
 
                 true; // Successfully redone
@@ -309,7 +309,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         },
         
         // Validation
-        validateTrajectory: { |traj|
+        validateArc: { |traj|
             traj.isKindOf(List) and: { 
                 traj.size > 1 and: { 
                     traj.every { |point| 
@@ -374,7 +374,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         
         isEmpty: { trajectories.size == 0 },
         
-        getTrajectory: { |index|
+        getArc: { |index|
             if(index >= 0 and: { index < trajectories.size }) {
                 trajectories[index]
             } { nil };
@@ -394,7 +394,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
         // Spatial envelope management
         // Envelope format: List of (x: timePosition, channel: channelValue)
-        // x = time position along trajectory (in pixels/time units)
+        // x = time position along arc (in pixels/time units)
         // channel = 0 to maxChannels (e.g., 0-11 for 12-channel)
         getSpatialEnvelope: { |index|
             if(index >= 0 and: { index < spatialEnvelopes.size }) {
@@ -409,7 +409,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         },
 
         // Wavetable management
-        // Each trajectory has its own wavetable (512 samples, -1 to 1)
+        // Each arc has its own wavetable (512 samples, -1 to 1)
         getWavetable: { |index|
             if(index >= 0 and: { index < wavetables.size }) {
                 wavetables[index]
@@ -444,7 +444,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             };
         },
 
-        // Create default spatial envelope (center position for full trajectory length)
+        // Create default spatial envelope (center position for full arc length)
         createDefaultSpatialEnvelope: { |index, numChannels = 8|
             if(index >= 0 and: { index < trajectories.size }) {
                 var traj = trajectories[index];
@@ -513,14 +513,14 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         },
 
         getSynthDef: { |index|
-            if(index >= 0 and: { index < trajectorySynthDefs.size }) {
-                trajectorySynthDefs[index]
+            if(index >= 0 and: { index < arcSynthDefs.size }) {
+                arcSynthDefs[index]
             } { \upicWavetable };  // Safe default - mono wavetable
         },
 
         setSynthDef: { |index, synthDef|
-            if(index >= 0 and: { index < trajectorySynthDefs.size }) {
-                trajectorySynthDefs[index] = synthDef;
+            if(index >= 0 and: { index < arcSynthDefs.size }) {
+                arcSynthDefs[index] = synthDef;
             };
         },
 
@@ -544,5 +544,5 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     )
 }.value;
 
-"nUPIC trajectory data management loaded (with spatial envelopes)".postln;
+"nUPIC arc data management loaded (with spatial envelopes)".postln;
 )

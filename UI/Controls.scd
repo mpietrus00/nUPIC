@@ -71,7 +71,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
     // Duration status
     StaticText(window, Rect(230, yStart, 300, 20))
-        .string_("(Range: 0.1-240 seconds, controls total playback time for entire trajectory drawing)")
+        .string_("(Range: 0.1-240 seconds, controls total playback time for entire arc drawing)")
         .stringColor_(Color.gray(0.6))
         .font_(Font("Arial", 10));
 
@@ -362,8 +362,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .action_({ |btn|
             state[\eraseMode] = btn.value == 1;
             if(state[\eraseMode]) {
-                if(data.notNil and: { data[\selectedTrajectories].notNil }) {
-                    data[\selectedTrajectories].clear;  // Clear selections when entering erase mode
+                if(data.notNil and: { data[\selectedArcs].notNil }) {
+                    data[\selectedArcs].clear;  // Clear selections when entering erase mode
                 };
                 state[\selectMode] = false;  // Turn off select mode when entering erase mode
                 ~nUPIC[\ui][\refreshDisplay].value;
@@ -387,9 +387,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 if(eraseModeButton.notNil) { eraseModeButton.value = 0 };
                 "Select mode ON - click trajectories to select".postln;
             } {
-                // Clear trajectory selections when switching to draw mode
-                if(data.notNil and: { data[\selectedTrajectories].notNil }) {
-                    data[\selectedTrajectories].clear;
+                // Clear arc selections when switching to draw mode
+                if(data.notNil and: { data[\selectedArcs].notNil }) {
+                    data[\selectedArcs].clear;
                     ~nUPIC[\ui][\refreshDisplay].value;
                 };
                 "Select mode OFF - draw mode active (selections cleared)".postln;
@@ -450,12 +450,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .states_([["Clear All", Color.white, Color.red.alpha_(0.8)]])
         .action_({
             if(data.notNil) {
-                if(data[\trajectories].notNil) { data[\trajectories].clear };
+                if(data[\arcs].notNil) { data[\arcs].clear };
                 if(data[\amplitudeEnvelopes].notNil) { data[\amplitudeEnvelopes].clear };
-                if(data[\trajectorySynthDefs].notNil) { data[\trajectorySynthDefs].clear };
-                if(data[\selectedTrajectories].notNil) { data[\selectedTrajectories].clear };
+                if(data[\arcSynthDefs].notNil) { data[\arcSynthDefs].clear };
+                if(data[\selectedArcs].notNil) { data[\selectedArcs].clear };
             };
-            state[\currentTrajectory] = nil;
+            state[\currentArc] = nil;
             
             // Stop any playing synths
             if(state[\synths].notNil) {
@@ -476,7 +476,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             "Edit Amplitudes button clicked".postln;
             
             // Check for selected trajectories and open amplitude editor
-            if(data[\selectedTrajectories].notNil and: { data[\selectedTrajectories].size > 0 }) {
+            if(data[\selectedArcs].notNil and: { data[\selectedArcs].size > 0 }) {
                 // Try to load AmplitudeEditor if not loaded
                 if(~nUPIC[\ui][\openAmplitudeEditorForSelected].isNil) {
                     "Loading AmplitudeEditor module...".postln;
@@ -503,7 +503,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     
                     // Create the amplitude editor functions directly as a fallback
                     ~nUPIC[\ui][\openAmplitudeEditorForSelected] = {
-                        var selectedTrajs = data[\selectedTrajectories];
+                        var selectedTrajs = data[\selectedArcs];
                         if(selectedTrajs.notNil and: { selectedTrajs.size > 0 }) {
                             var selectedArray = selectedTrajs.asArray.sort;
                             ("Creating basic amplitude editor for trajectories: " ++ selectedArray).postln;
@@ -516,19 +516,19 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                     var drawHeight = 350, controlHeight = 150;
                                     var isDrawing = false, currentTraj = 0;
                                     var currentEnvelope = List.new;
-                                    var trajectoryLength, trajectoryStart;
+                                    var arcLength, arcStart;
                                     
-                                    // Get trajectory info for the first selected trajectory
+                                    // Get arc info for the first selected arc
                                     var firstTraj = if(trajIndices.size > 0) {
-                                        data[\trajectories][trajIndices[0]]
+                                        data[\arcs][trajIndices[0]]
                                     } { nil };
                                     
                                     if(firstTraj.notNil and: { firstTraj.size > 0 }) {
-                                        trajectoryStart = firstTraj[0].x ? firstTraj[0].x ? 0;
-                                        trajectoryLength = (firstTraj.last.x ? firstTraj.last.x ? 600) - trajectoryStart;
+                                        arcStart = firstTraj[0].x ? firstTraj[0].x ? 0;
+                                        arcLength = (firstTraj.last.x ? firstTraj.last.x ? 600) - arcStart;
                                     } {
-                                        trajectoryStart = 0;
-                                        trajectoryLength = 600;
+                                        arcStart = 0;
+                                        arcLength = 600;
                                     };
                                     
                                     // Create window
@@ -561,7 +561,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                         if(data[\amplitudeEnvelopes][trajIdx].isNil) {
                                             data[\amplitudeEnvelopes][trajIdx] = List[
                                                 (x: 0, amp: 0.5),
-                                                (x: trajectoryLength, amp: 0.5)
+                                                (x: arcLength, amp: 0.5)
                                             ];
                                         };
                                     };
@@ -604,7 +604,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                             Pen.stroke;
                                             
                                             // Time labels
-                                            timePos = ((i + 1) / 11) * trajectoryLength;
+                                            timePos = ((i + 1) / 11) * arcLength;
                                             Pen.fillColor = Color.black;
                                             Pen.stringAtPoint(timePos.round(1).asString, 
                                                 Point(x - 15, drawHeight - 15), Font("Arial", 9));
@@ -620,7 +620,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                             Pen.moveTo(Point(0, drawHeight)); // Start at bottom left
                                             
                                             envelope.do { |point, i|
-                                                var screenX = (point.x / trajectoryLength) * winWidth;
+                                                var screenX = (point.x / arcLength) * winWidth;
                                                 var screenY = drawHeight - (point.amp * drawHeight);
                                                 Pen.lineTo(Point(screenX, screenY));
                                             };
@@ -634,7 +634,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                             Pen.strokeColor = Color.red;
                                             Pen.width = 3;
                                             envelope.do { |point, i|
-                                                var screenX = (point.x / trajectoryLength) * winWidth;
+                                                var screenX = (point.x / arcLength) * winWidth;
                                                 var screenY = drawHeight - (point.amp * drawHeight);
                                                 if(i == 0) {
                                                     Pen.moveTo(Point(screenX, screenY));
@@ -647,7 +647,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                             // Draw control points
                                             Pen.fillColor = Color.blue;
                                             envelope.do { |point|
-                                                var screenX = (point.x / trajectoryLength) * winWidth;
+                                                var screenX = (point.x / arcLength) * winWidth;
                                                 var screenY = drawHeight - (point.amp * drawHeight);
                                                 Pen.fillOval(Rect(screenX - 4, screenY - 4, 8, 8));
                                             };
@@ -655,7 +655,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                         
                                         // Draw instructions
                                         Pen.fillColor = Color.black;
-                                        Pen.stringAtPoint("Click and drag to draw amplitude envelope. Trajectory " ++ currentTrajIdx ++ " (" ++ (currentTraj + 1) ++ " of " ++ trajIndices.size ++ ")", 
+                                        Pen.stringAtPoint("Click and drag to draw amplitude envelope. Arc " ++ currentTrajIdx ++ " (" ++ (currentTraj + 1) ++ " of " ++ trajIndices.size ++ ")", 
                                             Point(10, 5), Font("Arial", 12));
                                     };
                                     
@@ -670,7 +670,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                         currentEnvelope = List.new;
                                         
                                         // Add first point
-                                        timePos = (x / winWidth) * trajectoryLength;
+                                        timePos = (x / winWidth) * arcLength;
                                         ampValue = (drawHeight - y) / drawHeight;
                                         currentEnvelope.add((x: timePos, amp: ampValue.clip(0, 1)));
                                         
@@ -681,12 +681,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                         var timePos, ampValue;
                                         
                                         if(isDrawing) {
-                                            timePos = (x / winWidth) * trajectoryLength;
+                                            timePos = (x / winWidth) * arcLength;
                                             ampValue = (drawHeight - y) / drawHeight;
                                             
                                             // Add point if it's far enough from the last one
                                             if(currentEnvelope.size == 0 or: {
-                                                (timePos - currentEnvelope.last.x).abs > (trajectoryLength / 100)
+                                                (timePos - currentEnvelope.last.x).abs > (arcLength / 100)
                                             }) {
                                                 currentEnvelope.add((x: timePos, amp: ampValue.clip(0, 1)));
                                                 view.refresh;
@@ -701,13 +701,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                             isDrawing = false;
                                             currentTrajIdx = trajIndices[currentTraj];
                                             
-                                            // Ensure envelope starts at 0 and ends at trajectory length
+                                            // Ensure envelope starts at 0 and ends at arc length
                                             if(currentEnvelope.size > 0) {
                                                 if(currentEnvelope[0].x > 0) {
                                                     currentEnvelope = List[(x: 0, amp: currentEnvelope[0].amp)] ++ currentEnvelope;
                                                 };
-                                                if(currentEnvelope.last.x < trajectoryLength) {
-                                                    currentEnvelope.add((x: trajectoryLength, amp: currentEnvelope.last.amp));
+                                                if(currentEnvelope.last.x < arcLength) {
+                                                    currentEnvelope.add((x: arcLength, amp: currentEnvelope.last.amp));
                                                 };
                                                 
                                                 // Sort by x position
@@ -716,7 +716,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                                 // Store the envelope
                                                 data[\amplitudeEnvelopes][currentTrajIdx] = currentEnvelope;
                                                 
-                                                ("Amplitude envelope drawn for trajectory " ++ currentTrajIdx).postln;
+                                                ("Amplitude envelope drawn for arc " ++ currentTrajIdx).postln;
                                             };
                                             
                                             view.refresh;
@@ -728,14 +728,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                         Rect(0, drawHeight, winWidth, controlHeight));
                                     controlView.background = Color.gray(0.9);
                                     
-                                    // Trajectory selector (if multiple trajectories)
+                                    // Arc selector (if multiple trajectories)
                                     if(trajIndices.size > 1) {
                                         StaticText(controlView, Rect(10, 10, 100, 20))
-                                            .string_("Trajectory:")
+                                            .string_("Arc:")
                                             .font_(Font("Arial", 12));
                                         
                                         PopUpMenu(controlView, Rect(110, 10, 150, 25))
-                                            .items_(trajIndices.collect({ |idx| "Trajectory " ++ idx }))
+                                            .items_(trajIndices.collect({ |idx| "Arc " ++ idx }))
                                             .value_(0)
                                             .action_({ |menu|
                                                 currentTraj = menu.value;
@@ -751,7 +751,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                             var currentTrajIdx = trajIndices[currentTraj];
                                             data[\amplitudeEnvelopes][currentTrajIdx] = List[
                                                 (x: 0, amp: 0),
-                                                (x: trajectoryLength, amp: 1)
+                                                (x: arcLength, amp: 1)
                                             ];
                                             drawView.refresh;
                                         });
@@ -762,7 +762,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                             var currentTrajIdx = trajIndices[currentTraj];
                                             data[\amplitudeEnvelopes][currentTrajIdx] = List[
                                                 (x: 0, amp: 1),
-                                                (x: trajectoryLength, amp: 0)
+                                                (x: arcLength, amp: 0)
                                             ];
                                             drawView.refresh;
                                         });
@@ -773,7 +773,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                             var currentTrajIdx = trajIndices[currentTraj];
                                             data[\amplitudeEnvelopes][currentTrajIdx] = List[
                                                 (x: 0, amp: 0.7),
-                                                (x: trajectoryLength, amp: 0.7)
+                                                (x: arcLength, amp: 0.7)
                                             ];
                                             drawView.refresh;
                                         });
@@ -784,7 +784,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                             var currentTrajIdx = trajIndices[currentTraj];
                                             data[\amplitudeEnvelopes][currentTrajIdx] = List[
                                                 (x: 0, amp: 0),
-                                                (x: trajectoryLength, amp: 0)
+                                                (x: arcLength, amp: 0)
                                             ];
                                             drawView.refresh;
                                         });
@@ -871,19 +871,19 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 ~nUPIC_SynthDefs[\available]
             } { [\upicWavetable] };
             var selectedSynth = synthDefNames[menu.value];
-            if(data.notNil and: { data[\selectedTrajectories].notNil } and: {
-                data[\selectedTrajectories].size > 0
+            if(data.notNil and: { data[\selectedArcs].notNil } and: {
+                data[\selectedArcs].size > 0
             }) {
-                if(data[\trajectorySynthDefs].isNil) {
-                    data[\trajectorySynthDefs] = List.new;
+                if(data[\arcSynthDefs].isNil) {
+                    data[\arcSynthDefs] = List.new;
                 };
-                data[\selectedTrajectories].do { |idx|
+                data[\selectedArcs].do { |idx|
                     // Expand list if needed
-                    while { idx >= data[\trajectorySynthDefs].size } {
-                        data[\trajectorySynthDefs].add(nil);
+                    while { idx >= data[\arcSynthDefs].size } {
+                        data[\arcSynthDefs].add(nil);
                     };
-                    data[\trajectorySynthDefs][idx] = selectedSynth;
-                    ("Trajectory " ++ idx ++ " set to use " ++ selectedSynth).postln;
+                    data[\arcSynthDefs][idx] = selectedSynth;
+                    ("Arc " ++ idx ++ " set to use " ++ selectedSynth).postln;
                     // Refresh spatial editor if open
                     if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
                         ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
@@ -945,12 +945,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         // C - clear all
         { char == $c } {
             if(data.notNil) {
-                if(data[\trajectories].notNil) { data[\trajectories].clear };
+                if(data[\arcs].notNil) { data[\arcs].clear };
                 if(data[\amplitudeEnvelopes].notNil) { data[\amplitudeEnvelopes].clear };
-                if(data[\trajectorySynthDefs].notNil) { data[\trajectorySynthDefs].clear };
-                if(data[\selectedTrajectories].notNil) { data[\selectedTrajectories].clear };
+                if(data[\arcSynthDefs].notNil) { data[\arcSynthDefs].clear };
+                if(data[\selectedArcs].notNil) { data[\selectedArcs].clear };
             };
-            state[\currentTrajectory] = nil;
+            state[\currentArc] = nil;
             ~nUPIC[\ui][\refreshDisplay].value;
             "All trajectories cleared".postln;
         }
@@ -972,9 +972,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 };
                 "Select mode ON - click trajectories to select".postln;
             } {
-                // Clear trajectory selections when switching to draw mode
-                if(data.notNil and: { data[\selectedTrajectories].notNil }) {
-                    data[\selectedTrajectories].clear;
+                // Clear arc selections when switching to draw mode
+                if(data.notNil and: { data[\selectedArcs].notNil }) {
+                    data[\selectedArcs].clear;
                     ~nUPIC[\ui][\refreshDisplay].value;
                 };
                 "Select mode OFF - draw mode active (selections cleared)".postln;
@@ -1133,10 +1133,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     helpWindow.background = Color.white;
     
     helpText = StaticText(helpWindow, Rect(10, 10, 580, 380))
-        .string_("nUPIC - Trajectory Synthesis System\n\n" ++
+        .string_("nUPIC - Arc Synthesis System\n\n" ++
         "DRAWING:\n" ++
         "• Click and drag to draw frequency trajectories\n" ++
-        "• Release mouse to complete trajectory\n\n" ++
+        "• Release mouse to complete arc\n\n" ++
         "SELECTION:\n" ++
         "• Press G to enter select mode\n" ++
         "• Click on trajectories to select them\n" ++
@@ -1256,12 +1256,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .states_([["Clear All", Color.white, Color.red.alpha_(0.8)]])
         .action_({
             if(data.notNil) {
-                if(data[\trajectories].notNil) { data[\trajectories].clear };
+                if(data[\arcs].notNil) { data[\arcs].clear };
                 if(data[\amplitudeEnvelopes].notNil) { data[\amplitudeEnvelopes].clear };
-                if(data[\trajectorySynthDefs].notNil) { data[\trajectorySynthDefs].clear };
-                if(data[\selectedTrajectories].notNil) { data[\selectedTrajectories].clear };
+                if(data[\arcSynthDefs].notNil) { data[\arcSynthDefs].clear };
+                if(data[\selectedArcs].notNil) { data[\selectedArcs].clear };
             };
-            state[\currentTrajectory] = nil;
+            state[\currentArc] = nil;
             
             if(state[\synths].notNil) {
                 state[\synths].do { |synth| 
@@ -1453,8 +1453,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .action_({ |btn|
             state[\eraseMode] = btn.value == 1;
             if(state[\eraseMode]) {
-                if(data.notNil and: { data[\selectedTrajectories].notNil }) {
-                    data[\selectedTrajectories].clear;
+                if(data.notNil and: { data[\selectedArcs].notNil }) {
+                    data[\selectedArcs].clear;
                 };
                 state[\selectMode] = false;
                 if(selectModeButton.notNil) { selectModeButton.value = 0 };
@@ -1478,8 +1478,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 if(eraseModeButton.notNil) { eraseModeButton.value = 0 };
                 "Select mode ON".postln;
             } {
-                if(data.notNil and: { data[\selectedTrajectories].notNil }) {
-                    data[\selectedTrajectories].clear;
+                if(data.notNil and: { data[\selectedArcs].notNil }) {
+                    data[\selectedArcs].clear;
                     ~nUPIC[\ui][\refreshDisplay].value;
                 };
                 "Draw mode active".postln;
@@ -1520,7 +1520,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     Button(window, Rect(345, yStart, 80, 23))
         .states_([["Edit Amps", Color.white, Color.blue]])
         .action_({
-            if(data[\selectedTrajectories].notNil and: { data[\selectedTrajectories].size > 0 }) {
+            if(data[\selectedArcs].notNil and: { data[\selectedArcs].size > 0 }) {
                 if(~nUPIC[\ui][\openAmplitudeEditorForSelected].isNil) {
                     try {
                         (~nUPIC_basePath +/+ "UI/AmplitudeEditor.scd").load;
@@ -1562,19 +1562,19 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 ~nUPIC_SynthDefs[\available]
             } { [\simpleGravObject, \percNoise, \auditoryDistortion, \richTexture] };
             var selectedSynth = synthDefNames[menu.value];
-            if(data.notNil and: { data[\selectedTrajectories].notNil } and: {
-                data[\selectedTrajectories].size > 0
+            if(data.notNil and: { data[\selectedArcs].notNil } and: {
+                data[\selectedArcs].size > 0
             }) {
-                if(data[\trajectorySynthDefs].isNil) {
-                    data[\trajectorySynthDefs] = List.new;
+                if(data[\arcSynthDefs].isNil) {
+                    data[\arcSynthDefs] = List.new;
                 };
-                data[\selectedTrajectories].do { |idx|
+                data[\selectedArcs].do { |idx|
                     // Expand list if needed
-                    while { idx >= data[\trajectorySynthDefs].size } {
-                        data[\trajectorySynthDefs].add(nil);
+                    while { idx >= data[\arcSynthDefs].size } {
+                        data[\arcSynthDefs].add(nil);
                     };
-                    data[\trajectorySynthDefs][idx] = selectedSynth;
-                    ("Trajectory " ++ idx ++ " → " ++ selectedSynth).postln;
+                    data[\arcSynthDefs][idx] = selectedSynth;
+                    ("Arc " ++ idx ++ " → " ++ selectedSynth).postln;
                     // Refresh spatial editor if open
                     if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
                         ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
@@ -1659,8 +1659,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 if(eraseModeButton.notNil) { eraseModeButton.value = 0 };
                 "Select mode ON".postln;
             } {
-                if(data.notNil and: { data[\selectedTrajectories].notNil }) {
-                    data[\selectedTrajectories].clear;
+                if(data.notNil and: { data[\selectedArcs].notNil }) {
+                    data[\selectedArcs].clear;
                     ~nUPIC[\ui][\refreshDisplay].value;
                 };
                 "Draw mode active".postln;
@@ -1677,8 +1677,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .action_({ |btn|
             state[\eraseMode] = btn.value == 1;
             if(state[\eraseMode]) {
-                if(data.notNil and: { data[\selectedTrajectories].notNil }) {
-                    data[\selectedTrajectories].clear;
+                if(data.notNil and: { data[\selectedArcs].notNil }) {
+                    data[\selectedArcs].clear;
                 };
                 state[\selectMode] = false;
                 if(selectModeButton.notNil) { selectModeButton.value = 0 };
@@ -1707,12 +1707,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .states_([["CLR", Color.white, Color.red.alpha_(0.8)]])
         .action_({
             if(data.notNil) {
-                if(data[\trajectories].notNil) { data[\trajectories].clear };
+                if(data[\arcs].notNil) { data[\arcs].clear };
                 if(data[\amplitudeEnvelopes].notNil) { data[\amplitudeEnvelopes].clear };
-                if(data[\trajectorySynthDefs].notNil) { data[\trajectorySynthDefs].clear };
-                if(data[\selectedTrajectories].notNil) { data[\selectedTrajectories].clear };
+                if(data[\arcSynthDefs].notNil) { data[\arcSynthDefs].clear };
+                if(data[\selectedArcs].notNil) { data[\selectedArcs].clear };
             };
-            state[\currentTrajectory] = nil;
+            state[\currentArc] = nil;
             
             if(state[\synths].notNil) {
                 state[\synths].do { |synth| 
@@ -1804,15 +1804,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 ~nUPIC_SynthDefs[\available]
             } { [\simpleGravObject, \percNoise, \auditoryDistortion, \richTexture] };
             var selectedSynth = synthDefNames[menu.value];
-            if(data.notNil and: { data[\selectedTrajectories].notNil } and: { 
-                data[\selectedTrajectories].size > 0 
+            if(data.notNil and: { data[\selectedArcs].notNil } and: { 
+                data[\selectedArcs].size > 0 
             }) {
-                if(data[\trajectorySynthDefs].isNil) {
-                    data[\trajectorySynthDefs] = List.new;
+                if(data[\arcSynthDefs].isNil) {
+                    data[\arcSynthDefs] = List.new;
                 };
-                data[\selectedTrajectories].do { |idx|
-                    if(idx < data[\trajectorySynthDefs].size) {
-                        data[\trajectorySynthDefs][idx] = selectedSynth;
+                data[\selectedArcs].do { |idx|
+                    if(idx < data[\arcSynthDefs].size) {
+                        data[\arcSynthDefs][idx] = selectedSynth;
                         ("Traj " ++ idx ++ " → " ++ selectedSynth).postln;
                     };
                 };
@@ -2047,8 +2047,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 if(eraseModeButton.notNil) { eraseModeButton.value = 0 };
                 "Select mode ON".postln;
             } {
-                if(data.notNil and: { data[\selectedTrajectories].notNil }) {
-                    data[\selectedTrajectories].clear;
+                if(data.notNil and: { data[\selectedArcs].notNil }) {
+                    data[\selectedArcs].clear;
                     ~nUPIC[\ui][\refreshDisplay].value;
                 };
                 "Draw mode active".postln;
@@ -2066,8 +2066,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .action_({ |btn|
             state[\eraseMode] = btn.value == 1;
             if(state[\eraseMode]) {
-                if(data.notNil and: { data[\selectedTrajectories].notNil }) {
-                    data[\selectedTrajectories].clear;
+                if(data.notNil and: { data[\selectedArcs].notNil }) {
+                    data[\selectedArcs].clear;
                 };
                 state[\selectMode] = false;
                 if(selectModeButton.notNil) { selectModeButton.value = 0 };
@@ -2165,19 +2165,19 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 ~nUPIC_SynthDefs[\available]
             } { [\upicWavetable] };
             var selectedSynth = synthDefNames[menu.value];
-            if(data.notNil and: { data[\selectedTrajectories].notNil } and: {
-                data[\selectedTrajectories].size > 0
+            if(data.notNil and: { data[\selectedArcs].notNil } and: {
+                data[\selectedArcs].size > 0
             }) {
-                if(data[\trajectorySynthDefs].isNil) {
-                    data[\trajectorySynthDefs] = List.new;
+                if(data[\arcSynthDefs].isNil) {
+                    data[\arcSynthDefs] = List.new;
                 };
-                data[\selectedTrajectories].do { |idx|
+                data[\selectedArcs].do { |idx|
                     // Expand list if needed
-                    while { idx >= data[\trajectorySynthDefs].size } {
-                        data[\trajectorySynthDefs].add(nil);
+                    while { idx >= data[\arcSynthDefs].size } {
+                        data[\arcSynthDefs].add(nil);
                     };
-                    data[\trajectorySynthDefs][idx] = selectedSynth;
-                    ("Trajectory " ++ idx ++ " set to use " ++ selectedSynth).postln;
+                    data[\arcSynthDefs][idx] = selectedSynth;
+                    ("Arc " ++ idx ++ " set to use " ++ selectedSynth).postln;
                     // Refresh spatial editor if open
                     if(~nUPIC[\ui][\refreshSpatializationEditor].notNil) {
                         ~nUPIC[\ui][\refreshSpatializationEditor].value(idx);
@@ -2231,7 +2231,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .states_([["_edit amps", Color.white, Color.blue]])
         .font_(Font("Arial", 9, true))
         .action_({
-            if(data[\selectedTrajectories].notNil and: { data[\selectedTrajectories].size > 0 }) {
+            if(data[\selectedArcs].notNil and: { data[\selectedArcs].size > 0 }) {
                 // Try to load AmplitudeEditor if not loaded
                 if(~nUPIC[\ui][\openAmplitudeEditorForSelected].isNil) {
                     "Loading AmplitudeEditor module...".postln;
@@ -2300,7 +2300,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .states_([["_edit spatial", Color.white, Color.magenta.blend(Color.gray, 0.3)]])
         .font_(Font("Arial", 9, true))
         .action_({
-            if(data[\selectedTrajectories].notNil and: { data[\selectedTrajectories].size > 0 }) {
+            if(data[\selectedArcs].notNil and: { data[\selectedArcs].size > 0 }) {
                 // Try to load SpatializationEditor if not loaded
                 if(~nUPIC[\ui][\openSpatializationEditorForSelected].isNil) {
                     "Loading SpatializationEditor module...".postln;

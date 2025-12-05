@@ -1,14 +1,14 @@
-// TrajectoryModel - Reactive data model for trajectories
+// ArcModel - Reactive data model for trajectories
 // Uses Connection quark patterns for syncing data, synths, and GUI
 //
 // Install Connection quark: Quarks.install("Connection")
 
 (
-// Trajectory Model Class
-// Stores all data for a single trajectory with reactive notifications
+// Arc Model Class
+// Stores all data for a single arc with reactive notifications
 ~nUPIC[\model] = ~nUPIC[\model] ? IdentityDictionary.new;
 
-~nUPIC[\model][\TrajectoryModel] = { |index|
+~nUPIC[\model][\ArcModel] = { |index|
     var model = IdentityDictionary.new;
 
     // Core identity
@@ -127,27 +127,27 @@
     model;
 };
 
-// Collection of all trajectory models
-~nUPIC[\model][\trajectories] = List.new;
+// Collection of all arc models
+~nUPIC[\model][\arcs] = List.new;
 
-// Create a new trajectory model
-~nUPIC[\model][\createTrajectory] = {
-    var index = ~nUPIC[\model][\trajectories].size;
-    var model = ~nUPIC[\model][\TrajectoryModel].value(index);
-    ~nUPIC[\model][\trajectories].add(model);
+// Create a new arc model
+~nUPIC[\model][\createArc] = {
+    var index = ~nUPIC[\model][\arcs].size;
+    var model = ~nUPIC[\model][\ArcModel].value(index);
+    ~nUPIC[\model][\arcs].add(model);
     model;
 };
 
-// Get trajectory model by index
-~nUPIC[\model][\getTrajectory] = { |index|
-    if(index < ~nUPIC[\model][\trajectories].size) {
-        ~nUPIC[\model][\trajectories][index];
+// Get arc model by index
+~nUPIC[\model][\getArc] = { |index|
+    if(index < ~nUPIC[\model][\arcs].size) {
+        ~nUPIC[\model][\arcs][index];
     } {
         nil;
     };
 };
 
-"✓ TrajectoryModel loaded".postln;
+"✓ ArcModel loaded".postln;
 "  - Reactive data model for trajectories".postln;
 "  - Automatic channel-to-pan conversion".postln;
 "  - Supports Connection quark patterns".postln;

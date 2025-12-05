@@ -1,10 +1,10 @@
-# nUPIC - Trajectory Synthesis System
+# nUPIC - Arc Synthesis System
 
-A modular trajectory-based synthesis system inspired by Xenakis' UPIC, implemented in SuperCollider with multi-channel spatial audio support.
+A modular arc-based synthesis system inspired by Xenakis' UPIC, implemented in SuperCollider with multi-channel spatial audio support.
 
 ## Overview
 
-nUPIC (nu-UPIC) is a comprehensive system for creating and manipulating frequency trajectories that can be played back as audio synthesis. Draw trajectories on a canvas, edit amplitude envelopes, control spatial positioning across multiple channels, and shape wavetables - all in real-time.
+nUPIC (nu-UPIC) is a comprehensive system for creating and manipulating frequency arcs that can be played back as audio synthesis. Draw arcs on a canvas, edit amplitude envelopes, control spatial positioning across multiple channels, and shape wavetables - all in real-time.
 
 ## Quick Start
 
@@ -17,10 +17,10 @@ nUPIC (nu-UPIC) is a comprehensive system for creating and manipulating frequenc
 ## Features
 
 ### Drawing & Editing
-- **Freehand drawing** - Draw frequency trajectories directly on the canvas
-- **Selection mode** (G key) - Select trajectories for editing
-- **Erase mode** (E key) - Remove parts of trajectories
-- **Copy/Paste** - Duplicate selected trajectories
+- **Freehand drawing** - Draw frequency arcs directly on the canvas
+- **Selection mode** (G key) - Select arcs for editing
+- **Erase mode** (E key) - Remove parts of arcs
+- **Copy/Paste** - Duplicate selected arcs
 - **Undo/Redo** - Full state history
 
 ### Audio Synthesis
@@ -29,7 +29,7 @@ nUPIC (nu-UPIC) is a comprehensive system for creating and manipulating frequenc
 - **Real-time playback** - Space bar to play/stop
 
 ### Editors
-- **Amplitude Editor** - Draw amplitude envelopes for each trajectory
+- **Amplitude Editor** - Draw amplitude envelopes for each arc
 - **Spatialization Editor** - Control panning across output channels over time
 - **Wavetable Editor** - Design custom waveforms (sine, saw, square, FM, formant, etc.)
 
@@ -56,7 +56,7 @@ nUPIC/
 ├── START_NUPIC.scd          # Main entry point
 ├── Core/
 │   ├── Constants.scd        # Configuration and defaults
-│   ├── TrajectoryData.scd   # Data management, undo/redo
+│   ├── ArcData.scd   # Data management, undo/redo
 │   ├── Model/               # Data models
 │   ├── Connections/         # Audio routing
 │   └── Utils/               # Helper functions
@@ -93,7 +93,7 @@ Access system settings via the `~nUPIC` namespace:
 
 ```supercollider
 // Constants (read-only)
-~nUPIC[\constants][\maxTrajectories]  // 200
+~nUPIC[\constants][\maxArcs]  // 200
 ~nUPIC[\constants][\freqMin]          // 20 Hz
 ~nUPIC[\constants][\freqMax]          // 7500 Hz
 
@@ -148,9 +148,9 @@ You can register your own functions to be notified when values change:
 ## Workflow
 
 1. **Select SynthDef** - Choose channel configuration from the dropdown menu
-2. **Draw trajectories** - Click and drag on the canvas to create frequency paths
-3. **Edit amplitudes** - Select trajectory (G), click "_edit amps" to open amplitude editor
-4. **Edit spatialization** - Select trajectory, click "_edit spatial" to control panning
+2. **Draw arcs** - Click and drag on the canvas to create frequency paths
+3. **Edit amplitudes** - Select arc (G), click "_edit amps" to open amplitude editor
+4. **Edit spatialization** - Select arc, click "_edit spatial" to control panning
 5. **Play** - Press Space to hear your composition
 
 ## UI Style
@@ -166,4 +166,4 @@ Current version: 2.1.0
 
 ## License
 
-Open-source project continuing the tradition of Xenakis' UPIC trajectory synthesis system.
+Open-source project continuing the tradition of Xenakis' UPIC arc synthesis system.

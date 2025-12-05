@@ -1,5 +1,5 @@
 // nUPIC Drawing Module
-// Canvas drawing functionality, trajectory rendering, zoom/pan, mouse interactions
+// Canvas drawing functionality, arc rendering, zoom/pan, mouse interactions
 // Part of the nUPIC (nu-UPIC) modular system
 
 (
@@ -69,13 +69,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
     
     // Draw all completed trajectories
-    if(data[\trajectories].notNil) {
-        data[\trajectories].do { |traj, i|
+    if(data[\arcs].notNil) {
+        data[\arcs].do { |traj, i|
             ~nUPIC[\ui][\drawTrajectory].value(traj, i, width, height);
         };
     };
     
-    // Draw current trajectory being drawn
+    // Draw current arc being drawn
     if(state[\currentTrajectory].notNil and: { state[\currentTrajectory].size > 1 }) {
         ~nUPIC[\ui][\drawCurrentTrajectory].value(state[\currentTrajectory], width, height);
     };
@@ -334,7 +334,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     freqs;
 };
 
-// Draw individual trajectory
+// Draw individual arc
 ~nUPIC[\ui][\drawTrajectory] = { |traj, index, width, height|
     var state = ~nUPIC[\ui][\state];
     var data = ~nUPIC[\data];
@@ -349,8 +349,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     viewportX = state[\viewportX] ? 0;
     viewportY = state[\viewportY] ? 0;
     
-    isSelected = if(data[\selectedTrajectories].notNil) {
-        data[\selectedTrajectories].includes(index)
+    isSelected = if(data[\selectedArcs].notNil) {
+        data[\selectedArcs].includes(index)
     } { false };
     
     ampEnv = if(data[\amplitudeEnvelopes].notNil and: { index < data[\amplitudeEnvelopes].size }) {
@@ -406,7 +406,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 var lastPoint = if(traj.last.isKindOf(Event)) { traj.last.x } { traj.last.x };
                 var normalizedPos = (originalX - firstPoint) / (lastPoint - firstPoint).max(1);
                 var trajLength = (lastPoint - firstPoint).max(1);
-                var ampX = normalizedPos.clip(0, 1) * trajLength;  // Map to actual trajectory length
+                var ampX = normalizedPos.clip(0, 1) * trajLength;  // Map to actual arc length
                 
                 // Find amplitude by interpolation
                 var foundAmp = false;
@@ -442,13 +442,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 };
                 */
             } {
-                // No amplitude envelope - use default based on trajectory index for visual variety
-                amp = 0.2 + (index * 0.1 % 0.6);  // Range from 0.2 to 0.8 based on trajectory index
+                // No amplitude envelope - use default based on arc index for visual variety
+                amp = 0.2 + (index * 0.1 % 0.6);  // Range from 0.2 to 0.8 based on arc index
                 
                 // Debug for trajectories without amplitude envelopes (disabled to reduce console spam)
                 /*
                 if(index == 0 and: { originalX < 50 }) {
-                    ("No ampEnv for trajectory %, using default amp=%").format(index, amp.round(0.01)).postln;
+                    ("No ampEnv for arc %, using default amp=%").format(index, amp.round(0.01)).postln;
                 };
                 */
             };
@@ -521,7 +521,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
 };
 
-// Draw current trajectory being drawn
+// Draw current arc being drawn
 ~nUPIC[\ui][\drawCurrentTrajectory] = { |currentTraj, width, height|
     var state = ~nUPIC[\ui][\state];
     
@@ -669,10 +669,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         modeColor
     );
     
-    // Show selected trajectory info
-    if(data.notNil and: { data[\selectedTrajectories].notNil } and: { data[\selectedTrajectories].size > 0 }) {
+    // Show selected arc info
+    if(data.notNil and: { data[\selectedArcs].notNil } and: { data[\selectedArcs].size > 0 }) {
         Pen.stringAtPoint(
-            "Selected: " ++ data[\selectedTrajectories].size ++ " trajectories",
+            "Selected: " ++ data[\selectedArcs].size ++ " trajectories",
             Point(width - 200, 30),
             Font("Arial", 12),
             Color.blue
@@ -1084,7 +1084,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 ~nUPIC[\ui][\testAmplitudeColors] = {
     var data;  // Declare data variable at the beginning
     
-    "Testing amplitude-based trajectory coloring:".postln;
+    "Testing amplitude-based arc coloring:".postln;
     
     // Test color mapping for different amplitude values
     [0.0, 0.2, 0.33, 0.5, 0.66, 0.8, 1.0].do { |amp|
