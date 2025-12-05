@@ -179,31 +179,61 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             // Calculate drag offset
             var deltaX = x - state[\dragStartX];
             var deltaY = y - state[\dragStartY];
-        
+            var constrainedDeltaY = deltaY;
+
         // Update all selected trajectories
-        if(data.notNil and: { data[\selectedTrajectories].notNil } and: { 
-            state[\draggedTrajectories].notNil 
+        if(data.notNil and: { data[\selectedTrajectories].notNil } and: {
+            state[\draggedTrajectories].notNil
         }) {
+            // First pass: find min/max Y across all selected trajectories to constrain deltaY
+            // This prevents flattening by limiting the drag rather than clipping individual points
+            var globalMinY = inf;
+            var globalMaxY = inf.neg;
+
+            data[\selectedTrajectories].do { |i|
+                var originalTraj = state[\draggedTrajectories][i];
+                if(originalTraj.notNil) {
+                    originalTraj.do { |point|
+                        var pointY = if(point.isKindOf(Event)) { point.y } { point.y };
+                        if(pointY < globalMinY) { globalMinY = pointY };
+                        if(pointY > globalMaxY) { globalMaxY = pointY };
+                    };
+                };
+            };
+
+            // Constrain deltaY so trajectory shape is preserved
+            if(globalMinY < inf) {
+                // Don't let minimum point go below 0
+                if((globalMinY + deltaY) < 0) {
+                    constrainedDeltaY = globalMinY.neg;
+                };
+                // Don't let maximum point go above height
+                if((globalMaxY + constrainedDeltaY) > height) {
+                    constrainedDeltaY = height - globalMaxY;
+                };
+            };
+
+            // Second pass: apply constrained delta to all points
             data[\selectedTrajectories].do { |i|
                 var originalTraj = state[\draggedTrajectories][i];
                 if(originalTraj.notNil and: { i < data[\trajectories].size }) {
                     data[\trajectories][i] = originalTraj.collect { |point|
                         if(point.isKindOf(Event)) {
-                            var newY = (point.y + deltaY).clip(0, height);
-                            var state = ~nUPIC[\ui][\state];
-                            var newFreq = newY.linlin(0, height, 
-                                state[\zoomFreqMax], state[\zoomFreqMin]);
+                            var newY = point.y + constrainedDeltaY;
+                            var uiState = ~nUPIC[\ui][\state];
+                            var newFreq = newY.linlin(0, height,
+                                uiState[\zoomFreqMax], uiState[\zoomFreqMin]);
                             (x: point.x + deltaX,
                              y: newY,
                              freq: newFreq)
                         } {
-                            Point(point.x + deltaX, (point.y + deltaY).clip(0, height))
+                            Point(point.x + deltaX, point.y + constrainedDeltaY)
                         };
                     };
-                    
+
                     // Also update amplitude envelope positions if they exist
-                    if(data[\amplitudeEnvelopes].notNil and: { 
-                        i < data[\amplitudeEnvelopes].size 
+                    if(data[\amplitudeEnvelopes].notNil and: {
+                        i < data[\amplitudeEnvelopes].size
                     } and: { data[\amplitudeEnvelopes][i].notNil }) {
                         data[\amplitudeEnvelopes][i] = data[\amplitudeEnvelopes][i].collect { |ampPoint|
                             (x: ampPoint.x + deltaX, amp: ampPoint.amp)
