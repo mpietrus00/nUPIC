@@ -1586,29 +1586,20 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
     // Register for reactive updates to defaultSynthDef
     if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
-        // Store the dependant so we can identify it for debugging
-        var synthDefDependant = { |what, value, oldValue|
-            "[REACTIVE CALLBACK] what=%, value=%".format(what, value).postln;
+        ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
             if(what == \defaultSynthDef) {
-                "[REACTIVE] defaultSynthDef changed to: %".format(value).postln;
                 {
                     var menu = ~nUPIC[\ui][\state][\controls][\synthDefMenu];
                     var synthDefNames = if(~nUPIC_SynthDefs.notNil and: { ~nUPIC_SynthDefs[\available].notNil }) {
                         ~nUPIC_SynthDefs[\available]
                     } { [] };
                     var idx = synthDefNames.indexOf(value);
-                    "[REACTIVE] Found menu: %, idx: %".format(menu.notNil, idx).postln;
                     if(idx.notNil and: { menu.notNil }) {
                         menu.value = idx;
-                        "[REACTIVE] Updated menu to index %".format(idx).postln;
                     };
                 }.defer;
             };
-        };
-        ~nUPIC[\defaults][\addDependant].value(synthDefDependant);
-        // Store reference for potential cleanup
-        state[\synthDefDependant] = synthDefDependant;
-        "[REACTIVE] Registered defaultSynthDef dependant".postln;
+        });
     };
 
     // Store references
@@ -2178,15 +2169,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     };
                 };
             } {
-                // Always use fresh reference to ~nUPIC[\defaults]
-                if(~nUPIC[\defaults].notNil) {
-                    ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
-                    ("DEBUG MENU: Set ~nUPIC[\\defaults][\\defaultSynthDef] = " ++ selectedSynth).postln;
-                    ("DEBUG MENU: Verify read back: " ++ ~nUPIC[\defaults][\defaultSynthDef]).postln;
+                // Use reactive setValue for defaultSynthDef
+                if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\setValue].notNil }) {
+                    ~nUPIC[\defaults][\setValue].value(\defaultSynthDef, selectedSynth);
                 } {
-                    "WARNING: ~nUPIC[\\defaults] is nil! Cannot set default SynthDef".postln;
+                    // Fallback to direct assignment
+                    if(~nUPIC[\defaults].notNil) {
+                        ~nUPIC[\defaults][\defaultSynthDef] = selectedSynth;
+                    };
                 };
-                ("Default SynthDef set to " ++ selectedSynth ++ " for new trajectories").postln;
             };
         });
 
@@ -2496,27 +2487,20 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Register for reactive updates to defaultSynthDef
     if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
-        var synthDefDependant = { |what, value, oldValue|
-            "[REACTIVE CALLBACK] what=%, value=%".format(what, value).postln;
+        ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
             if(what == \defaultSynthDef) {
-                "[REACTIVE] defaultSynthDef changed to: %".format(value).postln;
                 {
                     var menu = ~nUPIC[\ui][\state][\controls][\synthDefMenu];
                     var synthDefNames = if(~nUPIC_SynthDefs.notNil and: { ~nUPIC_SynthDefs[\available].notNil }) {
                         ~nUPIC_SynthDefs[\available]
                     } { [] };
                     var idx = synthDefNames.indexOf(value);
-                    "[REACTIVE] Found menu: %, idx: %".format(menu.notNil, idx).postln;
                     if(idx.notNil and: { menu.notNil }) {
                         menu.value = idx;
-                        "[REACTIVE] Updated menu to index %".format(idx).postln;
                     };
                 }.defer;
             };
-        };
-        ~nUPIC[\defaults][\addDependant].value(synthDefDependant);
-        state[\synthDefDependant] = synthDefDependant;
-        "[REACTIVE] Registered defaultSynthDef dependant in createBottomPanel".postln;
+        });
     };
 
     // Store references

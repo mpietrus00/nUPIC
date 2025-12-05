@@ -122,7 +122,6 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 // Use defaults.setValue(\key, value) to update and auto-refresh UI
 // Clear dependants on reload - UI will re-register fresh dependants
 ~nUPIC['_defaultsDependants'] = IdentitySet.new;
-"[DEFAULTS] Initialized dependants (UI will register callbacks)".postln;
 
 ~nUPIC[\defaults] = (
     // Actual values (backwards compatible - direct access works)
@@ -138,20 +137,15 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 ~nUPIC[\defaults][\setValue] = { |key, value|
     var defaults = ~nUPIC[\defaults];
     var oldValue = defaults[key];
-    "[DEFAULTS] setValue called: % = % (was %)".format(key, value, oldValue).postln;
     defaults[key] = value;
     if(oldValue != value) {
-        "[DEFAULTS] Value changed, notifying dependants...".postln;
         ~nUPIC[\defaults][\notifyChanged].value(key, value, oldValue);
-    } {
-        "[DEFAULTS] Value unchanged, skipping notification".postln;
     };
     value
 };
 
 ~nUPIC[\defaults][\addDependant] = { |dep|
     ~nUPIC['_defaultsDependants'].add(dep);
-    "[DEFAULTS] Added dependant, count: %".format(~nUPIC['_defaultsDependants'].size).postln;
 };
 
 ~nUPIC[\defaults][\removeDependant] = { |dep|
@@ -159,9 +153,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 };
 
 ~nUPIC[\defaults][\notifyChanged] = { |what, value, oldValue|
-    "[DEFAULTS] notifyChanged: % = %, dependants: %".format(what, value, ~nUPIC['_defaultsDependants'].size).postln;
     ~nUPIC['_defaultsDependants'].do { |dep|
-        "[DEFAULTS] Calling dependant: %".format(dep.class).postln;
         {
             if(dep.isKindOf(Function)) {
                 dep.value(what, value, oldValue);
