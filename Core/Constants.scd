@@ -148,7 +148,9 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
     // Add dependant (UI element or other listener)
     addDependant: { |self, dep|
+        ("[DEFAULTS] Adding dependant, current count: " ++ self['_dependants'].size).postln;
         self['_dependants'].add(dep);
+        ("[DEFAULTS] After add, count: " ++ self['_dependants'].size).postln;
     },
 
     // Remove dependant
@@ -158,13 +160,15 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
     // Notify all dependants of change
     notifyChanged: { |self, what, value, oldValue|
+        ("[DEFAULTS] notifyChanged called for " ++ what ++ ", dependants: " ++ self['_dependants'].size).postln;
         self['_dependants'].do { |dep|
+            "[DEFAULTS] Notifying dependant...".postln;
             {
-                if(dep.respondsTo(\update)) {
-                    dep.update(self, what, value, oldValue);
+                if(dep.isKindOf(Function)) {
+                    dep.value(what, value, oldValue);
                 } {
-                    if(dep.isKindOf(Function)) {
-                        dep.value(what, value, oldValue);
+                    if(dep.respondsTo(\update)) {
+                        dep.update(self, what, value, oldValue);
                     };
                 };
             }.defer;
