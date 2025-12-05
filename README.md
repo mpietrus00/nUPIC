@@ -105,6 +105,38 @@ Access system settings via the `~nUPIC` namespace:
 ~nUPIC[\colors][\background]          // B&K green theme
 ```
 
+## Reactive Defaults (Programmatic UI Updates)
+
+The defaults system supports reactive updates - changing values programmatically will automatically update the UI.
+
+### Setting Values with UI Auto-Update
+
+```supercollider
+// Set playDuration and automatically update the NumberBox UI
+~nUPIC[\defaults][\setValue].value(\playDuration, 30)
+
+// Read current value
+~nUPIC[\defaults][\playDuration]  // -> 30
+```
+
+### Registering Custom Dependants
+
+You can register your own functions to be notified when values change:
+
+```supercollider
+// Register a dependant
+~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
+    ("Value changed: " ++ what ++ " = " ++ value).postln;
+});
+
+// Remove a dependant
+~nUPIC[\defaults][\removeDependant].value(myFunc);
+```
+
+### Available Reactive Keys
+
+- `\playDuration` - Total duration in seconds (updates duration NumberBox)
+
 ## Workflow
 
 1. **Select SynthDef** - Choose channel configuration from the dropdown menu
