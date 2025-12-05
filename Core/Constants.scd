@@ -373,47 +373,51 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 // Resample trajectory to increase/decrease number of points (for higher modulation resolution)
 // Uses linear interpolation between existing points
 ~nUPIC[\trajectories][\resample] = { |index, numPoints = 100|
-    var points = ~nUPIC[\trajectories][\getPoints].value(index);
+    var points, newPoints, totalLength, segmentLengths, cumulativeLengths;
+    var i, dx, dy, length, targetDist, segIdx, prevCumulative;
+    var segStart, t, x, y, freq, cumLen, j;
+
+    points = ~nUPIC[\trajectories][\getPoints].value(index);
     if(points.notNil and: { points.size >= 2 } and: { numPoints >= 2 }) {
-        var newPoints = List.new;
-        var totalLength = 0;
-        var segmentLengths = List.new;
-        var cumulativeLengths = List.new;
+        newPoints = List.new;
+        totalLength = 0;
+        segmentLengths = List.new;
+        cumulativeLengths = List.new;
 
         // Calculate total length and segment lengths
-        (points.size - 1).do { |i|
-            var dx = points[i+1].x - points[i].x;
-            var dy = points[i+1].y - points[i].y;
-            var length = sqrt((dx*dx) + (dy*dy));
+        (points.size - 1).do { |idx|
+            dx = points[idx+1].x - points[idx].x;
+            dy = points[idx+1].y - points[idx].y;
+            length = sqrt((dx*dx) + (dy*dy));
             segmentLengths.add(length);
             totalLength = totalLength + length;
             cumulativeLengths.add(totalLength);
         };
 
         // Generate evenly spaced points along the trajectory
-        numPoints.do { |i|
-            var targetDist = (i / (numPoints - 1)) * totalLength;
-            var segIdx = 0;
-            var prevCumulative = 0;
+        numPoints.do { |idx|
+            targetDist = (idx / (numPoints - 1)) * totalLength;
+            segIdx = 0;
+            prevCumulative = 0;
 
             // Find which segment contains this point
-            cumulativeLengths.do { |cumLen, j|
-                if(cumLen <= targetDist) {
-                    segIdx = j + 1;
-                    prevCumulative = cumLen;
+            cumulativeLengths.do { |cumulative, jdx|
+                if(cumulative <= targetDist) {
+                    segIdx = jdx + 1;
+                    prevCumulative = cumulative;
                 };
             };
             segIdx = segIdx.min(points.size - 2);
 
             // Interpolate within segment
             if(segmentLengths[segIdx] > 0) {
-                var segStart = if(segIdx > 0) { cumulativeLengths[segIdx - 1] } { 0 };
-                var t = (targetDist - segStart) / segmentLengths[segIdx];
+                segStart = if(segIdx > 0) { cumulativeLengths[segIdx - 1] } { 0 };
+                t = (targetDist - segStart) / segmentLengths[segIdx];
                 t = t.clip(0, 1);
 
-                var x = points[segIdx].x.blend(points[segIdx + 1].x, t);
-                var y = points[segIdx].y.blend(points[segIdx + 1].y, t);
-                var freq = if(points[segIdx].freq.notNil and: { points[segIdx + 1].freq.notNil }) {
+                x = points[segIdx].x.blend(points[segIdx + 1].x, t);
+                y = points[segIdx].y.blend(points[segIdx + 1].y, t);
+                freq = if(points[segIdx].freq.notNil and: { points[segIdx + 1].freq.notNil }) {
                     points[segIdx].freq.blend(points[segIdx + 1].freq, t)
                 } { nil };
 
