@@ -120,6 +120,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 // Defaults - reactive settings that notify UI when changed
 // Values stored directly for backwards compatibility: defaults[\playDuration]
 // Use defaults.setValue(\key, value) to update and auto-refresh UI
+// Preserve existing dependants if reloading
 ~nUPIC[\defaults] = (
     // Actual values (backwards compatible - direct access works)
     defaultSynthDef: \upicWavetable,
@@ -127,8 +128,12 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     showGrid: true,
     gridType: \equalTemperament,
 
-    // Dependants storage
-    _dependants: IdentitySet.new,
+    // Dependants storage - preserve existing dependants if reloading
+    '_dependants': if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults]['_dependants'].notNil }) {
+        ~nUPIC[\defaults]['_dependants']
+    } {
+        IdentitySet.new
+    },
 
     // Set value and notify dependants (named setValue to avoid Event:set conflict)
     setValue: { |self, key, value|
