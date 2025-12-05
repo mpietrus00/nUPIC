@@ -59,8 +59,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var newDuration = nb.value.clip(0.1, 240.0);
             state[\playDuration] = newDuration;
             // Update reactive defaults (notifies other dependants)
-            if(~nUPIC[\defaults].respondsTo(\set)) {
-                ~nUPIC[\defaults].set(\playDuration, newDuration);
+            if(~nUPIC[\defaults].respondsTo(\setValue)) {
+                ~nUPIC[\defaults].setValue(\playDuration, newDuration);
             };
 
             // Update zoom system when duration changes
@@ -1211,8 +1211,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var newDuration = nb.value.clip(0.1, 240.0);
             state[\playDuration] = newDuration;
             // Update reactive defaults
-            if(~nUPIC[\defaults].respondsTo(\set)) {
-                ~nUPIC[\defaults].set(\playDuration, newDuration);
+            if(~nUPIC[\defaults].respondsTo(\setValue)) {
+                ~nUPIC[\defaults].setValue(\playDuration, newDuration);
             };
 
             if(~nUPIC[\ui][\onDurationChange].notNil) {
@@ -1934,8 +1934,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var newDuration = nb.value.clip(0.1, 240.0);
             state[\playDuration] = newDuration;
             // Update reactive defaults
-            if(~nUPIC[\defaults].respondsTo(\set)) {
-                ~nUPIC[\defaults].set(\playDuration, newDuration);
+            if(~nUPIC[\defaults].respondsTo(\setValue)) {
+                ~nUPIC[\defaults].setValue(\playDuration, newDuration);
             };
 
             if(~nUPIC[\ui][\onDurationChange].notNil) {

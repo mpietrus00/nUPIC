@@ -119,7 +119,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
 // Defaults - reactive settings that notify UI when changed
 // Values stored directly for backwards compatibility: defaults[\playDuration]
-// Use defaults[\set].value(\key, value) to update and auto-refresh UI
+// Use defaults.setValue(\key, value) to update and auto-refresh UI
 ~nUPIC[\defaults] = (
     // Actual values (backwards compatible - direct access works)
     defaultSynthDef: \upicWavetable,
@@ -128,37 +128,32 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     gridType: \equalTemperament,
 
     // Dependants storage
-    dependants: IdentitySet.new,
+    _dependants: IdentitySet.new,
 
-    // Set value and notify dependants
-    set: { |self, key, value|
+    // Set value and notify dependants (named setValue to avoid Event:set conflict)
+    setValue: { |self, key, value|
         var oldValue = self[key];
         self[key] = value;
         if(oldValue != value) {
             ("defaults[" ++ key ++ "] changed: " ++ oldValue ++ " -> " ++ value).postln;
-            self[\changed].value(self, key, value, oldValue);
+            self.notifyChanged(key, value, oldValue);
         };
         value
     },
 
-    // Get value (for symmetry, but direct access also works)
-    get: { |self, key|
-        self[key]
-    },
-
     // Add dependant (UI element or other listener)
     addDependant: { |self, dep|
-        self[\dependants].add(dep);
+        self[\\_dependants].add(dep);
     },
 
     // Remove dependant
     removeDependant: { |self, dep|
-        self[\dependants].remove(dep);
+        self[\\_dependants].remove(dep);
     },
 
     // Notify all dependants of change
-    changed: { |self, what, value, oldValue|
-        self[\dependants].do { |dep|
+    notifyChanged: { |self, what, value, oldValue|
+        self[\\_dependants].do { |dep|
             {
                 if(dep.respondsTo(\update)) {
                     dep.update(self, what, value, oldValue);
