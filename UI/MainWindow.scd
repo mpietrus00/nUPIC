@@ -277,6 +277,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     useHighResAudio = constants[\useHighResAudio] ? true;
 
     state[\isPlaying] = true;
+    state[\spatialDebugLogged] = nil;  // Reset debug flag for spatial envelope logging
 
     ("Starting playback with " ++ data[\trajectories].size ++ " trajectories").postln;
     ("Play duration: " ++ playDuration ++ " seconds").postln;
@@ -601,16 +602,42 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                 };
 
                                 // Check if we have a spatial envelope
-                                if(data[\spatializationEnvelopes].notNil and: {
-                                    data[\spatializationEnvelopes][i].notNil and: {
-                                        data[\spatializationEnvelopes][i].size > 1
-                                    }
-                                }) {
-                                    var spatialEnv = data[\spatializationEnvelopes][i];
-                                    var spatialPoint1, spatialPoint2, spatialFound = false;
-                                    var spatialRelativeX, spatialPixelLength, firstTimeForSpatial;
-                                    var channelValue, maxChannels;
-                                    var trajSynthDefName;
+                                // First try TrajectoryData storage, then fall back to editor storage
+                                block { |breakSpatial|
+                                    var spatialEnv = nil;
+
+                                    // Try TrajectoryData getter first
+                                    if(data[\getSpatialEnvelope].notNil) {
+                                        spatialEnv = data[\getSpatialEnvelope].value(i);
+                                        if(spatialEnv.notNil and: { state[\spatialDebugLogged].isNil }) {
+                                            "[SPATIAL] Got envelope from TrajectoryData: % points".format(spatialEnv.size).postln;
+                                            state[\spatialDebugLogged] = true;
+                                        };
+                                    };
+
+                                    // Fall back to editor storage
+                                    if(spatialEnv.isNil and: {
+                                        data[\spatializationEnvelopes].notNil and: {
+                                            i < data[\spatializationEnvelopes].size
+                                        }
+                                    }) {
+                                        spatialEnv = data[\spatializationEnvelopes][i];
+                                        if(spatialEnv.notNil and: { state[\spatialDebugLogged].isNil }) {
+                                            "[SPATIAL] Got envelope from editor storage: % points".format(spatialEnv.size).postln;
+                                            state[\spatialDebugLogged] = true;
+                                        };
+                                    };
+
+                                    if(spatialEnv.isNil and: { state[\spatialDebugLogged].isNil }) {
+                                        "[SPATIAL] No spatial envelope found for trajectory %".format(i).postln;
+                                        state[\spatialDebugLogged] = true;
+                                    };
+
+                                    if(spatialEnv.notNil and: { spatialEnv.size > 1 }) {
+                                        var spatialPoint1, spatialPoint2, spatialFound = false;
+                                        var spatialRelativeX, spatialPixelLength, firstTimeForSpatial;
+                                        var channelValue, maxChannels;
+                                        var trajSynthDefName;
 
                                     // Get channel count from trajectory's SynthDef
                                     trajSynthDefName = if(data[\trajectorySynthDefs].notNil and: {
@@ -678,7 +705,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                                         // 3ch+ uses PanAz: pos=0 is channel 0, pos=2/n is channel 1
                                         pan = channelValue * 2 / maxChannels;
                                     };
-                                };
+                                    };  // end if spatialEnv.notNil
+                                };  // end block
                                 // If no spatial envelope, pan keeps its time-based value from above
 
                                 // Check if synth is still running before updating
