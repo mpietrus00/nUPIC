@@ -1586,7 +1586,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
     // Register for reactive updates to defaultSynthDef
     if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\addDependant].notNil }) {
-        ~nUPIC[\defaults][\addDependant].value({ |what, value, oldValue|
+        // Store the dependant so we can identify it for debugging
+        var synthDefDependant = { |what, value, oldValue|
+            "[REACTIVE CALLBACK] what=%, value=%".format(what, value).postln;
             if(what == \defaultSynthDef) {
                 "[REACTIVE] defaultSynthDef changed to: %".format(value).postln;
                 {
@@ -1602,7 +1604,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                     };
                 }.defer;
             };
-        });
+        };
+        ~nUPIC[\defaults][\addDependant].value(synthDefDependant);
+        // Store reference for potential cleanup
+        state[\synthDefDependant] = synthDefDependant;
         "[REACTIVE] Registered defaultSynthDef dependant".postln;
     };
 
