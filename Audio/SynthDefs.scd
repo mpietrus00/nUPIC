@@ -301,8 +301,8 @@
         \upicWavetable24ch   // 24 channels
     ];
 
-    // Set default to 8ch
-    ~nUPIC_SynthDefs[\default] = \upicWavetable8ch;
+    // Set default to mono
+    ~nUPIC_SynthDefs[\default] = \upicWavetable;
     
     // Initialize default wavetable if server is running
     if(s.serverRunning) {
