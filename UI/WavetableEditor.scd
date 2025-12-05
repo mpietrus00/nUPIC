@@ -426,29 +426,43 @@
         .font_(Font("Arial", 10))
         .action_({ win.close });
 
-    // Row 4: Preset dropdown menu (y=100)
-    presetLabel = StaticText(controlView, Rect(10, 100, 50, 25))
-        .string_("Preset:")
+    // Row 4: Wavetable file dropdown menu (y=100)
+    presetLabel = StaticText(controlView, Rect(10, 100, 70, 25))
+        .string_("Wavetable:")
         .font_(Font("Arial", 10));
 
-    // Get preset names if available
+    // Get wav file names from TABLES directory
     presetNames = if(~nUPIC[\wavetablePresets].notNil and: { ~nUPIC[\wavetablePresets][\list].notNil }) {
-        ["-- select preset --"] ++ ~nUPIC[\wavetablePresets][\list].value;
+        ["-- select wavetable --"] ++ ~nUPIC[\wavetablePresets][\list].value;
     } {
-        ["-- no presets loaded --"]
+        ["-- no wavetables found --"]
     };
 
-    presetMenu = PopUpMenu(controlView, Rect(65, 100, 180, 25))
+    presetMenu = PopUpMenu(controlView, Rect(85, 100, 280, 25))
         .items_(presetNames)
         .font_(Font("Arial", 10))
         .background_(Color.gray(0.95))
         .action_({ |menu|
             var selectedName;
             if(menu.value > 0) {
-                selectedName = presetNames[menu.value].asSymbol;
-                if(~nUPIC[\wavetablePresets].notNil and: { ~nUPIC[\wavetablePresets][\get].notNil }) {
-                    wavetableData = ~nUPIC[\wavetablePresets][\get].value(selectedName);
-                    if(wavetableData.notNil) {
+                selectedName = presetNames[menu.value];
+
+                // Check if it's a wav file or programmatic preset
+                if(~nUPIC[\wavetablePresets][\wavFiles].includes(selectedName)) {
+                    // Load .wav file asynchronously
+                    ~nUPIC[\wavetablePresets][\getWavData].value(selectedName, { |loadedData|
+                        if(loadedData.notNil) {
+                            wavetableData = loadedData;
+                            { drawView.refresh }.defer;
+                            ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
+                            ("Loaded: " ++ selectedName).postln;
+                        };
+                    });
+                } {
+                    // Programmatic preset (sync)
+                    var data = ~nUPIC[\wavetablePresets][\get].value(selectedName.asSymbol);
+                    if(data.notNil) {
+                        wavetableData = data;
                         drawView.refresh;
                         ~nUPIC[\trajectories][\setWavetable].value(currentIndex, wavetableData);
                         ("Loaded preset: " ++ selectedName).postln;
@@ -457,23 +471,34 @@
             };
         });
 
-    // Category filter buttons
-    xPos = 255;
-    [\basic, \organ, \acoustic, \vocal, \fm, \synth].do { |cat, i|
-        Button(controlView, Rect(xPos + (i * 55), 100, 50, 25))
-            .states_([[cat.asString, Color.black, Color.gray(0.85)]])
-            .font_(Font("Arial", 9))
-            .action_({
-                var catPresets;
-                if(~nUPIC[\wavetablePresets].notNil and: { ~nUPIC[\wavetablePresets][\categories].notNil }) {
-                    catPresets = ~nUPIC[\wavetablePresets][\categories][cat];
-                    if(catPresets.notNil) {
-                        presetNames = ["-- " ++ cat ++ " --"] ++ catPresets.collect(_.asString);
-                        presetMenu.items_(presetNames);
-                    };
+    // Refresh button to rescan TABLES directory
+    buttons[\refresh] = Button(controlView, Rect(370, 100, 60, 25))
+        .states_([["refresh", Color.black, Color.gray(0.85)]])
+        .font_(Font("Arial", 10))
+        .action_({
+            ~nUPIC[\wavetablePresets][\scanWavFiles].value;
+            presetNames = ["-- select wavetable --"] ++ ~nUPIC[\wavetablePresets][\list].value;
+            presetMenu.items_(presetNames);
+            ("Found " ++ (~nUPIC[\wavetablePresets][\wavFiles].size) ++ " wav files").postln;
+        });
+
+    // Show/set TABLES path button
+    buttons[\path] = Button(controlView, Rect(435, 100, 80, 25))
+        .states_([["set path...", Color.black, Color.gray(0.85)]])
+        .font_(Font("Arial", 10))
+        .action_({
+            var currentPath = ~nUPIC[\wavetablePresets][\tablesPath] ?? "not set";
+            ("Current TABLES path: " ++ currentPath).postln;
+            FileDialog({ |path|
+                if(path.notNil) {
+                    ~nUPIC[\wavetablePresets][\tablesPath] = path;
+                    ~nUPIC[\wavetablePresets][\scanWavFiles].value;
+                    presetNames = ["-- select wavetable --"] ++ ~nUPIC[\wavetablePresets][\list].value;
+                    presetMenu.items_(presetNames);
+                    ("Set TABLES path to: " ++ path).postln;
                 };
-            });
-    };
+            }, fileMode: 2);  // 2 = select folder
+        });
 
     // Store window reference
     ~nUPIC[\wavetableEditor][\window] = win;

@@ -1,10 +1,20 @@
 // Wavetable Presets for nUPIC
-// Collection of classic and advanced wavetable presets
-// Each preset generates 2048 samples in range -1 to 1
+// Loads .wav files from TABLES directory and converts to wavetables
+// Also includes programmatic presets as fallback
 
 (
 ~nUPIC = ~nUPIC ?? ();
 ~nUPIC[\wavetablePresets] = ~nUPIC[\wavetablePresets] ?? ();
+
+// Number of samples for wavetable
+~nUPIC[\wavetablePresets][\numSamples] = 2048;
+
+// Store the TABLES directory path
+~nUPIC[\wavetablePresets][\tablesPath] = nil;
+
+// Storage for loaded .wav files
+~nUPIC[\wavetablePresets][\wavFiles] = List.new;
+~nUPIC[\wavetablePresets][\wavData] = IdentityDictionary.new;
 
 // Helper to normalize wavetable
 ~nUPIC[\wavetablePresets][\normalize] = { |data|
@@ -12,431 +22,243 @@
     if(maxVal > 0) { data / maxVal } { data };
 };
 
-// Number of samples
-~nUPIC[\wavetablePresets][\numSamples] = 2048;
-
 // ============================================================================
-// PRESET DEFINITIONS
-// ============================================================================
-// Each preset is a function that generates the wavetable array
-
-~nUPIC[\wavetablePresets][\presets] = (
-
-    // === BASIC WAVEFORMS ===
-
-    \sine: { |n = 2048|
-        Array.fill(n, { |i| sin(2pi * i / n) });
-    },
-
-    \cosine: { |n = 2048|
-        Array.fill(n, { |i| cos(2pi * i / n) });
-    },
-
-    \saw: { |n = 2048|
-        Array.fill(n, { |i| (2 * i / n) - 1 });
-    },
-
-    \sawDown: { |n = 2048|
-        Array.fill(n, { |i| 1 - (2 * i / n) });
-    },
-
-    \square: { |n = 2048|
-        Array.fill(n, { |i| if(i < (n / 2), 1, -1) });
-    },
-
-    \triangle: { |n = 2048|
-        Array.fill(n, { |i|
-            var phase = i / n;
-            if(phase < 0.5,
-                { 4 * phase - 1 },
-                { 3 - (4 * phase) }
-            )
-        });
-    },
-
-    // === PULSE WIDTH VARIANTS ===
-
-    \pulse10: { |n = 2048|
-        Array.fill(n, { |i| if(i < (n * 0.1), 1, -1) });
-    },
-
-    \pulse25: { |n = 2048|
-        Array.fill(n, { |i| if(i < (n * 0.25), 1, -1) });
-    },
-
-    \pulse75: { |n = 2048|
-        Array.fill(n, { |i| if(i < (n * 0.75), 1, -1) });
-    },
-
-    // === HARMONIC COMBINATIONS ===
-
-    \organFlute: { |n = 2048|
-        var sig = Signal.sineFill(n, [1, 0, 0, 0.1, 0, 0, 0, 0.01]);
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    \organReed: { |n = 2048|
-        var sig = Signal.sineFill(n, [1, 0.8, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]);
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    \organPipe: { |n = 2048|
-        var sig = Signal.sineFill(n, [1, 0, 0.5, 0, 0.25, 0, 0.125, 0]);
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    \organFull: { |n = 2048|
-        var sig = Signal.sineFill(n, Array.fill(16, { |i| 1 / (i + 1) }));
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    \brass: { |n = 2048|
-        var sig = Signal.sineFill(n, [1, 0.7, 0.5, 0.6, 0.4, 0.3, 0.2, 0.15]);
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    \strings: { |n = 2048|
-        var sig = Signal.sineFill(n, [1, 0.5, 0.3, 0.4, 0.2, 0.15, 0.1, 0.08]);
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    \clarinet: { |n = 2048|
-        // Odd harmonics only (like clarinet)
-        var sig = Signal.sineFill(n, [1, 0, 0.75, 0, 0.5, 0, 0.25, 0, 0.1]);
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    \oboe: { |n = 2048|
-        var sig = Signal.sineFill(n, [1, 0.8, 0.6, 0.7, 0.5, 0.4, 0.3, 0.35, 0.2, 0.15]);
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    // === VOCAL / FORMANT ===
-
-    \vowelA: { |n = 2048|
-        var sig = Signal.sineFill(n,
-            Array.fill(32, { |i|
-                var f = i + 1;
-                // Formants at ~730, 1090, 2440 Hz (relative to fundamental)
-                exp(-0.5 * ((f - 7).squared / 4)) * 0.8 +
-                exp(-0.5 * ((f - 11).squared / 6)) * 0.5 +
-                exp(-0.5 * ((f - 24).squared / 10)) * 0.3
-            })
-        );
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    \vowelE: { |n = 2048|
-        var sig = Signal.sineFill(n,
-            Array.fill(32, { |i|
-                var f = i + 1;
-                // Formants at ~400, 2000, 2550 Hz
-                exp(-0.5 * ((f - 4).squared / 3)) * 0.8 +
-                exp(-0.5 * ((f - 20).squared / 8)) * 0.5 +
-                exp(-0.5 * ((f - 25).squared / 6)) * 0.3
-            })
-        );
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    \vowelI: { |n = 2048|
-        var sig = Signal.sineFill(n,
-            Array.fill(32, { |i|
-                var f = i + 1;
-                // Formants at ~290, 2300, 3100 Hz
-                exp(-0.5 * ((f - 3).squared / 2)) * 0.8 +
-                exp(-0.5 * ((f - 23).squared / 8)) * 0.6 +
-                exp(-0.5 * ((f - 31).squared / 6)) * 0.3
-            })
-        );
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    \vowelO: { |n = 2048|
-        var sig = Signal.sineFill(n,
-            Array.fill(32, { |i|
-                var f = i + 1;
-                // Formants at ~570, 840, 2410 Hz
-                exp(-0.5 * ((f - 6).squared / 3)) * 0.8 +
-                exp(-0.5 * ((f - 8).squared / 4)) * 0.6 +
-                exp(-0.5 * ((f - 24).squared / 8)) * 0.3
-            })
-        );
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    \vowelU: { |n = 2048|
-        var sig = Signal.sineFill(n,
-            Array.fill(32, { |i|
-                var f = i + 1;
-                // Formants at ~320, 920, 2200 Hz
-                exp(-0.5 * ((f - 3).squared / 2)) * 0.8 +
-                exp(-0.5 * ((f - 9).squared / 4)) * 0.5 +
-                exp(-0.5 * ((f - 22).squared / 8)) * 0.3
-            })
-        );
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    // === FM SYNTHESIS ===
-
-    \fmBell: { |n = 2048|
-        Array.fill(n, { |i|
-            var phase = i / n * 2pi;
-            sin(phase + (2.5 * sin(7 * phase)))
-        }).normalize;
-    },
-
-    \fmMetallic: { |n = 2048|
-        Array.fill(n, { |i|
-            var phase = i / n * 2pi;
-            sin(phase + (5 * sin(11 * phase) * sin(3 * phase)))
-        }).normalize;
-    },
-
-    \fmWarm: { |n = 2048|
-        Array.fill(n, { |i|
-            var phase = i / n * 2pi;
-            sin(phase + (2 * sin(2 * phase)))
-        }).normalize;
-    },
-
-    \fmBright: { |n = 2048|
-        Array.fill(n, { |i|
-            var phase = i / n * 2pi;
-            sin(phase + (4 * sin(5 * phase)))
-        }).normalize;
-    },
-
-    // === WAVESHAPING ===
-
-    \softClip: { |n = 2048|
-        Array.fill(n, { |i|
-            var x = (2 * i / n) - 1;
-            (1.5 * x) / (1 + (0.5 * x.abs))
-        }).normalize;
-    },
-
-    \hardClip: { |n = 2048|
-        Array.fill(n, { |i|
-            var x = sin(2pi * i / n) * 1.5;
-            x.clip(-0.8, 0.8)
-        }).normalize;
-    },
-
-    \cubic: { |n = 2048|
-        Array.fill(n, { |i|
-            var x = (2 * i / n) - 1;
-            (3 * x) - x.cubed
-        }).normalize;
-    },
-
-    \foldback: { |n = 2048|
-        Array.fill(n, { |i|
-            var x = sin(2pi * i / n) * 2;
-            x.fold(-1, 1)
-        }).normalize;
-    },
-
-    \wrap: { |n = 2048|
-        Array.fill(n, { |i|
-            var x = sin(2pi * i / n) * 2;
-            x.wrap(-1, 1)
-        }).normalize;
-    },
-
-    // === COMPLEX / TEXTURAL ===
-
-    \supersaw: { |n = 2048|
-        var sig = Array.fill(n, 0);
-        7.do { |j|
-            var detune = (j - 3) * 0.008;
-            sig = sig + Array.fill(n, { |i|
-                var phase = (i / n * (1 + detune));
-                (2 * phase.mod(1)) - 1
-            });
-        };
-        sig.normalize;
-    },
-
-    \pwmSquare: { |n = 2048|
-        var sig = Array.fill(n, 0);
-        8.do { |j|
-            var width = 0.3 + (j * 0.05);
-            sig = sig + Array.fill(n, { |i|
-                if((i / n).mod(1) < width, 0.5, -0.5)
-            });
-        };
-        sig.normalize;
-    },
-
-    \bitcrush: { |n = 2048|
-        Array.fill(n, { |i|
-            var val = sin(2pi * i / n);
-            (val * 8).round / 8
-        });
-    },
-
-    \digital: { |n = 2048|
-        Array.fill(n, { |i|
-            var phase = i / n;
-            ((sin(2pi * phase) * 4).round / 4) +
-            ((sin(4pi * phase) * 2).round / 2) * 0.3
-        }).normalize;
-    },
-
-    // === XENAKIS / EXPERIMENTAL ===
-
-    \gendy: { |n = 2048|
-        var points = 12;
-        var yVals = Array.fill(points, { rrand(-1.0, 1.0) });
-        var xVals = (0..points-1) / (points - 1);
-        Array.fill(n, { |i|
-            var phase = i / n;
-            var idx = (phase * (points - 1)).floor.asInteger;
-            var nextIdx = (idx + 1).min(points - 1);
-            var t = (phase * (points - 1)) - idx;
-            yVals[idx].blend(yVals[nextIdx], t)
-        });
-    },
-
-    \chaotic: { |n = 2048|
-        var x = 0.1, r = 3.9;
-        Array.fill(n, { |i|
-            x = r * x * (1 - x);  // Logistic map
-            (x * 2) - 1
-        });
-    },
-
-    \noise: { |n = 2048|
-        Array.fill(n, { rrand(-1.0, 1.0) });
-    },
-
-    \smoothNoise: { |n = 2048|
-        var raw = Array.fill(n, { rrand(-1.0, 1.0) });
-        var smoothed = raw.copy;
-        5.do {
-            smoothed = smoothed.collect { |val, i|
-                var prev = smoothed[(i - 1) % n];
-                var next = smoothed[(i + 1) % n];
-                (prev + (val * 2) + next) / 4
-            }
-        };
-        smoothed.normalize;
-    },
-
-    // === CLASSIC SYNTH EMULATIONS ===
-
-    \moog: { |n = 2048|
-        // Moog-like thick saw
-        var sig = Signal.sineFill(n, Array.fill(32, { |i|
-            1 / (i + 1) * exp(-0.05 * i)
-        }));
-        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
-    },
-
-    \prophet: { |n = 2048|
-        // Prophet-like fat sound
-        var sig = Array.fill(n, 0);
-        3.do { |j|
-            var detune = (j - 1) * 0.005;
-            sig = sig + Array.fill(n, { |i|
-                var phase = i / n * (1 + detune) * 2pi;
-                sin(phase) * 0.5 + ((2 * (i / n * (1 + detune)).mod(1)) - 1) * 0.5
-            });
-        };
-        sig.normalize;
-    },
-
-    \dx7: { |n = 2048|
-        // DX7-like FM bell
-        Array.fill(n, { |i|
-            var phase = i / n * 2pi;
-            sin(phase + (1.4 * sin(14 * phase)) + (0.7 * sin(7 * phase)))
-        }).normalize;
-    },
-
-    \ppg: { |n = 2048|
-        // PPG-like digital wavetable
-        Array.fill(n, { |i|
-            var phase = i / n;
-            var saw = (2 * phase) - 1;
-            var sq = if(phase < 0.5, 1, -1);
-            (saw * 0.6) + (sq * 0.4)
-        });
-    },
-
-    // === PERCUSSION ===
-
-    \kick: { |n = 2048|
-        Array.fill(n, { |i|
-            var phase = i / n;
-            sin(2pi * phase * (1 + (20 * exp(-8 * phase))))
-        }).normalize;
-    },
-
-    \hat: { |n = 2048|
-        var sig = Array.fill(n, { rrand(-1.0, 1.0) });
-        // High-pass character
-        sig.differentiate.normalize;
-    },
-
-    \pluck: { |n = 2048|
-        Array.fill(n, { |i|
-            var phase = i / n;
-            sin(2pi * phase) * exp(-3 * phase) +
-            sin(4pi * phase) * exp(-4 * phase) * 0.5 +
-            sin(6pi * phase) * exp(-5 * phase) * 0.25
-        }).normalize;
-    }
-);
-
-// ============================================================================
-// API FUNCTIONS
+// WAV FILE SCANNING AND LOADING
 // ============================================================================
 
-// Get list of all preset names (sorted)
-~nUPIC[\wavetablePresets][\list] = {
-    ~nUPIC[\wavetablePresets][\presets].keys.asArray.sort;
+// Find TABLES directory
+~nUPIC[\wavetablePresets][\findTablesPath] = {
+    var candidates, found = nil;
+
+    // Try multiple locations
+    candidates = [
+        // Relative to executing path
+        if(thisProcess.nowExecutingPath.notNil) {
+            PathName(thisProcess.nowExecutingPath).pathOnly +/+ "TABLES"
+        } { nil },
+        // Relative to nUPIC base path
+        if(~nUPIC_basePath.notNil) {
+            ~nUPIC_basePath +/+ "TABLES"
+        } { nil },
+        // Common locations
+        Platform.userExtensionDir +/+ "nUPIC/TABLES",
+        "~/nUPIC/TABLES".standardizePath
+    ];
+
+    candidates.do { |path|
+        if(path.notNil and: { File.exists(path) }) {
+            found = path;
+        };
+    };
+
+    ~nUPIC[\wavetablePresets][\tablesPath] = found;
+    found;
 };
 
-// Get preset data by name
-~nUPIC[\wavetablePresets][\get] = { |name|
-    var preset = ~nUPIC[\wavetablePresets][\presets][name];
-    if(preset.notNil) {
-        preset.value(~nUPIC[\wavetablePresets][\numSamples]);
+// Scan TABLES directory for .wav files
+~nUPIC[\wavetablePresets][\scanWavFiles] = {
+    var path = ~nUPIC[\wavetablePresets][\tablesPath];
+    var files = List.new;
+
+    if(path.isNil) {
+        path = ~nUPIC[\wavetablePresets][\findTablesPath].value;
+    };
+
+    if(path.notNil and: { File.exists(path) }) {
+        PathName(path).files.do { |file|
+            var ext = file.extension.toLower;
+            if(ext == "wav" or: { ext == "aif" } or: { ext == "aiff" }) {
+                files.add(file.fileName);
+            };
+        };
+        ("Found " ++ files.size ++ " audio files in TABLES directory").postln;
     } {
+        "TABLES directory not found - using programmatic presets only".postln;
+    };
+
+    ~nUPIC[\wavetablePresets][\wavFiles] = files;
+    files;
+};
+
+// Load a .wav file and resample to wavetable size
+~nUPIC[\wavetablePresets][\loadWavFile] = { |filename, action|
+    var path = ~nUPIC[\wavetablePresets][\tablesPath];
+    var fullPath, numSamples;
+
+    numSamples = ~nUPIC[\wavetablePresets][\numSamples];
+
+    if(path.notNil) {
+        fullPath = path +/+ filename;
+
+        if(File.exists(fullPath)) {
+            // Load into a temporary buffer
+            Buffer.read(Server.default, fullPath, action: { |buf|
+                var data, resampled, step, i, idx, frac, v0, v1;
+
+                // Get the buffer data
+                buf.loadToFloatArray(action: { |floatArray|
+                    var numChannels = buf.numChannels;
+                    var sourceLen = floatArray.size / numChannels;
+
+                    // If stereo, mix to mono
+                    if(numChannels > 1) {
+                        data = Array.fill(sourceLen.asInteger, { |i|
+                            var sum = 0;
+                            numChannels.do { |ch|
+                                sum = sum + floatArray[i * numChannels + ch];
+                            };
+                            sum / numChannels
+                        });
+                    } {
+                        data = floatArray.asArray;
+                    };
+
+                    // Resample to 2048 samples using linear interpolation
+                    step = data.size / numSamples;
+                    resampled = Array.fill(numSamples, { |i|
+                        idx = (i * step).floor.asInteger;
+                        frac = (i * step) - idx;
+                        v0 = data[idx.clip(0, data.size - 1)];
+                        v1 = data[(idx + 1).clip(0, data.size - 1)];
+                        v0 + (frac * (v1 - v0))
+                    });
+
+                    // Normalize
+                    resampled = ~nUPIC[\wavetablePresets][\normalize].value(resampled);
+
+                    // Store in cache
+                    ~nUPIC[\wavetablePresets][\wavData][filename.asSymbol] = resampled;
+
+                    // Free the temp buffer
+                    buf.free;
+
+                    // Call the action with the data
+                    if(action.notNil) {
+                        action.value(resampled);
+                    };
+
+                    ("Loaded wavetable from: " ++ filename).postln;
+                });
+            });
+        } {
+            ("File not found: " ++ fullPath).warn;
+            nil
+        };
+    } {
+        "TABLES directory not set".warn;
         nil
     };
 };
 
-// Get organized categories
-~nUPIC[\wavetablePresets][\categories] = (
-    \basic: [\sine, \cosine, \saw, \sawDown, \square, \triangle],
-    \pulse: [\pulse10, \pulse25, \pulse75],
-    \organ: [\organFlute, \organReed, \organPipe, \organFull],
-    \acoustic: [\brass, \strings, \clarinet, \oboe],
-    \vocal: [\vowelA, \vowelE, \vowelI, \vowelO, \vowelU],
-    \fm: [\fmBell, \fmMetallic, \fmWarm, \fmBright],
-    \waveshape: [\softClip, \hardClip, \cubic, \foldback, \wrap],
-    \complex: [\supersaw, \pwmSquare, \bitcrush, \digital],
-    \experimental: [\gendy, \chaotic, \noise, \smoothNoise],
-    \synth: [\moog, \prophet, \dx7, \ppg],
-    \percussion: [\kick, \hat, \pluck]
-);
+// Get cached wav data or load it
+~nUPIC[\wavetablePresets][\getWavData] = { |filename, action|
+    var cached = ~nUPIC[\wavetablePresets][\wavData][filename.asSymbol];
 
-// Load preset into a trajectory
-~nUPIC[\wavetablePresets][\loadToTrajectory] = { |presetName, trajectoryIndex|
-    var data = ~nUPIC[\wavetablePresets][\get].value(presetName);
-    if(data.notNil) {
-        ~nUPIC[\trajectories][\setWavetable].value(trajectoryIndex, data);
-        ("Loaded wavetable preset '" ++ presetName ++ "' to trajectory " ++ trajectoryIndex).postln;
-        true
+    if(cached.notNil) {
+        if(action.notNil) { action.value(cached) };
+        cached
     } {
-        ("Preset '" ++ presetName ++ "' not found").warn;
-        false
+        ~nUPIC[\wavetablePresets][\loadWavFile].value(filename, action);
+        nil  // Data will be provided via action callback
     };
 };
 
-"Wavetable Presets loaded (" ++ ~nUPIC[\wavetablePresets][\list].value.size ++ " presets)".postln;
+// List all .wav files
+~nUPIC[\wavetablePresets][\listWavFiles] = {
+    if(~nUPIC[\wavetablePresets][\wavFiles].size == 0) {
+        ~nUPIC[\wavetablePresets][\scanWavFiles].value;
+    };
+    ~nUPIC[\wavetablePresets][\wavFiles];
+};
+
+// Load wav to trajectory (async)
+~nUPIC[\wavetablePresets][\loadWavToTrajectory] = { |filename, trajectoryIndex|
+    ~nUPIC[\wavetablePresets][\getWavData].value(filename, { |data|
+        if(data.notNil) {
+            ~nUPIC[\trajectories][\setWavetable].value(trajectoryIndex, data);
+            ("Loaded " ++ filename ++ " to trajectory " ++ trajectoryIndex).postln;
+        };
+    });
+};
+
+// ============================================================================
+// PROGRAMMATIC PRESETS (fallback)
+// ============================================================================
+
+~nUPIC[\wavetablePresets][\presets] = (
+    \sine: { |n = 2048| Array.fill(n, { |i| sin(2pi * i / n) }) },
+    \saw: { |n = 2048| Array.fill(n, { |i| (2 * i / n) - 1 }) },
+    \square: { |n = 2048| Array.fill(n, { |i| if(i < (n / 2), 1, -1) }) },
+    \triangle: { |n = 2048|
+        Array.fill(n, { |i|
+            var phase = i / n;
+            if(phase < 0.5, { 4 * phase - 1 }, { 3 - (4 * phase) })
+        })
+    },
+    \organFull: { |n = 2048|
+        var sig = Signal.sineFill(n, Array.fill(16, { |i| 1 / (i + 1) }));
+        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
+    },
+    \brass: { |n = 2048|
+        var sig = Signal.sineFill(n, [1, 0.7, 0.5, 0.6, 0.4, 0.3, 0.2, 0.15]);
+        ~nUPIC[\wavetablePresets][\normalize].value(sig.asArray);
+    }
+);
+
+// Get programmatic preset data
+~nUPIC[\wavetablePresets][\get] = { |name|
+    var preset = ~nUPIC[\wavetablePresets][\presets][name];
+    if(preset.notNil) {
+        preset.value(~nUPIC[\wavetablePresets][\numSamples]);
+    } { nil };
+};
+
+// ============================================================================
+// COMBINED API
+// ============================================================================
+
+// List all available wavetables (wav files + programmatic)
+~nUPIC[\wavetablePresets][\list] = {
+    var wavFiles = ~nUPIC[\wavetablePresets][\listWavFiles].value;
+    var presets = ~nUPIC[\wavetablePresets][\presets].keys.asArray;
+
+    // Return wav files first, then programmatic presets
+    wavFiles ++ presets.collect(_.asString);
+};
+
+// Load any wavetable to trajectory (handles both wav and programmatic)
+~nUPIC[\wavetablePresets][\loadToTrajectory] = { |name, trajectoryIndex|
+    var nameStr = name.asString;
+    var wavFiles = ~nUPIC[\wavetablePresets][\wavFiles];
+
+    if(wavFiles.includes(nameStr)) {
+        // It's a wav file
+        ~nUPIC[\wavetablePresets][\loadWavToTrajectory].value(nameStr, trajectoryIndex);
+    } {
+        // Try programmatic preset
+        var data = ~nUPIC[\wavetablePresets][\get].value(name.asSymbol);
+        if(data.notNil) {
+            ~nUPIC[\trajectories][\setWavetable].value(trajectoryIndex, data);
+            ("Loaded preset " ++ name ++ " to trajectory " ++ trajectoryIndex).postln;
+        } {
+            ("Wavetable not found: " ++ name).warn;
+        };
+    };
+};
+
+// Categories for programmatic presets
+~nUPIC[\wavetablePresets][\categories] = (
+    \basic: [\sine, \saw, \square, \triangle],
+    \synth: [\organFull, \brass]
+);
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+// Auto-scan for wav files on load
+~nUPIC[\wavetablePresets][\findTablesPath].value;
+~nUPIC[\wavetablePresets][\scanWavFiles].value;
+
+"Wavetable Presets loaded".postln;
 )

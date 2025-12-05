@@ -87,22 +87,33 @@
 // Or open editor for selected trajectory (uses first selected)
 ~nUPIC[\wavetableEditor][\open].value;
 
-// --- Wavetable Presets ---
+// --- Wavetable Files (.wav) ---
 
-// List all available presets
+// Scan TABLES directory for .wav files
+~nUPIC[\wavetablePresets][\scanWavFiles].value;
+
+// List all .wav files found
+~nUPIC[\wavetablePresets][\listWavFiles].value;
+
+// Load .wav file to trajectory (async - resamples to 2048 samples)
+~nUPIC[\wavetablePresets][\loadWavToTrajectory].value("mywave.wav", 0);
+
+// Set TABLES directory path manually
+~nUPIC[\wavetablePresets][\tablesPath] = "/path/to/TABLES";
+~nUPIC[\wavetablePresets][\scanWavFiles].value;
+
+// --- Programmatic Presets (fallback) ---
+
+// List all available (wav files + basic presets)
 ~nUPIC[\wavetablePresets][\list].value;
 
-// Get preset data by name (returns 2048-sample array)
+// Get programmatic preset data
 ~nUPIC[\wavetablePresets][\get].value(\sine);
-~nUPIC[\wavetablePresets][\get].value(\moog);
-~nUPIC[\wavetablePresets][\get].value(\fmBell);
+~nUPIC[\wavetablePresets][\get].value(\brass);
 
-// Load preset directly to trajectory
-~nUPIC[\wavetablePresets][\loadToTrajectory].value(\brass, 0);
-
-// View preset categories
-~nUPIC[\wavetablePresets][\categories].keys;
-~nUPIC[\wavetablePresets][\categories][\organ];  // -> [organFlute, organReed, ...]
+// Load any wavetable to trajectory (handles both wav and programmatic)
+~nUPIC[\wavetablePresets][\loadToTrajectory].value("mywave.wav", 0);
+~nUPIC[\wavetablePresets][\loadToTrajectory].value(\sine, 0);
 
 
 // ============================================================================
@@ -249,39 +260,24 @@ Other:
 
 
 // ============================================================================
-// AVAILABLE WAVETABLE PRESETS
+// WAVETABLE FILES
 // ============================================================================
 /*
-Basic Waveforms:
-    \sine, \cosine, \saw, \sawDown, \square, \triangle
+The TABLES directory can contain .wav, .aif, or .aiff files.
+Any audio file will be:
+  - Converted to mono (if stereo)
+  - Resampled to 2048 samples
+  - Normalized to -1 to 1 range
 
-Pulse Width:
-    \pulse10, \pulse25, \pulse75
+Place your wavetable .wav files in the TABLES directory, then use:
+  ~nUPIC[\wavetablePresets][\scanWavFiles].value;  // Rescan directory
+  ~nUPIC[\wavetablePresets][\listWavFiles].value;  // List files
 
-Organ:
-    \organFlute, \organReed, \organPipe, \organFull
+In the Wavetable Editor:
+  - Use "refresh" button to rescan TABLES directory
+  - Use "set path..." button to choose a different directory
+  - Select a .wav file from the dropdown to load it
 
-Acoustic:
-    \brass, \strings, \clarinet, \oboe
-
-Vocal (formants):
-    \vowelA, \vowelE, \vowelI, \vowelO, \vowelU
-
-FM Synthesis:
-    \fmBell, \fmMetallic, \fmWarm, \fmBright
-
-Waveshaping:
-    \softClip, \hardClip, \cubic, \foldback, \wrap
-
-Complex / Textural:
-    \supersaw, \pwmSquare, \bitcrush, \digital
-
-Experimental:
-    \gendy, \chaotic, \noise, \smoothNoise
-
-Classic Synth:
-    \moog, \prophet, \dx7, \ppg
-
-Percussion:
-    \kick, \hat, \pluck
+Fallback programmatic presets:
+    \sine, \saw, \square, \triangle, \organFull, \brass
 */
