@@ -122,6 +122,9 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 // Use defaults.setValue(\key, value) to update and auto-refresh UI
 // Preserve existing dependants if reloading
 ~nUPIC[\defaults] = (
+    // Enable method-style calling: event.funcName(args) passes self automatically
+    know: true,
+
     // Actual values (backwards compatible - direct access works)
     defaultSynthDef: \upicWavetable,
     playDuration: 10,
