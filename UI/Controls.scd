@@ -50,7 +50,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Duration number box
     durationNumberBox = NumberBox(window, Rect(140, yStart, 80, 25))
-        .value_(state[\playDuration] ? defaults[\get].value(\playDuration) ? 10)
+        .value_(state[\playDuration] ? defaults[\playDuration] ? 10)
         .decimals_(1)
         .step_(0.5)
         .clipLo_(0.1)
@@ -59,8 +59,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var newDuration = nb.value.clip(0.1, 240.0);
             state[\playDuration] = newDuration;
             // Update reactive defaults (notifies other dependants)
-            if(defaults[\set].notNil) {
-                defaults[\set].value(\playDuration, newDuration);
+            if(~nUPIC[\defaults].respondsTo(\set)) {
+                ~nUPIC[\defaults].set(\playDuration, newDuration);
             };
 
             // Update zoom system when duration changes
@@ -80,8 +80,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     state[\controls][\durationLabel] = durationLabel;
 
     // Register for reactive updates from defaults
-    if(defaults[\addDependant].notNil) {
-        defaults[\addDependant].value({ |what, value, oldValue|
+    if(~nUPIC[\defaults].respondsTo(\addDependant)) {
+        ~nUPIC[\defaults].addDependant({ |what, value, oldValue|
             if(what == \playDuration) {
                 { durationNumberBox.value = value }.defer;
             };
@@ -1202,7 +1202,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .font_(Font("Arial", 11));
     
     durationNumberBox = NumberBox(window, Rect(160, yStart, 60, 25))
-        .value_(state[\playDuration] ? defaults[\get].value(\playDuration) ? 10)
+        .value_(state[\playDuration] ? defaults[\playDuration] ? 10)
         .decimals_(1)
         .step_(0.5)
         .clipLo_(0.1)
@@ -1211,8 +1211,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var newDuration = nb.value.clip(0.1, 240.0);
             state[\playDuration] = newDuration;
             // Update reactive defaults
-            if(defaults[\set].notNil) {
-                defaults[\set].value(\playDuration, newDuration);
+            if(~nUPIC[\defaults].respondsTo(\set)) {
+                ~nUPIC[\defaults].set(\playDuration, newDuration);
             };
 
             if(~nUPIC[\ui][\onDurationChange].notNil) {
@@ -1221,8 +1221,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         });
 
     // Register for reactive updates
-    if(defaults[\addDependant].notNil) {
-        defaults[\addDependant].value({ |what, value, oldValue|
+    if(~nUPIC[\defaults].respondsTo(\addDependant)) {
+        ~nUPIC[\defaults].addDependant({ |what, value, oldValue|
             if(what == \playDuration) {
                 { durationNumberBox.value = value }.defer;
             };
@@ -1924,7 +1924,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Duration number box (centered) - adjusted position for wider label, with 3px gap
     durationNumberBox = NumberBox(playbackGroupView, Rect(startX + 70 + 3 + 75 + 3, controlY, 50, 20))
-        .value_(state[\playDuration] ? defaults[\get].value(\playDuration) ? 10)
+        .value_(state[\playDuration] ? defaults[\playDuration] ? 10)
         .decimals_(1)
         .step_(0.5)
         .clipLo_(0.1)
@@ -1934,8 +1934,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var newDuration = nb.value.clip(0.1, 240.0);
             state[\playDuration] = newDuration;
             // Update reactive defaults
-            if(defaults[\set].notNil) {
-                defaults[\set].value(\playDuration, newDuration);
+            if(~nUPIC[\defaults].respondsTo(\set)) {
+                ~nUPIC[\defaults].set(\playDuration, newDuration);
             };
 
             if(~nUPIC[\ui][\onDurationChange].notNil) {
@@ -1944,8 +1944,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         });
 
     // Register for reactive updates
-    if(defaults[\addDependant].notNil) {
-        defaults[\addDependant].value({ |what, value, oldValue|
+    if(~nUPIC[\defaults].respondsTo(\addDependant)) {
+        ~nUPIC[\defaults].addDependant({ |what, value, oldValue|
             if(what == \playDuration) {
                 { durationNumberBox.value = value }.defer;
             };

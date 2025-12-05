@@ -118,86 +118,59 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 );
 
 // Defaults - reactive settings that notify UI when changed
-// Use ~nUPIC[\defaults].set(\key, value) to update and auto-refresh UI
-// Use ~nUPIC[\defaults][\key] or ~nUPIC[\defaults].get(\key) to read
-(
-var defaults = IdentityDictionary.new;
-var dependants = IdentitySet.new;
-var values = (
+// Values stored directly for backwards compatibility: defaults[\playDuration]
+// Use defaults[\set].value(\key, value) to update and auto-refresh UI
+~nUPIC[\defaults] = (
+    // Actual values (backwards compatible - direct access works)
     defaultSynthDef: \upicWavetable,
     playDuration: 10,
     showGrid: true,
-    gridType: \equalTemperament
-);
+    gridType: \equalTemperament,
 
-// Store values
-defaults[\values] = values;
-defaults[\dependants] = dependants;
+    // Dependants storage
+    dependants: IdentitySet.new,
 
-// Get value (also works with defaults[\key] syntax via doesNotUnderstand)
-defaults[\get] = { |key|
-    defaults[\values][key]
-};
+    // Set value and notify dependants
+    set: { |self, key, value|
+        var oldValue = self[key];
+        self[key] = value;
+        if(oldValue != value) {
+            ("defaults[" ++ key ++ "] changed: " ++ oldValue ++ " -> " ++ value).postln;
+            self[\changed].value(self, key, value, oldValue);
+        };
+        value
+    },
 
-// Set value and notify dependants
-defaults[\set] = { |key, value|
-    var oldValue = defaults[\values][key];
-    defaults[\values][key] = value;
-    if(oldValue != value) {
-        ("defaults[" ++ key ++ "] changed: " ++ oldValue ++ " -> " ++ value).postln;
-        defaults[\changed].value(key, value, oldValue);
-    };
-    value
-};
+    // Get value (for symmetry, but direct access also works)
+    get: { |self, key|
+        self[key]
+    },
 
-// Add dependant (UI element or other listener)
-defaults[\addDependant] = { |dep|
-    defaults[\dependants].add(dep);
-    ("Added dependant: " ++ dep).postln;
-};
+    // Add dependant (UI element or other listener)
+    addDependant: { |self, dep|
+        self[\dependants].add(dep);
+    },
 
-// Remove dependant
-defaults[\removeDependant] = { |dep|
-    defaults[\dependants].remove(dep);
-};
+    // Remove dependant
+    removeDependant: { |self, dep|
+        self[\dependants].remove(dep);
+    },
 
-// Notify all dependants of change
-defaults[\changed] = { |what, value, oldValue|
-    defaults[\dependants].do { |dep|
-        // Call update method on dependant (deferred for GUI safety)
-        {
-            if(dep.respondsTo(\update)) {
-                dep.update(defaults, what, value, oldValue);
-            } {
-                // If it's a function, just call it
-                if(dep.isKindOf(Function)) {
-                    dep.value(what, value, oldValue);
+    // Notify all dependants of change
+    changed: { |self, what, value, oldValue|
+        self[\dependants].do { |dep|
+            {
+                if(dep.respondsTo(\update)) {
+                    dep.update(self, what, value, oldValue);
+                } {
+                    if(dep.isKindOf(Function)) {
+                        dep.value(what, value, oldValue);
+                    };
                 };
-            };
-        }.defer;
-    };
-};
-
-// Allow direct key access for reading (backwards compatible)
-defaults[\doesNotUnderstand] = { |selector ...args|
-    if(args.size == 0) {
-        // Getter: defaults[\playDuration]
-        defaults[\values][selector]
-    } {
-        // Setter attempt - redirect to set method
-        if(selector.asString.endsWith("_")) {
-            var key = selector.asString.drop(-1).asSymbol;
-            defaults[\set].value(key, args[0]);
-        } {
-            defaults[\values][selector]
-        }
+            }.defer;
+        };
     }
-};
-
-// Make it accessible
-~nUPIC[\defaults] = defaults;
 );
-// End reactive defaults
 
 // Grid system definitions
 ~nUPIC[\gridSystems] = (
