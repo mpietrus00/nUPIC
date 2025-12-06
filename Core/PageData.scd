@@ -12,6 +12,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     var maxPages = 24;  // Original UPIC limit
     var defaultDuration = 60;  // 1 minute default (original UPIC page limit)
     var createEmptyPageData;  // Forward declaration
+    var defaultPageLabels = ["A", "B", "C", "D"];  // Default page labels
 
     // Initialize
     pages = List.new;
@@ -311,10 +312,14 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
         // === INITIALIZATION ===
 
-        // Initialize with first page if empty
+        // Initialize with default pages (A, B, C, D) if empty
         ensureInitialized: {
             if(pages.size == 0) {
-                this.create.value("Page 1", defaultDuration);
+                // Create default pages A, B, C, D
+                defaultPageLabels.do { |label, i|
+                    this.create.value(label, defaultDuration);
+                };
+                // Add first page to sequence
                 sequence.add(0);
                 this.syncToData.value;
             };
@@ -335,12 +340,14 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             sequence.clear;
             currentPageIndex = 0;
 
-            // Create initial page
-            this.create.value("Page 1", defaultDuration);
+            // Create default pages A, B, C, D
+            defaultPageLabels.do { |label, i|
+                this.create.value(label, defaultDuration);
+            };
             sequence.add(0);
             this.syncToData.value;
 
-            "All pages cleared, created new Page 1".postln;
+            "All pages cleared, created default pages A, B, C, D".postln;
         },
 
         // Get summary for display

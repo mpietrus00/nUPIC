@@ -22,6 +22,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var rangeSliderWidth = 20; // Width for vertical range slider
     var rangeSliderGap = 5; // Gap between drawing area and range sliders
     var verticalRangeSlider, horizontalRangeSlider;
+    var pageTabHeight = 30; // Height for page tab bar
+    var pageTabButtons;  // Array to hold tab buttons
 
     // Get system constants
     constants = ~nUPIC[\constants] ? (
@@ -51,10 +53,10 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     height = constants[\defaultHeight];
     controlsHeight = constants[\controlPanelHeight];
 
-    // Calculate layout dimensions with space for RangeSliders
+    // Calculate layout dimensions with space for RangeSliders and page tabs
     drawingAreaLeft = allMargin + freqLabelWidth + freqLabelGap;
     drawingAreaWidth = width - drawingAreaLeft - allMargin - rangeSliderWidth - rangeSliderGap;
-    arcHeight = height - allMargin - allMargin - rangeSliderHeight - rangeSliderGap;
+    arcHeight = height - allMargin - allMargin - rangeSliderHeight - rangeSliderGap - pageTabHeight - allMargin;
 
     // Initialize UI state if not exists
     if(~nUPIC[\ui][\state].isNil) {
@@ -125,15 +127,47 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
 
     // Create main window with resizable set to false
-    window = Window("nUPIC - Arc Synthesis System", 
-        Rect(100, 100, width, height + controlsHeight + 20), resizable: false);
+    window = Window("nUPIC - Arc Synthesis System",
+        Rect(100, 100, width, height + controlsHeight + 20 + pageTabHeight), resizable: false);
     window.background = Color.new(205/255, 250/255, 205/255); // B&K green
 
     // Store window reference
     ~nUPIC[\ui][\state][\window] = window;
 
-    // Create frequency labels view (left area)
-    freqLabelView = UserView(window, Rect(allMargin, allMargin, freqLabelWidth, arcHeight));
+    // Create page tab bar (A, B, C, D)
+    pageTabButtons = List.new;
+    ["A", "B", "C", "D"].do { |label, i|
+        var tabBtn = Button(window, Rect(allMargin + (i * 60), allMargin, 55, pageTabHeight - 5))
+            .states_([
+                [label, Color.black, Color.gray(0.85)],  // Unselected
+                [label, Color.white, Color.blue(0.7)]    // Selected
+            ])
+            .font_(Font("Arial", 14, true))
+            .value_(if(i == 0) { 1 } { 0 })  // First tab selected by default
+            .action_({ |btn|
+                // Switch to this page
+                if(~nUPIC[\pages].notNil and: { ~nUPIC[\pages][\manager].notNil }) {
+                    var mgr = ~nUPIC[\pages][\manager];
+                    mgr.syncFromData.value;  // Save current page data
+                    mgr.switchTo.value(i);   // Switch to new page
+
+                    // Update tab button states
+                    pageTabButtons.do { |tb, j|
+                        tb.value = if(j == i) { 1 } { 0 };
+                    };
+
+                    // Refresh display
+                    if(~nUPIC[\ui][\refreshDisplay].notNil) {
+                        { ~nUPIC[\ui][\refreshDisplay].value }.defer;
+                    };
+                };
+            });
+        pageTabButtons.add(tabBtn);
+    };
+    ~nUPIC[\ui][\state][\pageTabButtons] = pageTabButtons;
+
+    // Create frequency labels view (left area) - offset by tab height
+    freqLabelView = UserView(window, Rect(allMargin, allMargin + pageTabHeight, freqLabelWidth, arcHeight));
     freqLabelView.background = Color.white;
     ~nUPIC[\ui][\state][\freqLabelView] = freqLabelView;
 
@@ -144,7 +178,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
     // Create vertical RangeSlider for frequency zoom (positioned to the right of drawing area)
     verticalRangeSlider = RangeSlider(window,
-        Rect(drawingAreaLeft + drawingAreaWidth + rangeSliderGap, allMargin, rangeSliderWidth, arcHeight))
+        Rect(drawingAreaLeft + drawingAreaWidth + rangeSliderGap, allMargin + pageTabHeight, rangeSliderWidth, arcHeight))
         .background_(Color.gray(0.8))
         .knobColor_(Color.green)
         .hi_(1.0)  // Top frequency (normalized)
@@ -159,13 +193,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     ~nUPIC[\ui][\state][\verticalRangeSlider] = verticalRangeSlider;
 
     // Create main arc drawing view
-    drawView = UserView(window, Rect(drawingAreaLeft, allMargin, drawingAreaWidth, arcHeight));
+    drawView = UserView(window, Rect(drawingAreaLeft, allMargin + pageTabHeight, drawingAreaWidth, arcHeight));
     drawView.background = Color.white;
     ~nUPIC[\ui][\state][\drawView] = drawView;
 
     // Create horizontal RangeSlider for time zoom (positioned below drawing area)
     horizontalRangeSlider = RangeSlider(window,
-        Rect(drawingAreaLeft, allMargin + arcHeight + rangeSliderGap, drawingAreaWidth, rangeSliderHeight))
+        Rect(drawingAreaLeft, allMargin + pageTabHeight + arcHeight + rangeSliderGap, drawingAreaWidth, rangeSliderHeight))
         .background_(Color.gray(0.8))
         .knobColor_(Color.green)
         .hi_(1.0)  // End time (normalized)
@@ -1041,6 +1075,16 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     } {
         0.0
     }
+};
+
+// Update page tab selection (call when page is switched via keyboard)
+~nUPIC[\ui][\updatePageTabs] = { |pageIndex|
+    var state = ~nUPIC[\ui][\state];
+    if(state.notNil and: { state[\pageTabButtons].notNil }) {
+        state[\pageTabButtons].do { |btn, i|
+            { btn.value = if(i == pageIndex) { 1 } { 0 } }.defer;
+        };
+    };
 };
 
 "nUPIC Main Window module loaded".postln;

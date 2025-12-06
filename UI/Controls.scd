@@ -1162,9 +1162,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 var mgr = ~nUPIC[\pages][\manager];
                 var currentIdx = mgr.getCurrentIndex.value;
                 if(currentIdx > 0) {
+                    var newIdx = currentIdx - 1;
                     mgr.syncFromData.value;
-                    mgr.switchTo.value(currentIdx - 1);
-                    "Switched to page %".format(currentIdx - 1).postln;
+                    mgr.switchTo.value(newIdx);
+                    // Update page tabs
+                    if(~nUPIC[\ui][\updatePageTabs].notNil) {
+                        ~nUPIC[\ui][\updatePageTabs].value(newIdx);
+                    };
+                    "Switched to page %".format(newIdx).postln;
                 } {
                     "Already at first page".postln;
                 };
@@ -1177,9 +1182,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 var currentIdx = mgr.getCurrentIndex.value;
                 var pageCount = mgr.count.value;
                 if(currentIdx < (pageCount - 1)) {
+                    var newIdx = currentIdx + 1;
                     mgr.syncFromData.value;
-                    mgr.switchTo.value(currentIdx + 1);
-                    "Switched to page %".format(currentIdx + 1).postln;
+                    mgr.switchTo.value(newIdx);
+                    // Update page tabs
+                    if(~nUPIC[\ui][\updatePageTabs].notNil) {
+                        ~nUPIC[\ui][\updatePageTabs].value(newIdx);
+                    };
+                    "Switched to page %".format(newIdx).postln;
                 } {
                     "Already at last page".postln;
                 };
