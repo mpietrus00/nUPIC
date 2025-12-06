@@ -28,6 +28,7 @@ if(thisProcess.nowExecutingPath.notNil) {
         "Audio/SynthDefs_8ch_envelope.scd",  // Envelope-based 8ch synthdefs
         "Audio/upicWavetable.scd",
         "Core/ArcData.scd",
+        "Core/PageData.scd",  // Multi-page composition support
         "UI/IntuitiveZoomSystem.scd",
         "UI/MainWindow.scd",
         "UI/Drawing.scd",
@@ -38,6 +39,7 @@ if(thisProcess.nowExecutingPath.notNil) {
         "UI/SpatializationEditor.scd",  // Spatialization editor
         "TABLES/WavetablePresets.scd",  // Wavetable preset library
         "UI/WavetableEditor.scd",
+        "UI/PageSequencer.scd",  // Page sequence editor
         // "Utils/GridSystems.scd",
         // "Utils/FileIO.scd",
         // "Generators/BasicGenerators.scd",
@@ -143,6 +145,12 @@ if(thisProcess.nowExecutingPath.notNil) {
         };
         if(~nUPIC[\data][\selectedArcs].isNil) {
             ~nUPIC[\data][\selectedArcs] = Set.new;
+        };
+
+        // Initialize page system with first page
+        if(~nUPIC[\pages].notNil and: { ~nUPIC[\pages][\manager].notNil }) {
+            ~nUPIC[\pages][\manager].ensureInitialized.value;
+            "✓ Page system initialized".postln;
         };
 
         "=================================================".postln;

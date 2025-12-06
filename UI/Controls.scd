@@ -63,6 +63,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 ~nUPIC[\defaults][\setValue].value(\playDuration, newDuration);
             };
 
+            // Update current page's duration if page system is active
+            if(~nUPIC[\pages][\manager].notNil) {
+                var pageIdx = ~nUPIC[\pages][\manager].getCurrentIndex.value;
+                ~nUPIC[\pages][\manager].setDuration.value(pageIdx, newDuration);
+            };
+
             // Update zoom system when duration changes
             if(~nUPIC[\ui][\onDurationChange].notNil) {
                 ~nUPIC[\ui][\onDurationChange].value;
@@ -71,7 +77,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
     // Duration status
     StaticText(window, Rect(230, yStart, 300, 20))
-        .string_("(Range: 0.1-240 seconds, controls total playback time for entire arc drawing)")
+        .string_("(Range: 0.1-240 seconds, this page's duration)")
         .stringColor_(Color.gray(0.6))
         .font_(Font("Arial", 10));
 
@@ -1141,6 +1147,43 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         // } (Shift+]) - expand frequency range (wider pitch span)
         { char == $} } {
             ~nUPIC[\ui][\compressFrequencySelected].value(1.1);  // 10% expansion
+        }
+        // P - open Page Sequencer
+        { char == $p } {
+            if(~nUPIC[\pageSequencer].notNil and: { ~nUPIC[\pageSequencer][\toggle].notNil }) {
+                ~nUPIC[\pageSequencer][\toggle].value;
+            } {
+                "Page Sequencer not loaded".warn;
+            };
+        }
+        // , (comma) - previous page
+        { char == $, } {
+            if(~nUPIC[\pages][\manager].notNil) {
+                var mgr = ~nUPIC[\pages][\manager];
+                var currentIdx = mgr.getCurrentIndex.value;
+                if(currentIdx > 0) {
+                    mgr.syncFromData.value;
+                    mgr.switchTo.value(currentIdx - 1);
+                    "Switched to page %".format(currentIdx - 1).postln;
+                } {
+                    "Already at first page".postln;
+                };
+            };
+        }
+        // . (period) - next page
+        { char == $. } {
+            if(~nUPIC[\pages][\manager].notNil) {
+                var mgr = ~nUPIC[\pages][\manager];
+                var currentIdx = mgr.getCurrentIndex.value;
+                var pageCount = mgr.count.value;
+                if(currentIdx < (pageCount - 1)) {
+                    mgr.syncFromData.value;
+                    mgr.switchTo.value(currentIdx + 1);
+                    "Switched to page %".format(currentIdx + 1).postln;
+                } {
+                    "Already at last page".postln;
+                };
+            };
         };
     };
     

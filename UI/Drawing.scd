@@ -643,11 +643,33 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Instructions
     Pen.fillColor = Color.black;
     Pen.stringAtPoint(
-        "G: Select | E: Erase | SPACE: Play | Arrows: Move | Cmd+C/V: Copy/Paste | H: Help",
+        "G: Select | E: Erase | SPACE: Play | P: Pages | ,/.: Prev/Next Page | H: Help",
         Point(10, 10),
         Font("Arial", 11),
         Color.black
     );
+
+    // Page indicator (show current page if pages system is active)
+    if(~nUPIC[\pages][\manager].notNil) {
+        var mgr = ~nUPIC[\pages][\manager];
+        var pageIdx = mgr.getCurrentIndex.value;
+        var pageCount = mgr.count.value;
+        var page = mgr.getCurrent.value;
+        if(page.notNil) {
+            var pageText = "Page %/% : % (% sec)".format(
+                pageIdx + 1,
+                pageCount,
+                page.label,
+                page.duration.round(0.1)
+            );
+            Pen.stringAtPoint(
+                pageText,
+                Point(width / 2 - 80, 10),
+                Font("Arial", 12, true),
+                Color.new(0.2, 0.4, 0.6)
+            );
+        };
+    };
     
     // Show current mode
     modeText = if(state[\isPlaying]) { "PLAYING" } {
