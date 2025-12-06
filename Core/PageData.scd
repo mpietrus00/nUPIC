@@ -160,7 +160,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 currentPageIndex = index;
 
                 // Sync current page data with ~nUPIC[\data]
-                ~nUPIC[\pages][\manager].syncToData.value;
+                ~nUPIC[\pages][\manager][\syncToData].value;
 
                 "Switched from page % to page %".format(oldIndex, index).postln;
                 true
@@ -184,15 +184,26 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 ~nUPIC[\data][\wavetableBuffers] = page.wavetableBuffers;
                 ~nUPIC[\data][\selectedArcs] = page.selectedArcs;
 
-                // Update duration in UI state
+                // Update duration in UI state and controls
                 if(~nUPIC[\ui][\state].notNil) {
                     ~nUPIC[\ui][\state][\playDuration] = page.duration;
+
+                    // Update duration control widget if it exists
+                    if(~nUPIC[\ui][\state][\controls].notNil and: {
+                        ~nUPIC[\ui][\state][\controls][\durationNumber].notNil
+                    }) {
+                        {
+                            ~nUPIC[\ui][\state][\controls][\durationNumber].value = page.duration;
+                        }.defer;
+                    };
                 };
 
                 // Refresh display
                 if(~nUPIC[\ui][\refreshDisplay].notNil) {
                     { ~nUPIC[\ui][\refreshDisplay].value }.defer;
                 };
+
+                "Page synced: % arcs, duration=% sec".format(page.arcs.size, page.duration).postln;
             };
         },
 
@@ -324,7 +335,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 // Add first page to sequence
                 sequence.add(0);
                 // Sync to data
-                ~nUPIC[\pages][\manager].syncToData.value;
+                ~nUPIC[\pages][\manager][\syncToData].value;
             };
         },
 
@@ -349,9 +360,9 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 pages.add(newPage);
             };
             sequence.add(0);
-            ~nUPIC[\pages][\manager].syncToData.value;
+            ~nUPIC[\pages][\manager][\syncToData].value;
 
-            "All pages cleared, created default pages A, B, C, D".postln;
+            "All pages cleared, created default pages _a, _b, _c, _d".postln;
         },
 
         // Get summary for display
