@@ -190,10 +190,10 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
                     // Update duration control widget if it exists
                     if(~nUPIC[\ui][\state][\controls].notNil and: {
-                        ~nUPIC[\ui][\state][\controls][\durationNumber].notNil
+                        ~nUPIC[\ui][\state][\controls][\durationNumberBox].notNil
                     }) {
                         {
-                            ~nUPIC[\ui][\state][\controls][\durationNumber].value = page.duration;
+                            ~nUPIC[\ui][\state][\controls][\durationNumberBox].value = page.duration;
                         }.defer;
                     };
                 };
