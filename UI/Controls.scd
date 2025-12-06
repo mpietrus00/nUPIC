@@ -2121,7 +2121,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Clear All functionality moved to another location if needed
 
     // Transform Controls Group - for time/frequency compression/expansion
-    transformContentWidth = 25 + 2 + 25 + 8 + 25 + 2 + 25; // <> buttons + gap + ^v buttons = 112px
+    // >< = compress (squeeze inward), <> = expand (stretch outward)
+    transformContentWidth = 28 + 3 + 28 + 10 + 28 + 3 + 28; // buttons + gaps = 128px
     transformGroupWidth = transformContentWidth + 10; // Add margins
     transformGroupHeight = modeActionGroupHeight; // Match height of other groups
     transformGroupX = 5 + playbackGroupWidth + 5 + modeActionGroupWidth + 5; // After mode/action group
@@ -2143,36 +2144,36 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
     transformGroupView = CompositeView(transformBorderView, Rect(5, 5, transformContentWidth, 20));
 
-    // Time compress button (<)
-    timeCompressBtn = Button(transformGroupView, Rect(0, 0, 25, 20))
-        .states_([["<", Color.black, Color.gray(0.9)]])
-        .font_(Font("Arial", 12, true))
+    // Time compress button (><) - squeeze inward horizontally
+    timeCompressBtn = Button(transformGroupView, Rect(0, 0, 28, 20))
+        .states_([["><", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 10, true))
         .action_({
             ~nUPIC[\ui][\compressTimeSelected].value(0.9);
         });
 
-    // Time expand button (>)
-    timeExpandBtn = Button(transformGroupView, Rect(27, 0, 25, 20))
-        .states_([[">", Color.black, Color.gray(0.9)]])
-        .font_(Font("Arial", 12, true))
+    // Time expand button (<>) - stretch outward horizontally
+    timeExpandBtn = Button(transformGroupView, Rect(31, 0, 28, 20))
+        .states_([["<>", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 10, true))
         .action_({
             ~nUPIC[\ui][\compressTimeSelected].value(1.1);
         });
 
-    // Frequency expand button (^)
-    freqExpandBtn = Button(transformGroupView, Rect(60, 0, 25, 20))
-        .states_([["^", Color.black, Color.gray(0.9)]])
-        .font_(Font("Arial", 12, true))
-        .action_({
-            ~nUPIC[\ui][\compressFrequencySelected].value(1.1);
-        });
-
-    // Frequency compress button (v)
-    freqCompressBtn = Button(transformGroupView, Rect(87, 0, 25, 20))
-        .states_([["v", Color.black, Color.gray(0.9)]])
-        .font_(Font("Arial", 12, true))
+    // Frequency compress button - squeeze inward vertically
+    freqCompressBtn = Button(transformGroupView, Rect(69, 0, 28, 20))
+        .states_([["^v", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 10, true))
         .action_({
             ~nUPIC[\ui][\compressFrequencySelected].value(0.9);
+        });
+
+    // Frequency expand button - stretch outward vertically
+    freqExpandBtn = Button(transformGroupView, Rect(100, 0, 28, 20))
+        .states_([["v^", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 10, true))
+        .action_({
+            ~nUPIC[\ui][\compressFrequencySelected].value(1.1);
         });
 
     // Store transform button references
