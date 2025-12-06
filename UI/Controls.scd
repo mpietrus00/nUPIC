@@ -1165,9 +1165,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         "• Use 'Edit Amplitudes' button to open amplitude editors\n\n" ++
         "PLAYBACK:\n" ++
         "• Press SPACE to play/stop\n" ++
-        "• Use Duration slider to change playback length\n" ++
-        "• Direction menu: FWD (forward), REV (reverse), PAL (palindrome)\n" ++
-        "• Start slider: Set playback start position (0-100%)\n\n" ++
+        "• Use Duration box to change playback length\n" ++
+        "• Playback modes:\n" ++
+        "  - FWD: Forward playback (plays once)\n" ++
+        "  - REV: Reverse playback (plays backwards once)\n" ++
+        "  - PAL: Palindrome (forward then reverse, loops)\n" ++
+        "  - LOOP: Forward loop (continuous)\n" ++
+        "  - DRAG: Click and drag on canvas to scrub through sound\n\n" ++
         "ZOOM & VIEW:\n" ++
         "• Use F+ and F- buttons to zoom frequency range (20-7500Hz)\n" ++
         "• Use +/- keys for time zoom\n" ++
@@ -1923,13 +1927,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var transformContentWidth, transformGroupWidth, transformGroupHeight, transformGroupX;
     var transformBorderView, transformGroupView;
     var timeCompressBtn, timeExpandBtn, freqCompressBtn, freqExpandBtn;
-    // Playback direction/position group variables
-    var directionContentWidth, directionGroupWidth, directionGroupHeight, directionGroupX;
-    var directionBorderView, directionGroupView, directionMenu, startPosSlider;
+    // Playback mode menu variable
+    var directionMenu;
 
     // ROW 1: Playback Controls Group
-    // Calculate content size: 70 + 3 + 75 + 3 + 50 + 3 + 25 = 229px content + 10px margins (5px left + 5px right) = 239px
-    totalControlWidth = 70 + 3 + 75 + 3 + 50 + 3 + 25; // 229px total content
+    // Calculate content size: 70 + 3 + 50 + 3 + 75 + 3 + 50 + 3 + 25 = 282px content + 10px margins = 292px
+    // Layout: play button + direction menu + duration label + number box + sec label
+    totalControlWidth = 70 + 3 + 50 + 3 + 75 + 3 + 50 + 3 + 25; // 282px total content
     playbackGroupWidth = totalControlWidth + 10; // Add 5px left + 5px right margins
     playbackGroupHeight = 20 + 10; // 20px button height + 5px top + 5px bottom margins
     
@@ -1961,7 +1965,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     startX = 0;  // Start at 0 within the composite view (margins handled by composite view position)
     controlY = 0;  // Start at 0 within the composite view
     
-    // Play button (centered)
+    // Play button
     playButton = Button(playbackGroupView, Rect(startX, controlY, 70, 20))
         .states_([
             ["_play", Color.white, Color.green],
@@ -1971,22 +1975,49 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         .font_(Font("Arial", 11, true))
         .action_({ |btn|
             if(btn.value == 1) {
-                ~nUPIC[\ui][\startPlayback].value;
+                // Check if in drag mode - don't start auto playback
+                if(state[\playbackDirection] == \drag) {
+                    "Drag mode: click and drag on canvas to scrub".postln;
+                    btn.value = 0;  // Reset button
+                } {
+                    ~nUPIC[\ui][\startPlayback].value;
+                };
             } {
                 ~nUPIC[\ui][\stopPlayback].value;
             };
         });
-    
-    // Duration label (centered) - made wider to fit text in one line, with 3px gap
-    StaticText(playbackGroupView, Rect(startX + 70 + 3, controlY, 75, 20))
+
+    // Direction/Mode menu (FWD/REV/PAL/LOOP/DRAG) - next to play button
+    directionMenu = PopUpMenu(playbackGroupView, Rect(startX + 70 + 3, controlY, 50, 20))
+        .items_(["FWD", "REV", "PAL", "LOOP", "DRAG"])
+        .value_(0)  // Default to forward
+        .font_(Font("Arial", 9, true))
+        .action_({ |menu|
+            var directions = [\forward, \reverse, \palindrome, \loop, \drag];
+            state[\playbackDirection] = directions[menu.value];
+            case
+            { state[\playbackDirection] == \drag } {
+                "Drag mode: click and drag on canvas to scrub through sound".postln;
+            }
+            { state[\playbackDirection] == \loop } {
+                "Loop mode: playback will repeat continuously".postln;
+            }
+            { true } {
+                ("Playback direction: " ++ state[\playbackDirection]).postln;
+            };
+        });
+    state[\controls][\directionMenu] = directionMenu;
+
+    // Duration label - shifted right by direction menu width
+    StaticText(playbackGroupView, Rect(startX + 70 + 3 + 50 + 3, controlY, 75, 20))
         .string_("_total duration")
         .stringColor_(Color.black)
         .background_(Color.white)
         .font_(Font("Arial", 11))
         .align_(\center);
-    
-    // Duration number box (centered) - adjusted position for wider label, with 3px gap
-    durationNumberBox = NumberBox(playbackGroupView, Rect(startX + 70 + 3 + 75 + 3, controlY, 50, 20))
+
+    // Duration number box - shifted right
+    durationNumberBox = NumberBox(playbackGroupView, Rect(startX + 70 + 3 + 50 + 3 + 75 + 3, controlY, 50, 20))
         .value_(state[\playDuration] ? (if(defaults.notNil) { defaults[\playDuration] }) ? 10)
         .decimals_(1)
         .step_(0.5)
@@ -2020,8 +2051,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         });
     };
 
-    // Seconds label (centered) - adjusted position for wider duration label, with 3px gap
-    StaticText(playbackGroupView, Rect(startX + 70 + 3 + 75 + 3 + 50 + 3, controlY, 25, 20))
+    // Seconds label - shifted right to account for direction menu
+    StaticText(playbackGroupView, Rect(startX + 70 + 3 + 50 + 3 + 75 + 3 + 50 + 3, controlY, 25, 20))
         .string_("sec")
         .stringColor_(Color.gray(0.6))
         .font_(Font("Arial", 11))
@@ -2125,67 +2156,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Mode buttons properly centered and fit within the white border group
     // Clear All functionality moved to another location if needed
 
-    // Playback Direction/Position Controls Group
-    // Direction menu (FWD/REV/PAL) + Start position slider
-    directionContentWidth = 45 + 3 + 25 + 3 + 60; // menu + gap + label + gap + slider = 136px
-    directionGroupWidth = directionContentWidth + 10; // Add margins
-    directionGroupHeight = modeActionGroupHeight; // Match height
-    directionGroupX = 5 + playbackGroupWidth + 5 + modeActionGroupWidth + 5; // After mode/action group
-
-    directionBorderView = UserView(window, Rect(directionGroupX, yStart, directionGroupWidth, directionGroupHeight));
-    directionBorderView.drawFunc = {
-        var colors = ~nUPIC[\colors] ? (
-            background: Color.white,
-            systemBackground: Color.gray(0.9),
-            controlBackground: Color.white
-        );
-        var directionColor = Color.new(220/255, 250/255, 220/255); // Light green tint
-        Pen.fillColor = directionColor.alpha_(0.5);
-        Pen.fillRect(Rect(0, 0, directionGroupWidth, directionGroupHeight));
-        Pen.strokeColor = Color.white;
-        Pen.width = 2;
-        Pen.strokeRect(Rect(0, 0, directionGroupWidth, directionGroupHeight));
-    };
-
-    directionGroupView = CompositeView(directionBorderView, Rect(5, 5, directionContentWidth, 20));
-
-    // Direction popup menu
-    directionMenu = PopUpMenu(directionGroupView, Rect(0, 0, 45, 20))
-        .items_(["FWD", "REV", "PAL"])
-        .value_(0)  // Default to forward
-        .font_(Font("Arial", 9, true))
-        .action_({ |menu|
-            var directions = [\forward, \reverse, \palindrome];
-            state[\playbackDirection] = directions[menu.value];
-            ("Playback direction: " ++ state[\playbackDirection]).postln;
-        });
-
-    // Start label
-    StaticText(directionGroupView, Rect(48, 0, 25, 20))
-        .string_("start")
-        .stringColor_(Color.gray(0.5))
-        .font_(Font("Arial", 9))
-        .align_(\center);
-
-    // Start position slider (0-100% of duration)
-    startPosSlider = Slider(directionGroupView, Rect(76, 0, 60, 20))
-        .value_(0)  // Default to beginning
-        .step_(0.01)
-        .action_({ |sl|
-            state[\playbackStartPosition] = sl.value;
-            ("Start position: " ++ (sl.value * 100).round(1) ++ "%").postln;
-        });
-
-    // Store references
-    state[\controls][\directionMenu] = directionMenu;
-    state[\controls][\startPosSlider] = startPosSlider;
-
     // Transform Controls Group - for time/frequency compression/expansion
     // >< = compress (squeeze inward), <> = expand (stretch outward)
     transformContentWidth = 28 + 3 + 28 + 10 + 28 + 3 + 28; // buttons + gaps = 128px
     transformGroupWidth = transformContentWidth + 10; // Add margins
     transformGroupHeight = modeActionGroupHeight; // Match height of other groups
-    transformGroupX = 5 + playbackGroupWidth + 5 + modeActionGroupWidth + 5 + directionGroupWidth + 5; // After direction group
+    transformGroupX = 5 + playbackGroupWidth + 5 + modeActionGroupWidth + 5; // After mode/action group
 
     transformBorderView = UserView(window, Rect(transformGroupX, yStart, transformGroupWidth, transformGroupHeight));
     transformBorderView.drawFunc = {
@@ -2246,7 +2222,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     tuningContentWidth = 45 + 2 + 140 + 5 + 60 + 2 + 130; // Label + reduced margin + menu widths
     tuningGroupWidth = tuningContentWidth + 10; // Margins
     tuningGroupHeight = modeActionGroupHeight; // Match height of mode/action group
-    tuningGroupX = 5 + playbackGroupWidth + 5 + modeActionGroupWidth + 5 + directionGroupWidth + 5 + transformGroupWidth + 5; // After transform group
+    tuningGroupX = 5 + playbackGroupWidth + 5 + modeActionGroupWidth + 5 + transformGroupWidth + 5; // After transform group
 
     tuningBorderView = UserView(window, Rect(tuningGroupX, yStart, tuningGroupWidth, tuningGroupHeight));
     tuningBorderView.drawFunc = {

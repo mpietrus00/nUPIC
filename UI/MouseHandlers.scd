@@ -12,13 +12,19 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var state = ~nUPIC[\ui][\state];
     var data = ~nUPIC[\data];
     var viewportX, viewportY, virtualX, virtualY;  // For viewport translation
-    
+
     if(state.isNil or: { data.isNil }) { ^nil };
-    
+
+    // Check for DRAG mode first - interactive scrubbing
+    if(state[\playbackDirection] == \drag) {
+        ~nUPIC[\ui][\startScrub].value(x, y, width, height);
+        ^nil;  // Don't process other mouse actions in drag mode
+    };
+
     // Convert mouse coordinates using zoom-aware coordinate system
     viewportX = state[\viewportX] ? 0;
     viewportY = state[\viewportY] ? 0;
-    
+
     // Use spatial coordinate conversion - completely independent of playback duration
     if(~nUPIC[\ui][\screenToSpatial].notNil) {
         // Convert screen coordinate to normalized spatial coordinate (0.0 to 1.0)
@@ -30,7 +36,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         virtualX = x;
     };
     virtualY = y + viewportY;
-    
+
     if(state[\isPlaying].not) {
         if(state[\eraseMode]) {
             // Erase mode - start erasing
@@ -162,13 +168,19 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 ~nUPIC[\ui][\handleMouseMove] = { |x, y, width, height|
     var state = ~nUPIC[\ui][\state];
     var data = ~nUPIC[\data];
-    
+
     if(state.isNil) { ^nil };
-    
+
+    // Check for scrubbing (DRAG mode)
+    if(state[\isScrubbing] == true) {
+        ~nUPIC[\ui][\updateScrub].value(x, y, width, height);
+        ^nil;  // Don't process other mouse actions while scrubbing
+    };
+
     // Track mouse position for erase cursor
     state[\mouseX] = x;
     state[\mouseY] = y;
-    
+
     if(state[\isMarqueeSelecting] == true) {
         // Update marquee selection rectangle
         state[\marqueeCurrentX] = x;
@@ -296,9 +308,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var constants = ~nUPIC[\constants];
     var defaults = ~nUPIC[\defaults];
     var synthDef;
-    
+
     if(state.isNil) { ^nil };
-    
+
+    // Check for scrubbing (DRAG mode) - stop scrub on mouse up
+    if(state[\isScrubbing] == true) {
+        ~nUPIC[\ui][\stopScrub].value;
+        ^nil;  // Don't process other mouse actions
+    };
+
     if(state[\isMarqueeSelecting] == true) {
         // Finish marquee selection
         state[\isMarqueeSelecting] = false;
@@ -973,10 +991,186 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     transformedCount
 };
 
+// ============================================
+// DRAG/SCRUB MODE - Interactive audio scrubbing
+// ============================================
+
+// Start scrubbing - create synths for all arcs
+~nUPIC[\ui][\startScrub] = { |x, y, width, height|
+    var state = ~nUPIC[\ui][\state];
+    var data = ~nUPIC[\data];
+    var constants = ~nUPIC[\constants];
+
+    if(state.isNil or: { data.isNil }) { ^nil };
+
+    "Starting scrub mode...".postln;
+    state[\isScrubbing] = true;
+    state[\scrubSynths] = List.new;
+
+    // Create a synth for each arc
+    if(data[\arcs].notNil) {
+        data[\arcs].do { |traj, i|
+            if(traj.size > 1) {
+                var synthDef = if(data[\trajectorySynthDefs].notNil and: {
+                    i < data[\trajectorySynthDefs].size
+                }) {
+                    data[\trajectorySynthDefs][i] ? \simpleGravObject
+                } { \simpleGravObject };
+
+                try {
+                    var synth = Synth(synthDef, [
+                        \freq, 440,
+                        \amp, 0,
+                        \pan, 0,
+                        \gate, 1
+                    ], s);
+                    state[\scrubSynths].add(synth);
+                } { |err|
+                    state[\scrubSynths].add(nil);
+                };
+            } {
+                state[\scrubSynths].add(nil);
+            };
+        };
+    };
+
+    // Update synths for initial position
+    ~nUPIC[\ui][\updateScrub].value(x, y, width, height);
+};
+
+// Update scrub - update synth parameters based on mouse position
+~nUPIC[\ui][\updateScrub] = { |x, y, width, height|
+    var state = ~nUPIC[\ui][\state];
+    var data = ~nUPIC[\data];
+    var constants = ~nUPIC[\constants];
+    var currentTime, currentDuration;
+
+    if(state.isNil or: { data.isNil } or: { state[\isScrubbing].not }) { ^nil };
+    if(state[\scrubSynths].isNil) { ^nil };
+
+    // Calculate time position from mouse X
+    currentDuration = state[\playDuration] ? 10;
+    currentTime = (x / width) * currentDuration;
+    currentTime = currentTime.clip(0, currentDuration);
+
+    // Update playback position for visual display
+    state[\playbackPosition] = currentTime;
+
+    // Update each arc synth
+    if(data[\arcs].notNil) {
+        data[\arcs].do { |traj, i|
+            var synth = state[\scrubSynths][i];
+
+            if(synth.notNil and: { traj.size > 1 }) {
+                var canvasWidth = constants[\defaultWidth] ? 1200;
+                var firstPoint = traj[0];
+                var lastPoint = traj.last;
+                var arcStartTime, arcEndTime, arcDuration;
+
+                // Calculate arc time range
+                arcStartTime = (firstPoint.x / canvasWidth) * currentDuration;
+                arcEndTime = (lastPoint.x / canvasWidth) * currentDuration;
+                arcDuration = arcEndTime - arcStartTime;
+
+                // Check if current time is within arc's time range
+                if(currentTime >= arcStartTime and: { currentTime <= arcEndTime } and: { arcDuration > 0 }) {
+                    // Interpolate within arc
+                    var arcProgress = (currentTime - arcStartTime) / arcDuration;
+                    var numPoints = traj.size;
+                    var floatIndex = arcProgress * (numPoints - 1);
+                    var index1 = floatIndex.floor.asInteger.clip(0, numPoints - 2);
+                    var index2 = (index1 + 1).clip(0, numPoints - 1);
+                    var interpFactor = floatIndex - index1;
+
+                    var point1 = traj[index1];
+                    var point2 = traj[index2];
+                    var freq1 = if(point1.isKindOf(Event)) { point1.freq } { 440 };
+                    var freq2 = if(point2.isKindOf(Event)) { point2.freq } { 440 };
+                    var freq = freq1 + ((freq2 - freq1) * interpFactor);
+
+                    // Get amplitude from envelope if available
+                    var amp = 0.3;
+                    if(data[\amplitudeEnvelopes].notNil and: {
+                        i < data[\amplitudeEnvelopes].size
+                    } and: { data[\amplitudeEnvelopes][i].notNil }) {
+                        var ampEnv = data[\amplitudeEnvelopes][i];
+                        amp = ~nUPIC[\ui][\interpolateAmplitudeAt].value(ampEnv, currentTime, canvasWidth, currentDuration) ? 0.3;
+                    };
+
+                    synth.set(\freq, freq, \amp, amp * 0.5, \pan, 0);
+                } {
+                    // Outside arc range - silence
+                    synth.set(\amp, 0);
+                };
+            };
+        };
+    };
+
+    // Refresh display to show playback position
+    { state[\drawView].refresh }.defer;
+};
+
+// Stop scrubbing - release all synths
+~nUPIC[\ui][\stopScrub] = {
+    var state = ~nUPIC[\ui][\state];
+
+    if(state.isNil) { ^nil };
+
+    "Stopping scrub mode".postln;
+    state[\isScrubbing] = false;
+
+    // Release all scrub synths
+    if(state[\scrubSynths].notNil) {
+        state[\scrubSynths].do { |synth|
+            if(synth.notNil) {
+                try {
+                    synth.set(\gate, 0);
+                    { synth.free }.defer(0.1);
+                } { };
+            };
+        };
+        state[\scrubSynths].clear;
+    };
+
+    state[\playbackPosition] = 0;
+    { state[\drawView].refresh }.defer;
+};
+
+// Helper to interpolate amplitude at a given time position
+~nUPIC[\ui][\interpolateAmplitudeAt] = { |ampEnv, currentTime, canvasWidth, duration|
+    var result = 0.3;  // Default amplitude
+    var currentX = (currentTime / duration) * canvasWidth;
+
+    if(ampEnv.notNil and: { ampEnv.size > 0 }) {
+        // Find surrounding points
+        var prevPoint, nextPoint;
+        ampEnv.do { |point|
+            if(point.x <= currentX) { prevPoint = point };
+        };
+        ampEnv.do { |point|
+            if(nextPoint.isNil and: { point.x >= currentX }) { nextPoint = point };
+        };
+
+        if(prevPoint.notNil and: { nextPoint.notNil }) {
+            if(prevPoint.x == nextPoint.x) {
+                result = prevPoint.amp;
+            } {
+                var factor = (currentX - prevPoint.x) / (nextPoint.x - prevPoint.x);
+                result = prevPoint.amp + ((nextPoint.amp - prevPoint.amp) * factor);
+            };
+        } {
+            if(prevPoint.notNil) { result = prevPoint.amp };
+            if(nextPoint.notNil) { result = nextPoint.amp };
+        };
+    };
+    result
+};
+
 "nUPIC Mouse Handlers loaded".postln;
 "Additional functions available:".postln;
 "  ~nUPIC[\\ui][\\reverseArcDirection].value(index) - Reverse specific arc".postln;
 "  ~nUPIC[\\ui][\\reverseSelectedTrajectories].value - Reverse all selected trajectories".postln;
 "  ~nUPIC[\\ui][\\compressTimeSelected].value(factor) - Time compress/expand selected (0.9=compress, 1.1=expand)".postln;
 "  ~nUPIC[\\ui][\\compressFrequencySelected].value(factor) - Freq compress/expand selected (0.9=compress, 1.1=expand)".postln;
+"  Drag mode: Select DRAG from playback menu, then click and drag on canvas to scrub through sound".postln;
 )

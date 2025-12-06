@@ -189,27 +189,30 @@ data[\arcDurations] = List.new;  // Per-arc duration overrides
 > "The reading position and direction on a page and between pages can be variable, too." (Page 3)
 
 ### Current nUPIC State
-- **IMPLEMENTED** - Playback direction and start position now available
-- Direction options: Forward (FWD), Reverse (REV), Palindrome (PAL)
-- Start position slider allows playback from any point (0-100%)
+- **IMPLEMENTED** - Playback direction control and interactive scrubbing now available
+- Direction options: Forward (FWD), Reverse (REV), Palindrome (PAL), Loop (LOOP), Drag/Scrub (DRAG)
 
 ### Proposal 4.1: Playback Direction Control ✓ IMPLEMENTED
 **Description:** Allow arcs to be played in reverse or with variable direction.
 
 **Implementation:** (in `UI/MainWindow.scd` and `UI/Controls.scd`)
 - State variables: `state[\playbackDirection]`, `state[\palindromePhase]`
-- UI: Direction popup menu (FWD/REV/PAL) in control panel
-- Forward: plays 0 → duration
-- Reverse: plays duration → 0
-- Palindrome: plays 0 → duration → 0 (ping-pong, loops)
+- UI: Playback mode menu (FWD/REV/PAL/LOOP/DRAG) next to play button
+- Modes:
+  - FWD: Forward playback (0 → duration, plays once)
+  - REV: Reverse playback (duration → 0, plays once)
+  - PAL: Palindrome (forward then reverse, loops continuously)
+  - LOOP: Forward loop (continuous playback)
+  - DRAG: Interactive scrubbing (click and drag on canvas to hear sound at mouse position)
 
-### Proposal 4.2: Playhead Position Control ✓ IMPLEMENTED
+### Proposal 4.2: Playhead Position Control ✓ IMPLEMENTED (via DRAG mode)
 **Description:** Allow setting arbitrary start position for playback.
 
-**Implementation:** (in `UI/MainWindow.scd` and `UI/Controls.scd`)
-- State variable: `state[\playbackStartPosition]` (0.0 to 1.0)
-- UI: Start position slider in control panel
-- Combined with direction for flexible playback starting point
+**Implementation:** (in `UI/MouseHandlers.scd`)
+- DRAG mode enables interactive scrubbing
+- Click and drag anywhere on canvas to hear sound at that time position
+- Functions: `startScrub`, `updateScrub`, `stopScrub`
+- Real-time frequency interpolation and amplitude envelope support
 
 ---
 

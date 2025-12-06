@@ -13,7 +13,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     maxUndoSteps: 50,
     
     // UI dimensions
-    defaultWidth: 1610,  // Increased to accommodate playback direction/position controls
+    defaultWidth: 1500,  // Adjusted for playback mode menu in playback group
     defaultHeight: 670,  // Increased by 20px for better proportions
     controlPanelHeight: 32,  // Reduced from 240 for compact controls
     

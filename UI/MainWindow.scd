@@ -429,31 +429,37 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             0.1.wait;
 
             // Playback loop with dual-rate updates
-            // Initialize based on playback direction and start position
+            // Initialize based on playback direction
             {
                 var playDirection = state[\playbackDirection] ? \forward;
-                var startPos = state[\playbackStartPosition] ? 0.0;
-                var initTime;
 
-                // Calculate initial playback time based on direction and start position
+                // Calculate initial playback time based on direction
                 case
-                { playDirection == \forward } {
-                    initTime = startPos * state[\playDuration];
+                { playDirection == \forward or: { playDirection == \loop } } {
+                    state[\playbackPosition] = 0;
                     state[\palindromePhase] = \forward;
                 }
                 { playDirection == \reverse } {
-                    // For reverse, start from end minus start position offset
-                    initTime = state[\playDuration] - (startPos * state[\playDuration]);
+                    state[\playbackPosition] = state[\playDuration];
                     state[\palindromePhase] = \reverse;
                 }
                 { playDirection == \palindrome } {
-                    initTime = startPos * state[\playDuration];
-                    state[\palindromePhase] = \forward;  // Start going forward
+                    state[\playbackPosition] = 0;
+                    state[\palindromePhase] = \forward;
+                }
+                { playDirection == \drag } {
+                    // Drag mode - don't auto-play, handled by mouse
+                    state[\isPlaying] = false;
+                    "Drag mode active - click and drag on canvas to scrub".postln;
                 };
 
-                state[\playbackPosition] = initTime;
-                ("Playback starting - Direction: " ++ playDirection ++ ", Start: " ++ initTime.round(0.01) ++ "s").postln;
+                ("Playback starting - Mode: " ++ playDirection).postln;
             }.value;
+
+            // Exit early if drag mode
+            if(state[\playbackDirection] == \drag) {
+                ^nil;
+            };
 
             startTime = Main.elapsedTime;  // Record actual start time for sync
 
@@ -464,6 +470,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 { playDirection == \forward } { state[\playbackPosition] < state[\playDuration] }
                 { playDirection == \reverse } { state[\playbackPosition] > 0 }
                 { playDirection == \palindrome } { true }  // Palindrome continues until stopped
+                { playDirection == \loop } { true }  // Loop continues until stopped
                 { true }  // Default
             } } {
                 var actualElapsedTime = Main.elapsedTime - startTime;  // Real elapsed time
@@ -472,33 +479,33 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 var currentDuration = state[\playDuration];  // Read current duration each frame
                 var activeSynthCount = 0;  // Count synths that are actively playing
                 var playDirection = state[\playbackDirection] ? \forward;
-                var startPos = state[\playbackStartPosition] ? 0.0;
 
                 // Calculate currentTime based on playback direction
                 case
                 { playDirection == \forward } {
-                    // Forward: start at startPos, increase time
-                    currentTime = (startPos * currentDuration) + actualElapsedTime;
+                    // Forward: start at 0, increase time
+                    currentTime = actualElapsedTime;
                     state[\playbackPosition] = currentTime;
                 }
                 { playDirection == \reverse } {
-                    // Reverse: start at end minus startPos offset, decrease time
-                    currentTime = currentDuration - (startPos * currentDuration) - actualElapsedTime;
-                    currentTime = currentTime.max(0);  // Don't go below 0
+                    // Reverse: start at end, decrease time
+                    currentTime = currentDuration - actualElapsedTime;
+                    currentTime = currentTime.max(0);
+                    state[\playbackPosition] = currentTime;
+                }
+                { playDirection == \loop } {
+                    // Loop: wrap around when reaching end
+                    currentTime = actualElapsedTime % currentDuration;
                     state[\playbackPosition] = currentTime;
                 }
                 { playDirection == \palindrome } {
                     // Palindrome: alternate between forward and reverse
-                    var cycleTime = actualElapsedTime % (currentDuration * 2);  // Full cycle = 2x duration
-                    var phase = state[\palindromePhase] ? \forward;
+                    var cycleTime = actualElapsedTime % (currentDuration * 2);
 
                     if(cycleTime < currentDuration) {
                         // First half: forward
-                        currentTime = (startPos * currentDuration) + cycleTime;
-                        if(currentTime >= currentDuration) {
-                            currentTime = currentDuration - (currentTime - currentDuration);
-                            state[\palindromePhase] = \reverse;
-                        };
+                        currentTime = cycleTime;
+                        state[\palindromePhase] = \forward;
                     } {
                         // Second half: reverse
                         currentTime = currentDuration - (cycleTime - currentDuration);
