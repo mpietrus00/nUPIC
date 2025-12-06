@@ -1917,7 +1917,11 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Spatialization editor group variables
     var spatialEditContentWidth, spatialEditGroupWidth, spatialEditGroupHeight, spatialEditGroupX;
     var spatialEditBorderView, spatialEditGroupView, editSpatialButton;
-    
+    // Transform controls group variables
+    var transformContentWidth, transformGroupWidth, transformGroupHeight, transformGroupX;
+    var transformBorderView, transformGroupView;
+    var timeCompressBtn, timeExpandBtn, freqCompressBtn, freqExpandBtn;
+
     // ROW 1: Playback Controls Group
     // Calculate content size: 70 + 3 + 75 + 3 + 50 + 3 + 25 = 229px content + 10px margins (5px left + 5px right) = 239px
     totalControlWidth = 70 + 3 + 75 + 3 + 50 + 3 + 25; // 229px total content
@@ -2116,11 +2120,72 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Mode buttons properly centered and fit within the white border group
     // Clear All functionality moved to another location if needed
 
+    // Transform Controls Group - for time/frequency compression/expansion
+    transformContentWidth = 25 + 2 + 25 + 8 + 25 + 2 + 25; // <> buttons + gap + ^v buttons = 112px
+    transformGroupWidth = transformContentWidth + 10; // Add margins
+    transformGroupHeight = modeActionGroupHeight; // Match height of other groups
+    transformGroupX = 5 + playbackGroupWidth + 5 + modeActionGroupWidth + 5; // After mode/action group
+
+    transformBorderView = UserView(window, Rect(transformGroupX, yStart, transformGroupWidth, transformGroupHeight));
+    transformBorderView.drawFunc = {
+        var colors = ~nUPIC[\colors] ? (
+            background: Color.white,
+            systemBackground: Color.gray(0.9),
+            controlBackground: Color.white
+        );
+        var transformColor = Color.new(205/255, 220/255, 250/255); // Light blue tint
+        Pen.fillColor = transformColor.alpha_(0.4);
+        Pen.fillRect(Rect(0, 0, transformGroupWidth, transformGroupHeight));
+        Pen.strokeColor = Color.white;
+        Pen.width = 2;
+        Pen.strokeRect(Rect(0, 0, transformGroupWidth, transformGroupHeight));
+    };
+
+    transformGroupView = CompositeView(transformBorderView, Rect(5, 5, transformContentWidth, 20));
+
+    // Time compress button (<)
+    timeCompressBtn = Button(transformGroupView, Rect(0, 0, 25, 20))
+        .states_([["<", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 12, true))
+        .action_({
+            ~nUPIC[\ui][\compressTimeSelected].value(0.9);
+        });
+
+    // Time expand button (>)
+    timeExpandBtn = Button(transformGroupView, Rect(27, 0, 25, 20))
+        .states_([[">", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 12, true))
+        .action_({
+            ~nUPIC[\ui][\compressTimeSelected].value(1.1);
+        });
+
+    // Frequency expand button (^)
+    freqExpandBtn = Button(transformGroupView, Rect(60, 0, 25, 20))
+        .states_([["^", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 12, true))
+        .action_({
+            ~nUPIC[\ui][\compressFrequencySelected].value(1.1);
+        });
+
+    // Frequency compress button (v)
+    freqCompressBtn = Button(transformGroupView, Rect(87, 0, 25, 20))
+        .states_([["v", Color.black, Color.gray(0.9)]])
+        .font_(Font("Arial", 12, true))
+        .action_({
+            ~nUPIC[\ui][\compressFrequencySelected].value(0.9);
+        });
+
+    // Store transform button references
+    state[\controls][\timeCompressBtn] = timeCompressBtn;
+    state[\controls][\timeExpandBtn] = timeExpandBtn;
+    state[\controls][\freqCompressBtn] = freqCompressBtn;
+    state[\controls][\freqExpandBtn] = freqExpandBtn;
+
     // Scale/SynthDef Controls group
     tuningContentWidth = 45 + 2 + 140 + 5 + 60 + 2 + 130; // Label + reduced margin + menu widths
     tuningGroupWidth = tuningContentWidth + 10; // Margins
     tuningGroupHeight = modeActionGroupHeight; // Match height of mode/action group
-    tuningGroupX = 5 + playbackGroupWidth + 5 + modeActionGroupWidth + 5; // To the right of modeActionGroup
+    tuningGroupX = 5 + playbackGroupWidth + 5 + modeActionGroupWidth + 5 + transformGroupWidth + 5; // After transform group
 
     tuningBorderView = UserView(window, Rect(tuningGroupX, yStart, tuningGroupWidth, tuningGroupHeight));
     tuningBorderView.drawFunc = {
