@@ -28,6 +28,159 @@
 
 
 // ============================================================================
+// PAGES API
+// ============================================================================
+// Each page has its own independent arcs, duration, synthdefs, envelopes.
+// Default pages are _a, _b, _c, _d (up to 24 pages supported).
+
+// --- Basic Page Access ---
+
+// Get current page index (0-based)
+~nUPIC[\pages][\manager][\getCurrentIndex].value;
+
+// Get current page data
+~nUPIC[\pages][\manager][\getCurrent].value;
+// Returns: (label, duration, arcs, amplitudeEnvelopes, spatialEnvelopes, arcSynthDefs, ...)
+
+// Get specific page by index
+~nUPIC[\pages][\manager][\getPage].value(0);  // Get page _a
+
+// Get number of pages
+~nUPIC[\pages][\manager][\count].value;
+
+// Get summary of all pages
+~nUPIC[\pages][\manager][\getSummary].value;
+// Returns list of: (index, label, duration, arcCount, isCurrent)
+
+// --- Switching Pages ---
+
+// Switch to page by index (0 = _a, 1 = _b, etc.)
+~nUPIC[\pages][\manager][\switchTo].value(1);  // Switch to page _b
+
+// Note: switching automatically:
+//   1. Saves current page data (syncFromData)
+//   2. Loads new page data (syncToData)
+//   3. Updates UI controls (duration, tabs)
+//   4. Refreshes arc display
+
+// --- Page Duration ---
+
+// Get duration for a specific page
+~nUPIC[\pages][\manager][\getDuration].value(0);  // Page _a duration
+
+// Set duration for a specific page (in seconds, 0.1-240)
+~nUPIC[\pages][\manager][\setDuration].value(0, 30);   // Page _a = 30 sec
+~nUPIC[\pages][\manager][\setDuration].value(1, 60);   // Page _b = 60 sec
+~nUPIC[\pages][\manager][\setDuration].value(2, 120);  // Page _c = 120 sec
+
+// --- Page Labels ---
+
+// Set custom label for a page
+~nUPIC[\pages][\manager][\setLabel].value(0, "_intro");
+~nUPIC[\pages][\manager][\setLabel].value(1, "_verse");
+~nUPIC[\pages][\manager][\setLabel].value(2, "_chorus");
+
+// --- Creating & Managing Pages ---
+
+// Create a new page (returns new page index)
+~nUPIC[\pages][\manager][\create].value("_e", 45);  // Label "_e", duration 45 sec
+
+// Duplicate an existing page (copies all arcs, envelopes, etc.)
+~nUPIC[\pages][\manager][\duplicate].value(0);  // Duplicate page _a
+
+// Delete a page by index (cannot delete if only one page remains)
+~nUPIC[\pages][\manager][\delete].value(3);  // Delete page at index 3
+
+// Clear all and reset to default pages (_a, _b, _c, _d)
+~nUPIC[\pages][\manager][\clearAll].value;
+
+// --- Per-Page Arcs & SynthDefs ---
+
+// Each page has its own arcs. When you switch pages, ~nUPIC[\data][\arcs]
+// points to the current page's arcs. To modify arcs on a specific page:
+
+// 1. Switch to that page
+~nUPIC[\pages][\manager][\switchTo].value(1);  // Go to page _b
+
+// 2. Now arc operations affect page _b
+~nUPIC[\arcs][\setSynthDef].value(0, \upicWavetable8ch);  // Arc 0 on page _b
+
+// Or access page data directly:
+(
+var page = ~nUPIC[\pages][\manager][\getPage].value(2);  // Get page _c
+page.arcs.size.postln;  // Number of arcs on page _c
+page.arcSynthDefs[0].postln;  // SynthDef for arc 0 on page _c
+)
+
+// --- Page Sequence (Playback Order) ---
+
+// Pages can be arranged in a sequence for continuous playback.
+// The sequence is a list of page indices.
+
+// Set playback sequence
+~nUPIC[\pages][\manager][\setSequence].value([0, 1, 0, 2, 3]);  // _a, _b, _a, _c, _d
+
+// Add page to end of sequence
+~nUPIC[\pages][\manager][\addToSequence].value(1);  // Add page _b to end
+
+// Add page at specific position
+~nUPIC[\pages][\manager][\addToSequence].value(0, 2);  // Insert _a at position 2
+
+// Remove from sequence by position
+~nUPIC[\pages][\manager][\removeFromSequence].value(3);  // Remove item at position 3
+
+// Move item in sequence
+~nUPIC[\pages][\manager][\moveInSequence].value(0, 2);  // Move from pos 0 to pos 2
+
+// Get total duration of sequence (sum of all page durations)
+~nUPIC[\pages][\manager][\getTotalDuration].value;
+
+// Get sequence as labels
+~nUPIC[\pages][\manager][\getSequenceLabels].value;  // ["_a", "_b", "_a", "_c", "_d"]
+
+// --- Convenience Accessors ---
+
+// Shorter syntax using convenience functions:
+~nUPIC[\pages][\current].value;                    // Get current page
+~nUPIC[\pages][\count].value;                      // Get page count
+~nUPIC[\pages][\switchTo].value(2);                // Switch to page _c
+~nUPIC[\pages][\setDuration].value(0, 30);         // Set page _a duration
+~nUPIC[\pages][\getDuration].value(1);             // Get page _b duration
+~nUPIC[\pages][\setLabel].value(0, "_intro");      // Set page label
+~nUPIC[\pages][\create].value("_new", 60);         // Create new page
+~nUPIC[\pages][\duplicate].value(0);               // Duplicate page
+~nUPIC[\pages][\delete].value(4);                  // Delete page
+
+// --- Example: Set Up Different SynthDefs Per Page ---
+
+(
+// Page _a: stereo wavetable synth
+~nUPIC[\pages][\manager][\switchTo].value(0);
+~nUPIC[\pages][\manager][\setDuration].value(0, 30);
+~nUPIC[\data][\arcs].do { |arc, i|
+    ~nUPIC[\arcs][\setSynthDef].value(i, \upicWavetable);
+};
+
+// Page _b: 8-channel spatial synth
+~nUPIC[\pages][\manager][\switchTo].value(1);
+~nUPIC[\pages][\manager][\setDuration].value(1, 60);
+~nUPIC[\data][\arcs].do { |arc, i|
+    ~nUPIC[\arcs][\setSynthDef].value(i, \upicWavetable8ch);
+};
+
+// Page _c: FM synthesis
+~nUPIC[\pages][\manager][\switchTo].value(2);
+~nUPIC[\pages][\manager][\setDuration].value(2, 45);
+~nUPIC[\data][\arcs].do { |arc, i|
+    ~nUPIC[\arcs][\setSynthDef].value(i, \upicFM);
+};
+
+// Switch back to page _a
+~nUPIC[\pages][\manager][\switchTo].value(0);
+)
+
+
+// ============================================================================
 // ARCS API
 // ============================================================================
 // Access and modify arc data programmatically.
