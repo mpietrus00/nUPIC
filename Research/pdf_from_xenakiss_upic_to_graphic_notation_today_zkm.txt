@@ -1,0 +1,653 @@
+THE DIGITAL
+INSTRUMENT AS AN
+
+MARCIN PIETRUSZEWSKI
+
+ARTIFACT
+
+613
+
+MARCIN PIETRUSZEWSKI
+
+THE DIGITAL
+INSTRUMENT
+AS AN ARTIFACT
+INTRODUCTION
+
+MARCIN PIETRUSZEWSKI
+
+At first, the computer program is neutral and exists only in terms devoid
+of any reference other than to itself. The program is its function. It is a
+tool. It does something; it instructs a computer to perform a task. Its
+working is often imperceptible beyond the surface of its interface—screen
+based or physical—and its material extension to the inner depths of
+its digital structure, the code. Reduced to its substance, being digital
+consists of one of two binary values, either 0 or 1—the bit—and its
+multiples, the byte. These elementary values cannot by themselves
+constitute an object of reflection; as Guerino Mazzola points out “The
+digital age is not centered around ‘bits and bytes’ but around their
+accessibility and handling.”[1] Opening up the contents of the software
+and exposing its inner working enables theorizing about the relationships
+within the code itself, the coding architecture, the functioning of the code,
+and specific programming choices or expressions, upon which the code
+acts, outputs, processes, and represents.
+However, focusing solely on a functional aspect of software limits
+our engagement with its wider assemblage of connotations. Beyond the
+functional and ostensible neutrality of its interface the software is an
+artifact, as Matthew Fuller points out: “software creates sensoriums” and
+participates in constructing “ways of seeing, knowing and doing in the
+world.”[2] The software both contains a model of a world it ostensibly
+pertains to and it also shapes the world each time it is used. Subrata
+Dasgupta defines artifacts as “useful things that are produced or consciously
+conceived in response to some practical need, want or desire.”[3]
+With the UPIC (Unité Polyagogique Informatique de CEMAMu) Iannis
+Xenakis operationalized a multiscale approach to sound composition within
+a standard user interface. An incessant interpolation between temporal
+resolutions of the micro, meso, and macro scales[4] constituted a vital feature
+of the vision behind the UPIC. The system incorporated a particular view of
+sound composition which moved beyond the theory of Fourier[5] and took
+as a starting point the pressure versus time curve together with a sound
+conceived as quantum; a “phonon” imagined already by Einstein in 1910.[6,7]
+Xenakis’s ambition was “to take possession of the sound in a more conscious
+and thorough manner,” to conceive “the material of sound” as composable.[8]
+
+614
+
+The design of the UPIC mobilized a correlative gestural and conceptual
+exploration of the temporal, physical, and perceptual parameters of sound.
+In my practice as a composer and researcher, I have been developing a
+computer program called the New Pulsar Generator (nuPG).[9] The program
+produces a form of synthesis called pulsar synthesis; its design draws upon
+and extends the original Pulsar Generator (PG) application by Curtis Roads
+and Alberto de Campo as described in the publications Microsound[10] and
+“Sound Composition with Pulsars.”[11] The technique generates a complex
+hybrid of sounds across the perceptual time span between infrasonic
+pulsations and audio frequencies, giving rise to a broad family of musical
+structures: singular impulses, sequences, continuous tones, time-varying
+phrases, and beating textures. Through its inherently multiscale character,
+pulsar synthesis proposes a unique view on rhythm moving beyond a linear
+series of points and intervals tied to a time grid, and introduces a notion of
+rhythm as a continuously flowing temporal substrate. Both PG and nuPG
+relate to the UPIC through their graphical parametrization of synthesis
+data and systematic approach to composition across multiple temporal
+levels; an attempt at fusion between micro and macro scales. The study of
+pragmata of these systems and a reflection on their sonic output provokes
+many fundamental questions about computing, listening and understanding,
+creation, interaction, and computer music aesthetics.
+This article aims to display how engaging with a digital instrument—
+particular qualities and propensities of its design, functional and conceptual
+encapsulation of sound and composition theories—contributes to a
+mediated model of creative music practice. Such an approach fits within a
+broader perspective viewing technology and its objects beyond their merely
+functional and instrumental roles, but as mediators of human experiences
+and practices.[12] Taking a comparative approach in which the UPIC and the
+nuPG systems are engaged with as tools of a particular epistemic modality, I
+propose a concept of an “epistemic tool” to further contextualize a practice
+of composing with computers in a current multiply-mediated musical reality.[13]
+I shall focus on a particular epistemic perspective prescribed within
+the design of the UPIC, an integration between conceptual, sound and
+visual realms under a notion of multitemporal sound composition. I
+propose a parallel narrative of the UPIC and nuPG that display an osmosis
+of concepts and technologies of design. Throughout, key themes of this
+text are composition across multiple timescales and computer program as
+an artifact.
+THE UPIC AND A MULTITEMPORAL PARADIGM
+
+A key idea behind the UPIC was that everything in the composition could
+be solved in the time domain by working out various shapes, such as
+
+THE DIGITAL
+INSTRUMENT AS
+AN ARTIFACT
+
+615
+
+MARCIN PIETRUSZEWSKI
+
+waveforms, pitch curves, and dynamic envelopes. This concept, also
+called “graphical synthesis”[14] can be linked back to early experiments in
+optical synthesis from the early twentieth century.[15]
+When working with the UPIC, the user is confronted with a clean
+slate, a tabula rasa; the system is mute and to generate sound it
+requires input. The whole aspect of compositional labor—requiring the
+user to specify objects from the microstructure of sound, its dynamic
+development in time, and to the overall form of the composition—should
+be seen as an intentional aesthetic and conceptual stance.[16] At the
+level of sound microstructure, the user specifies the waveform and a
+shape of the dynamic envelope, which together can be thought of as an
+elemental timbre of the instrument. At a higher level of organization, the
+user operates the music page function, drawing shapes—lines, curves,
+and points, called arcs—on a frequency (vertical) versus time (horizontal)
+axis.[17] FIG. 1
+These drawn shapes need to be assigned to previously specified
+timbres. However, up to this point each input to the system—the waveform,
+envelope, and frequency time shapes on a page—exist only as a simple
+drawing. To use a Xenakian notion, these shapes exist outside-of-time—they
+lack temporal boundaries. By defining a duration (or multiple divisions of it)
+for the page, the user decides how to temporalize these drawings: how to
+bring the outside-of-time abstract shapes into-time. Only when the duration
+is defined are these shapes then converted to music waves.
+An essential aspect of UPIC’s setup are the editing capabilities
+that each of the arcs could be subjected to: the user can cut, copy, and
+paste individual shapes, and compress or stretch them in time and
+frequency. An example of all these procedures can be found in Xenakis’s
+UPIC composition (1978), which consists of arborescent shapes, cut and
+pasted, compressed and stretched in time and frequency.[18] The reading
+position and direction on a page and between pages can be variable, too.
+As observed by Curtis Roads,[19] arcs written to a page with a duration of a
+second become a characteristic of the sound’s microstructure. An opposite
+manipulation is possible as well; the microstructural pressure versus time
+curve can be stretched in time and used as a structuring element at meso
+or macro time levels.
+The uniform treatment of composition data and objects at every
+level mobilizes a creative grafting across and between the micro, meso,
+and macro time resolutions, a dialectical couplet of local and global
+perspectives. The design of the UPIC favored a flexible work between
+two strands of conceptualization: the inductive—a bottom-up glueing
+of the elemental into the global—and a deductive—a top-down carving
+of the whole into smaller parts. As such, the UPIC might be described
+
+617
+
+MARCIN PIETRUSZEWSKI
+
+as a system of "transparent stratification" rendering entirely open for a
+pendular process of differentiation and reintegration of sound materials
+and forms at all the levels of temporal organization.[20] Such a bimodal
+process problematizes the duality between form and material: the same
+object can be conceived as material or form (substance or container)
+depending on the level of investigation.[21]
+The design of the UPIC extended the temporal field of compositional
+activity and attempted to functionalize a multiscale approach to musical
+form. To operate within a full register of timescales is to shift the aesthetic
+focus away from discrete sound entities occupying well-defined time frames
+towards continuous and evolving objects with fuzzy boundaries. These new
+objects rarely conform to traditional angular forms of musical structure, and
+tend toward cloud-like evaporative and continuously evolving morphologies.
+The multiscale approach favors flexibility, as Curtis Roads points out: it
+mediates between a high-level abstract plan (the top-down global structure)
+and opportunities emerging from a low-level of sound material operations
+(the bottom-up local structures). All temporal levels are to be composed;
+at any time in the compositional process, we can intervene by synthesis
+and transformation at any timescale, from a macro scale of the whole
+work, down to sections, phrases, sound objects, grains, and even individual
+samples.[22] A dialectic of inductive and deductive processes, observed
+within the workings of UPIC, forms a key characteristic of the multiscale
+composition approach: to approach musical composition from a multiscale
+perspective is to allow an interplay between inductive (specific and local)
+and deductive (general and global) thinking. These issues are pertinent to
+the theory and practice of pulsar synthesis.
+PULSAR SYNTHESIS: FROM PG TO NUPG
+
+FIG. 1 A workspace of UPIC 3 running on a PC displaying partial data of a composition
+by French-American composer Brigitte Robindoré, 2003, screenshot. Notice a variety of
+shapes used as envelope and waveform as well as complexity and richness of the page.
+© Brigitte Robindoré
+
+As an integral part of my artistic research practice, I have been involved
+in a systematic exploration of the technique of pulsar synthesis. Over
+the past two decades, the technique of pulsar synthesis and its various
+software instrument implementation—such as, Pulsar Generator (2000)
+by Curtis Roads and Alberto de Campo, Pulsar Generator (2004) by Tommi
+Kerannen and Particularity (2010) by Chris Jeffs—acted as a material point
+of connection, linking practitioners in and outside research institutions.
+Whether as input sound material for further processing,[23] a raw synthetic
+output,[24] or as a model for auditory display of data,[25] the practice of
+pulsar synthesis activated discourse in a variety of functional, aesthetic,
+and conceptual contexts.
+The technique of pulsar synthesis is a powerful approach to digital
+sound synthesis; it is named after a highly magnetized rotating neutron star
+that emits a beam of electromagnetic radiation at a frequency between
+
+FIG. 2 A workspace of the Pulsar Generator program designed by Curtis Roads and
+Alberto de Campo in 2000, 2019, screenshot. Notice the complexity of the pulsaret and
+the envelope tables, as well as the variation in fundamental frequency and three sets of
+formant frequencies, panning, and amplitude trajectories. These could be designed in
+advance of synthesis, or manipulated in real time as the instrument plays. The program
+implemented a scheme for saving and loading these envelopes in groups called
+settings. The program lets one crossfade at a variable rate between multiple settings,
+which takes performance with Pulsar Generator to another level of synthesis complexity.
+© Curtis Roads
+
+FIG. 3 A workspace of the New Pulsar Generator with its various extensions (e.g.,
+wavefold modulators of synthesis parameters via matrix, parameter linking, multiple
+tables for micro and meso scale trajectories, and preset system), 2019, screenshot.
+The user can control all parameters of synthesis via the graphic interface, as well as
+through text of the programming language via a set of predefined functions.
+© Marcin Pietruszewski
+
+620
+
+0.25 and 642 Hz.[26] Pulsar synthesis operationalizes the notion of rhythm
+with its multitemporal affordances as a system of interconnected patterns
+evolving on multiple time scales.
+The fundamental functional unit at the microstructure level in pulsar
+synthesis is called a pulsar. A spectrum of a single pulsar is a result of a
+convolution between pulsaret and envelope. The pulsaret table can be
+considered “a template of spectrum shape,”[27] while the envelope is a
+function limiting it in time. An important generalization is that both tables,
+pulsaret waveform and envelope tables, can be any shape. A repetition
+of the pulsaret forms a pulsar train; a stream of pulses emitted at a
+user-stipulated rate which can vary from infrasonic pulsations to audio
+frequencies.
+Developed in 2000 by Curtis Roads and Alberto de Campo, the PG
+program generalized the technique of pulsar synthesis and provided a
+powerful interface to control its various parameters.[28]
+As part of my ongoing PhD research at the University of Edinburgh, I
+have been developing a new version of the historic PG. The nuPG program
+is developed in SuperCollider 3 programming language and incorporates
+an extensive set of graphic interface tools to control various parameters
+of synthesis.[29] Additionally, the underlying Just-In-Time programming
+paradigm[30] used in the development of the program means that all
+objects of the nuPG can be redefined in real time. A coupling between
+graphic and textual interfaces allows for powerful control of visual and
+formalized compositional models.
+At the microstructure of the sound the New Pulsar Generator
+provides a set of tools to manipulate the shape of the pulsaret waveform.
+FIG. 4 The shape can be also generated using a harmonic or the
+Chebyshev shaper function FIG. 5. The waveform has a fundamental effect
+on the spectral shape of the generated pulsar stream.
+Foundational for the discussion on the digital musical instrument
+design is the concept of representation.[31] Roads and Wieneke[32]
+distinguish between iconic (also called analog) and symbolic
+representations. “A sign is said to be iconic when there is a topological
+similarity between the signifier (the sign) and its denotata (i.e., what it
+represents).” A sequence of numbers stored in the memory of a computer
+corresponding in value to the shape of an acoustic signal is one example
+of such representation. “A sign without either similarity or contiguity but
+only a conventional link between its signifier and denotata is called a
+symbol.”[33] A syntactic arrangement of symbols plays a functional role
+within formal languages. Such symbols do not usually mirror the surface
+structure of a composition; rather, they represent the “background”
+interrelations or “deep structure.”
+
+THE DIGITAL
+INSTRUMENT AS
+AN ARTIFACT
+
+FIG. 4 An editor of the pulsaret waveform, 2019, screenshot. The shape can be
+drawn directly or loaded from predefined functions. A sound sample can be used
+as a waveform, too. Located at the bottom of the window, preset functionality
+allows for saving and interpolating between waveforms. © Marcin Pietruszewski
+FIG. 5 A simple tool allowing generation of various shapes for a pulsaret waveform, 2019,
+
+screenshot. It can be thought of an incorporation of additive synthesis paradigm—where
+multiple harmonics are added together—within pulsar synthesis. © Marcin Pietruszewski
+
+622
+
+The question of iconic versus symbolic, discrete versus continuous, as
+well as graphical versus textual representation of musical information is a
+perennial issue in the context of digital instrument design.
+THE DIGITAL INSTRUMENT AS AN ARTIFACT
+
+As a way of synthesizing the discussion about UPIC, PG, and nuPG I
+propose to expand the notion of digital instrument as an artifact. the UPIC,
+as well as PG and nuPG programs, as any other piece of human-made
+technology, do not function in a vacuum. As Anne Sauvagnargues points
+out:
+A tool or a machine should not be studied in isolation without taking
+into consideration the milieu of individuation that surrounds it and
+allows it to function. No machine or technical tool exists by itself [...]
+they only function in an assembled milieu of individuation, which
+constitutes their conditions of possibility: there is no hammer without
+a nail, and thus the interaction between a multitude of technical
+objects makes the fabrication of hammers and nails possible, while
+also forming the conditions of their utilisation and the practices and
+habits associated with them.[34]
+Systematic engagement with an artifact must acknowledge its
+constituent multiplicity and contexts activated via its use. Artifacts are
+complex conglomerates of things and composition of “components, which
+are continuously rearranged and reassembled in their specific modes of
+appearance throughout history”.[35] Artifacts are “like organisms, they
+manifest evolution.”[36] Any artifact is surrounded by the knowledge that is
+prior to its emergence and also by the knowledge that appears only after
+the artifact was made.
+Every artifact generates an interpretative cut. With a particular
+perspective prescribed within its design and function, UPIC, PG, and nuPG
+can all be thought of encapsulations of knowledge and carriers of a sound
+theory. Moreover, engaging with such instruments is not limited only to
+interaction with their physical dimension—the interface. These instruments
+engage their user with a prescription of a compositional model; a projection
+which embodies a particular epistemological perspective of what is to be
+composed: what is the material, its possible transformation and formal
+organization. By mediating their compositional model, UPIC, PG, and nuPG
+framed the boundaries of perception and thought.
+Don Ihde conceptualized a variety of phenomenological modalities of
+instruments and their role in our relationship with the world. Among these
+are embodied relations, where the instrument acts as an extension of the
+body and amplification of the senses; and hermeneutic relations, where
+
+THE DIGITAL
+INSTRUMENT AS
+AN ARTIFACT
+
+623
+
+MARCIN PIETRUSZEWSKI
+
+the instrument provides us with data (e.g., a sonogram) which we have to
+interpret (from Greek hermēneuein, interpret.)[37]
+The underlying design technology of UPIC, PG, and nuPG correlates
+the embodied and hermeneutical within one design based on a bimodal
+evolution between gestural and conceptual. All the systems incorporated
+embodied relation; the UPIC especially, through its corporeal interface
+relying on the drawing capacity of the human hand and the proportion of a
+CAD/CAM drawing board, ergonomically designed to follow the proportions
+of the human body.[38] The ability to use the various objects (a waveform,
+an envelope, the page, pulsaret editor, etc.) of these systems, however,
+required interpretative work, and it is here that UPIC, PG, and nuPG
+incorporated a hermeneutical relation. In this perspective, all three can
+be seen as compound devices extending the body, eye, ear, and mind, as
+instruments impregnated with knowledge, which can serve as a model
+of how our conceptions of what is musical material and form are being
+constructed.
+
+FOOTNOTES
+1.
+Guerino Mazzola, The Topos of Music: Geometric Logic of Concepts, Theory, and
+
+Performance (Basel: Birkhäuser, 2012), 105.
+
+2.
+
+M. Fuller, Behind the Blip: Essays on the Culture of Software (New York:
+Autonomedia, 2003), 19.
+
+3.
+
+Subrata Dasgupta, Technology and creativity (New York: Oxford University Press,
+1996), 9.
+
+4.
+
+For an extended discussion on temporal scales see Curtis Roads, Microsound
+(Cambridge, MA: MIT Press, 2004).
+
+5.
+
+Iannis Xenakis, Formalized Music (Hillsdale, NY: Pendragon Press, 1992), 258.
+
+6.
+
+Ibid. xii.
+
+7.
+
+In the 1940s, British physicist Dennis Gabor proposed that all sounds can be
+viewed as a succession of elementary particles of acoustic energy. The question
+of “realness” of these particles is an attractive one and relates to the age-old
+dilemma of pre-existence of all possible divisions within a whole.
+
+8.
+
+Bálint András Varga, Conversations with Iannis Xenakis (London: Faber and Faber,
+1996), 44.
+
+9.
+
+For the documentation see
+https://www.marcinpietruszewski.com/the-new-pulsar-generator.
+
+10.
+
+Curtis Roads, Microsound (Cambridge, MA: MIT Press, 2004), 137.
+
+11.
+
+Curtis Roads, “Sound Composition with Pulsars,” in Journal of the Audio
+Engineering Society, 49, 3 (2001), 134–147.
+
+THE DIGITAL
+INSTRUMENT AS
+AN ARTIFACT
+
+624
+
+12.
+
+Such a view is grounded in theories of Feenberg, Fuller, and Manovich; see Roger
+F. Malina and Sean Cubitt, Software Studies: A Lexicon (Cambridge, MA: MIT
+Press, 2008).
+
+13.
+
+Georgina Born, “On Musical Mediation: Ontology, Technology, and Creativity,” in
+Twentieth-century Music 2, (2005), 7–36.
+
+14.
+
+Curtis Roads, The Computer Music Tutorial (Cambridge, MA: MIT Press, 1996),
+329–330.
+
+15.
+
+For an in-depth discussion on optical synthesis see Thomas Y. Levin, “Tones from
+Out of Nowhere: Rudolph Pfenninger and the Archaeology of Synthetic Sound,” in
+Grey Room, 12 (2003): 32–79; László Moholy-Nagy, “Production—Reproduction:
+Potentialities of the Phonograph” [1922] in Audio Culture: Readings in Modern
+Music, ed Christopher Cox and Daniel Warner (London: Continuum, 2004);
+Luc Döbereiner, “Models of Constructed Sound: Nonstandard Synthesis as an
+Aesthetic Perspective,” in Computer Music Journal 35, (2011), 28–39; Kristine
+Helen Burns, The History and Development of Algorithms in Music Composition,
+1957–1993, PhD thesis, Ball State University, Muncie, Indiana, Ann Arbor, 1994.
+
+16.
+
+Herbert Eimert related to this approach as the “absolute composition” through
+which “real musical control of nature” can be asserted; see Herbert Eimert, “Von
+der Entscheidungsfreiheit des Komponisten,” in die Reihe 3 (1957), 5–12.
+
+17.
+
+A detailed technical specification of various iterations of the UPIC system
+have been already described in detail: Henning Lohner, “The UPIC System: A
+User’s Report,” in Computer Music Journal 10, (1986), 42–49. Gérard Marino,
+Jean-Michel Raczinski, and Marie-Hélène Serra, “The New UPIC System,” in
+International Computer Music Conference Proceedings, vol. 1990,
+https://quod.lib.umich.edu/i/icmc/bbp2372.1990?rgn=full+text; Gérard Marino,
+Marie-Hélène Serra, and Jean-Michel Raczinski, “The UPIC System: Origins and
+Innovations,” in Perspectives of New Music 31, (1993), 258–270.
+
+18.
+
+For an analysis see Benjamin R. Levy, “Clouds and arborescences in Mycenae
+alpha and the Polytope de Mycènes,” in Xenakis Matters: Contexts, Processes,
+Applications, ed. Sharon Kanach (Hillsdale, NY: Pendragon Press, 2012).
+
+19.
+
+Curtis Roads, Microsound (Cambridge, MA: MIT Press, 2004), 159.
+
+20.
+
+Robin Mackay, Russell Haswell, and Florian Hecker, “Blackest ever Black”,
+Collapse 3 (2007), 109–139.
+
+21.
+
+Gottfried Michael Koenig, “Genesis of Form in Technically Conditioned
+Environments,” in Journal of New Music Research 16, (1987), 165–175.
+
+22.
+
+See Chapter 9, “Multiscale Organization,” in Curtis Roads, Composing Electronic
+Music: A New Aesthetic (New York: Oxford University Press, 2015). 283–317.
+
+23.
+
+For example, see the compositions by Curtis Roads: Half-Life (1998), Tenth Vortex
+(2000), Eleventh Vortex (2001), and Kim Cascone’s Pulsar Studies (2004) EP.
+
+24.
+
+Florian Hecker, Recordings for Rephlex (2006), CD, Rephlex.
+
+25.
+
+Marcus Schmickler utilized a pulsar synthesis model in a sonification of pulsars in
+the Bonner Durchmusterung project, for details see
+http://piethopraxis.org/projects/bonner-durchmusterung/
+
+26.
+
+Pulsars are rotating neutron stars that appear to “pulse” because the beam of
+light they emit can only be seen when it faces the Earth. Pulsars were discovered
+by Jocelyn Bell Burnell, which is considered one of the greatest astronomical
+discoveries of the twentieth century.
+
+27.
+
+Curtis Roads, Microsound (Cambridge, MA: MIT Press, 2004), 146.
+
+625
+
+MARCIN PIETRUSZEWSKI
+
+28.
+
+Ibid. 154.
+
+29.
+
+For the User Manual describing all objects of the New Pulsar Generator see:
+https://www.marcinpietruszewski.com/the-new-pulsar-generator
+
+30.
+
+Julian Rohrhuber, Alberto de Campo, and Renate Wieser, “Algorithms Today: Notes
+on Language Design for Just In Time Programming,” in International Computer
+Music Conference Proceedings, vol. 2005, 291,
+https://quod.lib.umich.edu/i/icmc/bbp2372.2005?rgn=full+text
+
+31.
+
+Meinhard Müller, Fundamentals of Music Processing: Audio, Analysis, Algorithms,
+Applications (Heidelberg: Springer, 2015).
+
+32.
+
+Curtis Roads and Paul Wieneke, “Grammars as Representations for Music,” in
+Computer Music Journal, 3, (1979), 48–55.
+
+33.
+
+Thomas A. Sebeok, “Six Species of Signs: Some Propositions and Strictures,” in
+Semiotica, 13, (1975), 233–260.
+
+34.
+
+Anne Sauvagnargues, Artmachines: Deleuze, Guattari, Simondon (Edinburgh:
+Edinburgh University Press, 2016), 186.
+
+35.
+
+Paulo de Assis, Logic of Experimentation. Rethinking Music Performance through
+Artistic Research (Leuven: Leuven University Press, 2018), 107.
+
+36.
+
+Subrata Dasgupta, Technology and creativity (New York: Oxford University Press,
+1996), 114.
+
+37.
+
+Don Ihde, Technology and the Lifeworld: From Garden to Earth (Bloomington, IN:
+Indiana University Press, 1990).
+
+38.
+
+The drawing board featured in the early version of the UPIC system and later had
+been replaced with an interaction on a computer’s screen with a mouse. In the
+early version of the system, the drawing field of the board had a calibrated area of
+60 cm high by 75 cm wide.
+
+COLOPHON
+This book is initiated by the ZKM | Hertz-Lab in cooperation
+with the Centre Iannis Xenakis in the framework of Interfaces,
+a Creative Europe project supported by the European Union.
+
+ZKM | Center for Art and Media Karlsruhe
+Lorenzstraße 19
+Karlsruhe, Germany
+Phone: +49 (0)721/8100-1200
+info@zkm.de
+www.zkm.de
+
+EDITORS: Peter Weibel, Ludger Brümmer, Sharon Kanach
+
+CEO AND CHAIRMAN: Peter Weibel
+
+EDITORIAL STAFF: Lisa Bensel
+
+COO: Christiane Riedel
+
+ASSISTANCE: Ana Henriques
+
+HEAD OF ADMINISTRATION: Boris Kirchner
+
+COPY EDITING: Gloria Custance
+
+HEAD OF HERTZ-LAB: Ludger Brümmer
+
+TRANSLATIONS: Patrick Hubenthal, Sharon Kanach,
+
+Christian Liberty Marshall
+
+IN COOPERATION WITH:
+
+GRAPHIC DESIGN: Uta Kopp
+ASSISTANCE: Victoria Herzog
+WEBSITE: Sabine Jäger, Volker Sommerfeld
+COORDINATION, HATJE CANTZ: Richard Victor Hagemann
+PRODUCTION, HATJE CANTZ: Thomas Lemâitre
+
+PUBLISHED BY:
+
+PRINTED AND BOUND: Livonia Print, Riga
+PAPER: Munken Kristall Rough, 100g/m2
+TYPEFACE: Franklin Gothic
+MANY THANKS TO: ZKM | Publications, Jens Lutz,
+Dr. Anett Holzheid, Mâkhi Xenakis
+
+© 2020 Hatje Cantz Verlag, Berlin,
+ZKM | Center for Art and Media Karlsruhe, Germany
+
+Unless otherwise indicated, all texts and images © by the
+individual authors and their rights holders.
+
+Hatje Cantz Verlag GmbH
+Mommsenstraße 27
+10629 Berlin, Germany
+www.hatjecantz.com
+A Ganske Publishing Group Company
+FOUNDERS OF THE ZKM:
+
+Despite intensive research and best intentions, it was not
+possible in every case to establish the copyright holders.
+We request the holders of such rights who feel they have not
+been properly acknowledged to contact us.
+OPEN ACCESS: all rights are reserved but all parts of this book
+may be reproduced, especially in electronic means (including
+photocopying, printing, downloading, linking, distributing,
+recording, or information storage and retrieval) without
+permission in writing from ZKM | Karlsruhe.
+
+This publication has been funded with support from the
+European Commission. It reflects the views only of the authors
+and the Commission cannot be held responsible for any use
+which may be made of the information contained herein.
+FULL PUBLICATION AVAILABLE FOR FREE DOWNLOAD AT:
+
+www.zkm.de/upic
+
+ISBN 978-3-7757-4741-7
+
+PARTNER OF THE ZKM:
+
+SUPPORTED BY:
+Co-funded by the
+Creative Europe Programme
+of the European Union
+
+
