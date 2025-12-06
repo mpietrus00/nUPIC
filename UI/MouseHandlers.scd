@@ -1079,13 +1079,22 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var constants = ~nUPIC[\constants];
     var currentTime, currentDuration;
     var debugCount = state[\scrubDebugCount] ? 0;
+    var virtualX;
 
     if(state.isNil or: { data.isNil } or: { state[\isScrubbing].not }) { ^nil };
     if(state[\scrubSynths].isNil) { ^nil };
 
-    // Calculate time position from mouse X (normalized 0-1, then scaled to duration)
+    // Convert mouse X to virtual/spatial coordinates (same as arc storage)
+    if(~nUPIC[\ui][\screenToSpatial].notNil) {
+        var spatialPos = ~nUPIC[\ui][\screenToSpatial].value(x, width);
+        virtualX = spatialPos * width;
+    } {
+        virtualX = x;
+    };
+
+    // Calculate time position from virtual X coordinate
     currentDuration = state[\playDuration] ? 10;
-    currentTime = (x / width) * currentDuration;
+    currentTime = (virtualX / width) * currentDuration;
     currentTime = currentTime.clip(0, currentDuration);
 
     // Update playback position for visual display
@@ -1101,15 +1110,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 var lastPoint = traj.last;
                 var arcStartTime, arcEndTime, arcDuration;
 
-                // Calculate arc time range using same width as mouse coordinate
-                // Arc X coordinates are stored in view pixels, same as mouse X
+                // Calculate arc time range - arc coords are in virtual/spatial space
                 arcStartTime = (firstPoint.x / width) * currentDuration;
                 arcEndTime = (lastPoint.x / width) * currentDuration;
                 arcDuration = arcEndTime - arcStartTime;
 
                 // Debug output every 30 calls
                 if(debugCount % 30 == 0) {
-                    ("Scrub: mouseX=" ++ x.round(1) ++ " width=" ++ width ++ " time=" ++ currentTime.round(0.1) ++
+                    ("Scrub: mouseX=" ++ x.round(1) ++ " virtualX=" ++ virtualX.round(1) ++ " time=" ++ currentTime.round(0.1) ++
                      " arcStart=" ++ arcStartTime.round(0.1) ++ " arcEnd=" ++ arcEndTime.round(0.1)).postln;
                 };
 
