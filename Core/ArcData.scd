@@ -326,15 +326,18 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 if(i < trajectories.size) {
                     trajectories[i] = trajectories[i].collect { |point|
                         if(point.isKindOf(Event)) {
-                            var newY = (point.y + deltaY).clip(0, 800);  // Safe default height
                             var state = ~nUPIC[\ui][\state];
                             var constants = ~nUPIC[\constants];
+                            var viewHeight = state[\viewHeight] ? 800;
                             var zoomFreqMax = state[\zoomFreqMax] ? (constants[\freqMax] ? 7500);
                             var zoomFreqMin = state[\zoomFreqMin] ? (constants[\freqMin] ? 20);
-                            var newFreq = newY.linlin(0, 800, zoomFreqMax, zoomFreqMin);  // Use zoom-aware freq range
+                            var newY = (point.y + deltaY).clip(0, viewHeight);
+                            // Use exponential mapping for frequency (Y=0 is high freq, Y=viewHeight is low freq)
+                            var newFreq = newY.linexp(0, viewHeight, zoomFreqMax, zoomFreqMin);
                             (x: point.x + deltaX, y: newY, freq: newFreq)
                         } {
-                            Point(point.x + deltaX, (point.y + deltaY).clip(0, 800))  // Safe default height
+                            var viewHeight = ~nUPIC[\ui][\state][\viewHeight] ? 800;
+                            Point(point.x + deltaX, (point.y + deltaY).clip(0, viewHeight))
                         };
                     };
 

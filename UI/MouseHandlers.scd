@@ -152,8 +152,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 ("Starting to draw at virtual (% , %)".format(virtualX, virtualY)).postln;
                 state[\isDrawing] = true;
                 state[\currentArc] = List.new;
-                // Convert y position to frequency using zoomed range
-                freq = y.linlin(0, height, state[\zoomFreqMax], state[\zoomFreqMin]);
+                // Convert y position to frequency using zoomed range (exponential mapping)
+                freq = y.linexp(0, height, state[\zoomFreqMax], state[\zoomFreqMin]);
                 // Store ONLY spatial coordinates (x, y) and frequency - NO TIME
                 // Time will be calculated during playback based on current duration
                 state[\currentArc].add((x: virtualX, y: virtualY, freq: freq));
@@ -286,8 +286,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 };
                 virtualY = y + viewportY;
                 
-                // Convert y position to frequency using zoomed range
-                freq = y.linlin(0, height, state[\zoomFreqMax], state[\zoomFreqMin]);
+                // Convert y position to frequency using zoomed range (exponential mapping)
+                freq = y.linexp(0, height, state[\zoomFreqMax], state[\zoomFreqMin]);
                 // Store ONLY spatial coordinates (x, y) and frequency - NO TIME
                 // Time will be calculated during playback based on current duration
                 state[\currentArc].add((x: virtualX, y: virtualY, freq: freq));
