@@ -11,6 +11,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     var pages, sequence, currentPageIndex;
     var maxPages = 24;  // Original UPIC limit
     var defaultDuration = 60;  // 1 minute default (original UPIC page limit)
+    var createEmptyPageData;  // Forward declaration
 
     // Initialize
     pages = List.new;
@@ -18,7 +19,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     currentPageIndex = 0;
 
     // Create an empty page structure
-    var createEmptyPageData = { |label, duration|
+    createEmptyPageData = { |label, duration|
         (
             label: label ?? "Untitled",
             duration: duration ?? defaultDuration,
