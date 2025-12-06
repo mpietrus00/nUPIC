@@ -1000,8 +1000,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var state = ~nUPIC[\ui][\state];
     var data = ~nUPIC[\data];
     var constants = ~nUPIC[\constants];
+    var defaults = ~nUPIC[\defaults];
+    var defaultSynthDef;
 
     if(state.isNil or: { data.isNil }) { ^nil };
+
+    // Get the default SynthDef from defaults
+    defaultSynthDef = if(defaults.notNil) {
+        defaults[\defaultSynthDef] ? \upicWavetable
+    } { \upicWavetable };
 
     "Starting scrub mode...".postln;
     state[\isScrubbing] = true;
@@ -1011,11 +1018,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     if(data[\arcs].notNil) {
         data[\arcs].do { |traj, i|
             if(traj.size > 1) {
-                var synthDef = if(data[\trajectorySynthDefs].notNil and: {
-                    i < data[\trajectorySynthDefs].size
+                // Use arc-specific SynthDef if available, otherwise use default
+                var synthDef = if(data[\arcSynthDefs].notNil and: {
+                    i < data[\arcSynthDefs].size
                 }) {
-                    data[\trajectorySynthDefs][i] ? \simpleGravObject
-                } { \simpleGravObject };
+                    data[\arcSynthDefs][i] ? defaultSynthDef
+                } { defaultSynthDef };
 
                 try {
                     var synth = Synth(synthDef, [
@@ -1025,7 +1033,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         \gate, 1
                     ], s);
                     state[\scrubSynths].add(synth);
+                    ("Scrub synth " ++ i ++ " created with " ++ synthDef).postln;
                 } { |err|
+                    ("Failed to create scrub synth " ++ i ++ ": " ++ err).postln;
                     state[\scrubSynths].add(nil);
                 };
             } {
