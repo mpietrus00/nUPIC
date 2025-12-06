@@ -1026,12 +1026,36 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 } { defaultSynthDef };
 
                 try {
-                    var synth = Synth(synthDef, [
+                    var params = [
                         \freq, 440,
                         \amp, 0,
                         \pan, 0,
                         \gate, 1
-                    ], s);
+                    ];
+                    var synth;
+
+                    // Add buffer number for upicWavetable SynthDefs
+                    if(synthDef.asString.contains("upicWavetable")) {
+                        var trajBuffer = nil;
+
+                        // Try to get per-arc buffer from data
+                        if(data[\wavetableBuffers].notNil and: { i < data[\wavetableBuffers].size }) {
+                            trajBuffer = data[\wavetableBuffers][i];
+                        };
+
+                        // Fall back to global buffer if per-arc not available
+                        if(trajBuffer.isNil and: { ~nUPIC_wavetableBuffer.notNil }) {
+                            trajBuffer = ~nUPIC_wavetableBuffer;
+                        };
+
+                        if(trajBuffer.notNil) {
+                            params = params ++ [\bufnum, trajBuffer.bufnum];
+                        } {
+                            "Warning: No wavetable buffer found for scrub synth".postln;
+                        };
+                    };
+
+                    synth = Synth(synthDef, params, s);
                     state[\scrubSynths].add(synth);
                     ("Scrub synth " ++ i ++ " created with " ++ synthDef).postln;
                 } { |err|
