@@ -1010,7 +1010,6 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         defaults[\defaultSynthDef] ? \upicWavetable
     } { \upicWavetable };
 
-    "Starting scrub mode...".postln;
     state[\isScrubbing] = true;
     state[\scrubSynths] = List.new;
 
@@ -1057,9 +1056,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
                     synth = Synth(synthDef, params, s);
                     state[\scrubSynths].add(synth);
-                    ("Scrub synth " ++ i ++ " created with " ++ synthDef).postln;
                 } { |err|
-                    ("Failed to create scrub synth " ++ i ++ ": " ++ err).postln;
                     state[\scrubSynths].add(nil);
                 };
             } {
@@ -1078,7 +1075,6 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var data = ~nUPIC[\data];
     var constants = ~nUPIC[\constants];
     var currentTime, currentDuration;
-    var debugCount = state[\scrubDebugCount] ? 0;
     var virtualX;
 
     if(state.isNil or: { data.isNil } or: { state[\isScrubbing].not }) { ^nil };
@@ -1115,12 +1111,6 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 arcEndTime = (lastPoint.x / width) * currentDuration;
                 arcDuration = arcEndTime - arcStartTime;
 
-                // Debug output every 30 calls
-                if(debugCount % 30 == 0) {
-                    ("Scrub: mouseX=" ++ x.round(1) ++ " virtualX=" ++ virtualX.round(1) ++ " time=" ++ currentTime.round(0.1) ++
-                     " arcStart=" ++ arcStartTime.round(0.1) ++ " arcEnd=" ++ arcEndTime.round(0.1)).postln;
-                };
-
                 // Check if current time is within arc's time range
                 if(currentTime >= arcStartTime and: { currentTime <= arcEndTime } and: { arcDuration > 0 }) {
                     // Interpolate within arc
@@ -1146,10 +1136,6 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         amp = ~nUPIC[\ui][\interpolateAmplitudeAt].value(ampEnv, currentTime, width, currentDuration) ? 0.3;
                     };
 
-                    if(debugCount % 30 == 0) {
-                        ("  -> IN RANGE: freq=" ++ freq.round(1) ++ " amp=" ++ amp.round(0.01)).postln;
-                    };
-
                     synth.set(\freq, freq, \amp, amp * 0.5, \pan, 0);
                 } {
                     // Outside arc range - silence
@@ -1158,8 +1144,6 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
         };
     };
-
-    state[\scrubDebugCount] = debugCount + 1;
 
     // Refresh display to show playback position
     { state[\drawView].refresh }.defer;
@@ -1171,17 +1155,14 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
     if(state.isNil) { ^nil };
 
-    "Stopping scrub mode".postln;
     state[\isScrubbing] = false;
 
-    // Release all scrub synths
+    // Release all scrub synths by setting gate to 0
+    // The synth will release via its envelope and free itself
     if(state[\scrubSynths].notNil) {
         state[\scrubSynths].do { |synth|
             if(synth.notNil) {
-                try {
-                    synth.set(\gate, 0);
-                    { synth.free }.defer(0.1);
-                } { };
+                try { synth.set(\gate, 0) } { };
             };
         };
         state[\scrubSynths].clear;
