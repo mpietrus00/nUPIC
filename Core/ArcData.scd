@@ -613,45 +613,63 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         // Converts an arc's frequency contour to a wavetable waveform
         // The arc shape becomes the waveform shape (macro becomes micro)
         convertArcToWavetable: { |index|
-            var traj, freqs, minFreq, maxFreq, wavetable;
+            var traj, yValues, freqs, minVal, maxVal, wavetable;
+            var state = ~nUPIC[\ui][\state];
+            var constants = ~nUPIC[\constants];
+            var viewHeight = state[\viewHeight] ? 800;
+            var zoomFreqMin = state[\zoomFreqMin] ? (constants[\freqMin] ? 20);
+            var zoomFreqMax = state[\zoomFreqMax] ? (constants[\freqMax] ? 7500);
 
             if(index >= 0 and: { index < trajectories.size }) {
                 traj = trajectories[index];
 
-                // Extract frequencies from arc points
-                freqs = traj.collect { |pt|
-                    if(pt.isKindOf(Event)) { pt.freq } { nil }
-                }.reject { |f| f.isNil };
+                // Extract Y values or frequencies from arc points
+                // Support both Event format (with freq) and Point format (just y)
+                yValues = traj.collect { |pt|
+                    if(pt.isKindOf(Event)) {
+                        if(pt.freq.notNil) {
+                            // Use frequency, convert to normalized Y
+                            pt.freq.explin(zoomFreqMin, zoomFreqMax, 1, -1)
+                        } {
+                            // Fall back to Y coordinate
+                            pt.y.linlin(0, viewHeight, 1, -1)
+                        }
+                    } {
+                        // Point format - use Y directly
+                        pt.y.linlin(0, viewHeight, 1, -1)
+                    }
+                };
 
-                if(freqs.size > 1) {
-                    minFreq = freqs.minItem;
-                    maxFreq = freqs.maxItem;
+                if(yValues.size > 1) {
+                    // Normalize to -1 to 1 range based on actual range
+                    minVal = yValues.minItem;
+                    maxVal = yValues.maxItem;
 
-                    // Normalize frequencies to -1 to 1 range
-                    // Map: minFreq -> -1, maxFreq -> 1
-                    if(maxFreq > minFreq) {
-                        freqs = freqs.collect { |f|
-                            f.linlin(minFreq, maxFreq, -1, 1)
+                    if(maxVal > minVal) {
+                        yValues = yValues.collect { |v|
+                            v.linlin(minVal, maxVal, -1, 1)
                         };
                     } {
-                        // All same frequency - create DC line at 0
-                        freqs = freqs.collect { 0 };
+                        // All same value - create DC line at 0
+                        yValues = yValues.collect { 0 };
                     };
 
                     // Resample to 2048 samples using linear interpolation
                     wavetable = Array.fill(numWavetableSamples, { |i|
-                        var pos = i / (numWavetableSamples - 1) * (freqs.size - 1);
-                        var idx1 = pos.floor.asInteger.clip(0, freqs.size - 2);
-                        var idx2 = (idx1 + 1).clip(0, freqs.size - 1);
+                        var pos = i / (numWavetableSamples - 1) * (yValues.size - 1);
+                        var idx1 = pos.floor.asInteger.clip(0, yValues.size - 2);
+                        var idx2 = (idx1 + 1).clip(0, yValues.size - 1);
                         var t = pos - idx1;
-                        freqs[idx1].blend(freqs[idx2], t)
+                        yValues[idx1].blend(yValues[idx2], t)
                     });
 
                     wavetable
                 } {
+                    "Arc % has less than 2 points".format(index).warn;
                     nil  // Not enough points
                 }
             } {
+                "Invalid arc index: %".format(index).warn;
                 nil  // Invalid index
             }
         },
@@ -694,11 +712,56 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         },
 
         // Create arc from wavetable and add it to the canvas
+        // Note: Can't use 'this' in SuperCollider closures, so we inline the logic
         createArcFromWavetable: { |wavetableData, startX = 100, width = 600|
-            var arcPoints = this.convertWavetableToArc(wavetableData, startX, width);
-            if(arcPoints.notNil) {
-                // Add the arc with the same wavetable it was derived from
-                var newIndex = this.addArc(arcPoints, \upicWavetable, nil, nil, wavetableData.copy);
+            var state = ~nUPIC[\ui][\state];
+            var constants = ~nUPIC[\constants];
+            var viewHeight = state[\viewHeight] ? 800;
+            var zoomFreqMin = state[\zoomFreqMin] ? (constants[\freqMin] ? 20);
+            var zoomFreqMax = state[\zoomFreqMax] ? (constants[\freqMax] ? 7500);
+            var arcPoints, numPoints, step, newIndex;
+
+            if(wavetableData.notNil and: { wavetableData.size > 0 }) {
+                // Convert wavetable to arc points (inline convertWavetableToArc logic)
+                numPoints = 200.min(wavetableData.size);
+                step = wavetableData.size / numPoints;
+                arcPoints = List.new;
+
+                numPoints.do { |i|
+                    var sampleIdx = (i * step).round.asInteger.clip(0, wavetableData.size - 1);
+                    var sampleVal = wavetableData[sampleIdx];
+                    var x = startX + (i / (numPoints - 1) * width);
+                    var normalizedVal = (sampleVal + 1) / 2;
+                    var freq = zoomFreqMin * ((zoomFreqMax / zoomFreqMin) ** normalizedVal);
+                    var y = freq.explin(zoomFreqMin, zoomFreqMax, viewHeight, 0);
+                    arcPoints.add((x: x, y: y, freq: freq));
+                };
+
+                // Add the arc (inline addArc essentials)
+                if(trajectories.size >= maxSynths) {
+                    if(wavetableBuffers[0].notNil) { wavetableBuffers[0].free };
+                    trajectories.removeAt(0);
+                    amplitudeEnvelopes.removeAt(0);
+                    spatialEnvelopes.removeAt(0);
+                    arcSynthDefs.removeAt(0);
+                    wavetables.removeAt(0);
+                    wavetableBuffers.removeAt(0);
+                };
+
+                trajectories.add(arcPoints);
+                amplitudeEnvelopes.add(nil);
+                spatialEnvelopes.add(nil);
+                arcSynthDefs.add(\upicWavetable);
+                wavetables.add(wavetableData.copy);
+
+                if(Server.default.serverRunning) {
+                    wavetableBuffers.add(Buffer.loadCollection(Server.default, wavetableData.copy));
+                } {
+                    wavetableBuffers.add(nil);
+                };
+
+                newIndex = trajectories.size - 1;
+                "Created arc % from wavetable".format(newIndex).postln;
                 newIndex
             } {
                 nil
