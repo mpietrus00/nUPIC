@@ -372,21 +372,34 @@
         .action_({
             var wt = getCurrentWavetable.value;
             var arcIdx = getCurrentArcIndex.value;
-            var newPoints = ~nUPIC[\data][\convertWavetableToArc].value(wt, 100, 600);
-            if(newPoints.notNil and: { arcIdx.notNil }) {
-                // Replace the arc's points with the wavetable shape
-                if(~nUPIC[\data][\arcs].notNil and: { arcIdx < ~nUPIC[\data][\arcs].size }) {
-                    ~nUPIC[\data][\arcs][arcIdx] = newPoints;
-                    "Arc % shape replaced with wavetable".format(arcIdx).postln;
-                    // Refresh the main canvas to show the updated arc
-                    if(~nUPIC[\ui][\refreshDisplay].notNil) {
-                        { ~nUPIC[\ui][\refreshDisplay].value }.defer;
+            var oldArc, startX, endX, arcWidth, newPoints;
+
+            if(wt.notNil and: { arcIdx.notNil } and: { ~nUPIC[\data][\arcs].notNil } and: { arcIdx < ~nUPIC[\data][\arcs].size }) {
+                // Get the original arc's position and size
+                oldArc = ~nUPIC[\data][\arcs][arcIdx];
+                if(oldArc.notNil and: { oldArc.size > 0 }) {
+                    startX = oldArc.collect({ |pt| pt.x }).minItem;
+                    endX = oldArc.collect({ |pt| pt.x }).maxItem;
+                    arcWidth = (endX - startX).max(50);  // Minimum width of 50
+
+                    // Convert wavetable to arc points at the same location/size
+                    newPoints = ~nUPIC[\data][\convertWavetableToArc].value(wt, startX, arcWidth);
+
+                    if(newPoints.notNil) {
+                        ~nUPIC[\data][\arcs][arcIdx] = newPoints;
+                        "Arc % shape replaced with wavetable (x: %, width: %)".format(arcIdx, startX.round(0.1), arcWidth.round(0.1)).postln;
+                        // Refresh the main canvas to show the updated arc
+                        if(~nUPIC[\ui][\refreshDisplay].notNil) {
+                            { ~nUPIC[\ui][\refreshDisplay].value }.defer;
+                        };
+                    } {
+                        "Could not convert wavetable to arc points".warn;
                     };
                 } {
-                    "Invalid arc index: %".format(arcIdx).warn;
+                    "Original arc has no points".warn;
                 };
             } {
-                "Could not convert wavetable to arc".warn;
+                "Invalid arc index or no wavetable".warn;
             };
         });
 
