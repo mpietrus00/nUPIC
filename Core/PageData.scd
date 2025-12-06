@@ -160,7 +160,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 currentPageIndex = index;
 
                 // Sync current page data with ~nUPIC[\data]
-                this.syncToData.value;
+                ~nUPIC[\pages][\manager].syncToData.value;
 
                 "Switched from page % to page %".format(oldIndex, index).postln;
                 true
@@ -317,11 +317,14 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             if(pages.size == 0) {
                 // Create default pages A, B, C, D
                 defaultPageLabels.do { |label, i|
-                    this.create.value(label, defaultDuration);
+                    var newPage = createEmptyPageData.value(label, defaultDuration);
+                    pages.add(newPage);
+                    "Created page %: '%' (% sec)".format(i, label, defaultDuration).postln;
                 };
                 // Add first page to sequence
                 sequence.add(0);
-                this.syncToData.value;
+                // Sync to data
+                ~nUPIC[\pages][\manager].syncToData.value;
             };
         },
 
@@ -342,10 +345,11 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
 
             // Create default pages A, B, C, D
             defaultPageLabels.do { |label, i|
-                this.create.value(label, defaultDuration);
+                var newPage = createEmptyPageData.value(label, defaultDuration);
+                pages.add(newPage);
             };
             sequence.add(0);
-            this.syncToData.value;
+            ~nUPIC[\pages][\manager].syncToData.value;
 
             "All pages cleared, created default pages A, B, C, D".postln;
         },
