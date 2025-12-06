@@ -1,7 +1,7 @@
 # nUPIC Extension Proposals
-## Based on "The Digital Instrument as an Artifact" by Marcin Pietruszewski
+## Based on the ZKM Publication "From Xenakis's UPIC to Graphic Notation Today"
 
-This document outlines implementation proposals for extending nUPIC in alignment with the original UPIC system, based on the ZKM publication "From Xenakis's UPIC to Graphic Notation Today."
+This document outlines implementation proposals for extending nUPIC in alignment with the original UPIC system, drawing from the comprehensive ZKM publication featuring contributions from 30+ scholars and practitioners.
 
 **Source Document:** `Research/pdf_from_xenakiss_upic_to_graphic_notation_today_zkm.pdf` (extracted text: `.txt`)
 
@@ -11,13 +11,41 @@ This document outlines implementation proposals for extending nUPIC in alignment
 
 ## Executive Summary
 
-The Pietruszewski paper identifies the UPIC as an "epistemic tool" - a system that not only produces sound but embodies a particular theory of composition. Key concepts to integrate into nUPIC:
+The ZKM publication represents the definitive scholarly resource on UPIC, containing:
+- Historical accounts from original UPIC developers (Médigue, 1977)
+- Pedagogical applications (Després, Frisius, Estrada)
+- Analytical studies of Xenakis's UPIC works (Squibbs, Couprie)
+- Modern implementations (IanniX, UPISketch, Smallfish)
+- Theoretical frameworks (Pietruszewski, Weibel, Lohner)
+
+### Key Concepts to Integrate into nUPIC:
 
 1. **Multitemporal Paradigm** - Seamless work across micro, meso, and macro timescales
 2. **Transparent Stratification** - Pendular differentiation and reintegration of materials at all levels
 3. **Outside-of-Time → In-Time** - Shapes exist abstractly until temporalized by duration assignment
-4. **Artifact as Knowledge Carrier** - The instrument encapsulates and transmits compositional theory
-5. **Embodied + Hermeneutic Interface** - Balancing gestural drawing with interpretive data display
+4. **Rhythm-Sound Continuum** - Continuous spectrum from infrasonic pulsation to audio frequency (Estrada)
+5. **Continuum-Discontinuum Fusion** - Scale theory bridging discrete steps and continuous glides
+6. **Canvas-Player-Instrument Architecture** - Modular decomposition for modern reimplementation
+7. **Score-Instrument Fusion** - The GUI simultaneously functions as notation and instrument
+8. **Morphological Composition** - Using visual shape types (arborescences, clusters) as structural units
+9. **Embodied + Hermeneutic Interface** - Balancing gestural drawing with interpretive data display
+10. **Educational Accessibility** - "Tabula rasa" philosophy enabling anyone to compose
+
+---
+
+## Historical UPIC Specifications (Médigue, 1977)
+
+The original UPIC A had these constraints that inform our design:
+
+| Parameter | Original UPIC A | nUPIC Current | nUPIC Target |
+|-----------|-----------------|---------------|--------------|
+| Waveforms per project | 32 | Unlimited | Unlimited |
+| Envelopes per project | 55 | Per-arc | Unified bank |
+| Arcs per page | 2000 | Unlimited | Unlimited |
+| Pages per project | 24 | 1 | Multiple |
+| Sampling rates | 25,000 / 38,460 / 52,000 | 44,100 | Configurable |
+| Pitch grain | Half-comma | Continuous | Configurable |
+| Amplitude grain | Configurable | Continuous | Configurable |
 
 ---
 
@@ -501,6 +529,270 @@ SynthDef(\upicPulsar, { |out=0, freq=440, pulsarRate=100, duty=0.5, amp=0.1|
 
 ---
 
+## 13. Rhythm-Sound Continuum (Estrada)
+
+### Source Reference
+> "The notion of continuum naturally leads to the observation of the physical unit rhythm-sound, where rhythmic frequencies are fundamental to sound frequencies." (Estrada, Page 316)
+
+> "I proposed to Xenakis to expand the range of the UPIC to rhythm as part of the musical frequency continuum." (Estrada, Page 317)
+
+### Current nUPIC State
+- Fixed frequency range (20Hz - 7500Hz)
+- No rhythmic/sub-audio frequency support
+- Rhythm and pitch treated as separate domains
+
+### Proposal 13.1: Extended Frequency Range
+**Description:** Extend the Y-axis to include sub-audio frequencies (0.25Hz - 20Hz) allowing arcs to define rhythmic patterns that can seamlessly transition into pitched sounds.
+
+**Implementation:**
+```supercollider
+~nUPIC[\constants][\freqRange] = [0.25, 7500];  // Extended range
+
+~nUPIC[\ui][\setFrequencyMode] = { |mode|
+    // \pitch (20-7500Hz), \rhythm (0.25-20Hz), \continuum (0.25-7500Hz)
+    state[\frequencyMode] = mode;
+};
+```
+
+### Proposal 13.2: Rhythm-to-Pitch Morphing
+**Description:** Allow arcs to smoothly transition between rhythmic (sub-20Hz) and pitched (20Hz+) domains during playback.
+
+---
+
+## 14. Morphological Shape Library (Squibbs Analysis)
+
+### Source Reference
+> "The morphology of the sections in Part I forms the simple and well-defined pattern: A B C A' B' C'." (Squibbs, Page 423)
+
+Squibbs identifies these morphological types in Mycènes Alpha:
+- **Type A**: Narrow bands of tightly clustered arcs
+- **Type B**: Arborescences (branching structures)
+- **Type C**: Low-register horizontal clusters
+- **Type D**: Clustered horizontal arcs with silences
+- **Type E/F**: Fantastic, curved "creature-like" forms
+
+### Current nUPIC State
+- Freehand drawing only
+- No shape templates or presets
+- No morphological analysis tools
+
+### Proposal 14.1: Morphological Shape Templates
+**Description:** Provide generative templates for common UPIC morphological types.
+
+**Implementation:**
+```supercollider
+~nUPIC[\morphology][\arborescence] = { |rootFreq, branchCount, spread|
+    // Generate branching structure from root point
+};
+
+~nUPIC[\morphology][\cluster] = { |centerFreq, density, bandwidth|
+    // Generate horizontal cluster of arcs
+};
+
+~nUPIC[\morphology][\glissandoFan] = { |startFreq, endFreqs, duration|
+    // Generate diverging/converging glissandi
+};
+```
+
+### Proposal 14.2: Shape Recognition and Labeling
+**Description:** Automatically analyze drawn arcs and suggest morphological classifications.
+
+---
+
+## 15. Page and Section System (Original UPIC)
+
+### Source Reference
+> "The temporal structure of Mycènes Alpha is based on a primary unit of one minute, which was the limit of duration for a page of music composed with the original version of the UPIC." (Squibbs, Page 423)
+
+> "The user can open a new page or an old one they wish to complete." (Médigue, Page 136)
+
+### Current nUPIC State
+- Single canvas with global duration
+- No section/page organization
+- No structural hierarchy
+
+### Proposal 15.1: Multi-Page Composition
+**Description:** Implement the original UPIC's page system with up to 24 pages per project.
+
+**Implementation:**
+```supercollider
+~nUPIC[\pages] = IdentityDictionary.new;
+~nUPIC[\pages][\count] = 0;
+~nUPIC[\pages][\current] = 0;
+
+~nUPIC[\pages][\create] = { |duration|
+    var pageIndex = ~nUPIC[\pages][\count];
+    ~nUPIC[\pages][pageIndex] = (
+        arcs: List.new,
+        duration: duration ?? 60,  // Default 1 minute
+        label: "Page " ++ (pageIndex + 1)
+    );
+    ~nUPIC[\pages][\count] = pageIndex + 1;
+    pageIndex
+};
+
+~nUPIC[\pages][\setSequence] = { |pageIndices|
+    // Define playback order of pages
+    state[\pageSequence] = pageIndices;
+};
+```
+
+### Proposal 15.2: Golden Section Structure Tools
+**Description:** Provide tools for structuring compositions using proportional systems (Golden Section, Fibonacci).
+
+> "There is a global division of the work according to the golden section, whose decimal approximation to three places is 0.618." (Squibbs, Page 429)
+
+**Implementation:**
+```supercollider
+~nUPIC[\structure][\goldenSection] = { |totalDuration|
+    [totalDuration * 0.382, totalDuration * 0.618]
+};
+
+~nUPIC[\structure][\fibonacciDivisions] = { |totalDuration, depth|
+    // Generate nested Fibonacci proportions
+};
+```
+
+---
+
+## 16. Real-Time Performance Mode (Taurhiphanie)
+
+### Source Reference
+> "The work included fixed and improvised parts from sixty fragments manipulated in real time by playback with variation of sequences and by effects such as freezing or reverse." (Couprie, Page 440)
+
+### Current nUPIC State
+- Playback-only mode
+- No real-time manipulation during playback
+- No freeze/reverse effects
+
+### Proposal 16.1: Live Performance Controls
+**Description:** Add real-time manipulation controls for live performance contexts.
+
+**Implementation:**
+```supercollider
+~nUPIC[\live][\freeze] = {
+    // Freeze current playback position, loop current sample
+    state[\frozen] = true;
+};
+
+~nUPIC[\live][\reverse] = {
+    // Reverse playback direction
+    state[\playDirection] = state[\playDirection].neg;
+};
+
+~nUPIC[\live][\scrub] = { |position|
+    // Jump to arbitrary position
+    state[\playheadPosition] = position;
+};
+
+~nUPIC[\live][\speedControl] = { |factor|
+    // Real-time tempo scaling (0.25x to 4x)
+    state[\playbackSpeed] = factor.clip(0.25, 4);
+};
+```
+
+### Proposal 16.2: Fragment Triggering System
+**Description:** Allow pre-composed sections to be triggered in variable order during performance.
+
+---
+
+## 17. IanniX-Style Vector Graphics Mode
+
+### Source Reference
+> "In contrast to painting, we focus more on abstract and mathematical properties of objects in the image when we draw geometrical shapes, diagrams, or blueprints and we use different tools such as compasses." (Miyama, Page 544)
+
+> "The original UPIC system can be interpreted as a combination of three main elements; namely, Canvas, Player, and Instrument." (Miyama, Page 543)
+
+### Current nUPIC State
+- Point-based arc representation
+- No Bézier curve support
+- No mathematical curve definitions
+
+### Proposal 17.1: Vector Arc Mode
+**Description:** Add support for mathematically-defined curves (Bézier, splines) alongside freehand arcs.
+
+**Implementation:**
+```supercollider
+~nUPIC[\arcs][\createBezier] = { |controlPoints|
+    // Create arc from Bézier control points
+    // Allows precise curve editing
+};
+
+~nUPIC[\arcs][\createSpiral] = { |centerFreq, startRadius, endRadius, rotations|
+    // Generate logarithmic spiral arc
+};
+
+~nUPIC[\arcs][\createSinusoid] = { |baseFreq, amplitude, frequency, phase|
+    // Generate sinusoidal frequency modulation
+};
+```
+
+### Proposal 17.2: OSC/MIDI Output for External Control
+**Description:** Add IanniX-style OSC output for controlling external synthesizers and software.
+
+**Implementation:**
+```supercollider
+~nUPIC[\osc][\enableOutput] = { |host, port|
+    state[\oscTarget] = NetAddr(host, port);
+};
+
+~nUPIC[\osc][\mapArcToAddress] = { |arcIndex, oscAddress|
+    // During playback, send arc freq/amp to OSC address
+};
+```
+
+---
+
+## 18. UPISketch-Style Mobile/Touch Interface
+
+### Source Reference
+> "UPISketch's raison d'être is its UPICian heritage, but its creation was also motivated from the outset by possible new developments." (Bourotte, Page 366)
+
+> "One of our goals in this direction is incorporating Dynamic Stochastic Synthesis in this tool." (Bourotte, Page 363)
+
+### Current nUPIC State
+- Desktop-only SuperCollider application
+- Mouse input only
+- No touch optimization
+
+### Proposal 18.1: Touch-Optimized Interface Mode
+**Description:** Add touch-friendly UI mode with larger hit targets and gesture support.
+
+**Implementation:**
+```supercollider
+~nUPIC[\touch][\enable] = {
+    state[\touchMode] = true;
+    // Increase control sizes
+    // Enable pinch-to-zoom
+    // Enable two-finger pan
+};
+
+~nUPIC[\touch][\gestures] = (
+    pinch: { |scale| /* Zoom canvas */ },
+    twoFingerPan: { |dx, dy| /* Scroll canvas */ },
+    longPress: { |x, y| /* Context menu */ }
+);
+```
+
+### Proposal 18.2: Probability Distribution Drawing
+**Description:** Allow drawing probability distributions for stochastic arc generation (per UPISketch plans).
+
+> "One can decide on artificial, arbitrary probability distributions, conceiving scores by providing for each voice at every point in time a value and an amount of deviation from this value." (Bourotte, Page 369)
+
+**Implementation:**
+```supercollider
+~nUPIC[\stochastic][\drawProbabilityRegion] = { |points|
+    // Define a region where arcs will be stochastically generated
+    // Y-axis = pitch center, width = deviation range
+};
+
+~nUPIC[\stochastic][\generate] = { |regionIndex, density|
+    // Generate stochastic arcs within probability region
+};
+```
+
+---
+
 ## Development Roadmap
 
 ### Phase 1: Core UPIC Alignment (Foundation)
@@ -553,12 +845,35 @@ SynthDef(\upicPulsar, { |out=0, freq=440, pulsarRate=100, duty=0.5, amp=0.1|
 | 19 | 10.1 Enhanced Gestural Input | Medium | Platform support |
 | 20 | 7.1 State Morphing | High | 6.1 |
 
-### Phase 6: Experimental Features
+### Phase 6: Modern Extensions
+**Goal:** Incorporate findings from modern UPIC research
+
+| Priority | Proposal | Effort | Dependencies |
+|----------|----------|--------|--------------|
+| 21 | 13.1 Extended Frequency Range | Medium | None |
+| 22 | 14.1 Morphological Shape Templates | Medium | None |
+| 23 | 15.1 Multi-Page Composition | High | 2.2 |
+| 24 | 15.2 Golden Section Tools | Low | 15.1 |
+
+### Phase 7: Performance & Interaction
+**Goal:** Enable live performance and alternative interfaces
+
+| Priority | Proposal | Effort | Dependencies |
+|----------|----------|--------|--------------|
+| 25 | 16.1 Live Performance Controls | Medium | Playback |
+| 26 | 16.2 Fragment Triggering System | High | 15.1 |
+| 27 | 17.1 Vector Arc Mode | High | None |
+| 28 | 17.2 OSC/MIDI Output | Medium | None |
+
+### Phase 8: Experimental Features
 **Goal:** Push beyond historical UPIC
 
 | Priority | Proposal | Effort | Dependencies |
 |----------|----------|--------|--------------|
-| 21 | 5.2 Fractal/Recursive Arc Structure | Very High | 12.1 |
+| 29 | 5.2 Fractal/Recursive Arc Structure | Very High | 12.1 |
+| 30 | 18.1 Touch Interface Mode | High | Platform |
+| 31 | 18.2 Probability Distribution Drawing | High | 8.1 |
+| 32 | 13.2 Rhythm-to-Pitch Morphing | Very High | 13.1 |
 
 ---
 
@@ -595,13 +910,46 @@ Each proposal should include:
 
 ## References
 
-All quotations from:
-- Pietruszewski, Marcin. "The Digital Instrument as an Artifact." In *From Xenakis's UPIC to Graphic Notation Today*, edited by Peter Weibel, Ludger Brummer, and Sharon Kanach. ZKM | Center for Art and Media Karlsruhe / Hatje Cantz, 2020. Pages 613-625.
+### Primary Source
+All quotations from the ZKM publication:
+- Weibel, Peter, Ludger Brümmer, and Sharon Kanach (eds.). *From Xenakis's UPIC to Graphic Notation Today*. ZKM | Center for Art and Media Karlsruhe / Hatje Cantz, 2020.
 
-Additional references cited in the source:
+### Chapter References Used in This Document
+
+**Historical & Technical:**
+- Médigue, Guy. "The Early Days of the UPIC." Pages 122-139.
+- Lohner, Henning. "Reflections." Pages 455-473.
+- Weibel, Peter. "The Road to the UPIC: From Graphic Notation to Graphic User Interface." Pages 485-523.
+
+**Analytical:**
+- Squibbs, Ronald. "Mycènes Alpha: A Listener's Guide." Pages 417-431.
+- Couprie, Pierre. "Analytical Approaches to Taurhiphanie and Voyage Absolu des Unari vers Andromède." Pages 437-453.
+
+**Theoretical:**
+- Pietruszewski, Marcin. "The Digital Instrument as an Artifact." Pages 613-625.
+- Estrada, Julio. "The Listening Hand." Pages 315-327.
+- Bourotte, Rodolphe. "Probabilities, Drawing, and Sound Synthesis." Pages 357-371.
+
+**Modern Implementations:**
+- Furukawa, Kiyoshi. "The UPIC and Utopia." Pages 531-539.
+- Miyama, Chikashi. "The UPIC 2019." Pages 543-557.
+- Scordato, Julian. "Exploring Visualization Methods for Algorithmic Processes in IanniX." Pages 559-573.
+- Simon, Victoria. "Beyond the Continuum." Pages 575-589.
+
+**Pedagogical:**
+- Després, Jean-Philippe. "The UPIC: Towards a Pedagogy of Creativity." Pages 141-157.
+- Frisius, Rudolf. "UPIC—Experimental Music Pedagogy—Xenakis." Pages 159-173.
+- Pape, Gerard. "Composing with Sound at Les Ateliers UPIC/CCMIX." Pages 175-195.
+
+### Additional References
 - Roads, Curtis. *Microsound*. Cambridge, MA: MIT Press, 2004.
 - Xenakis, Iannis. *Formalized Music*. Hillsdale, NY: Pendragon Press, 1992.
 - Marino, Gerard, Marie-Helene Serra, and Jean-Michel Raczinski. "The UPIC System: Origins and Innovations." *Perspectives of New Music* 31 (1993): 258-270.
 - Ihde, Don. *Technology and the Lifeworld: From Garden to Earth*. Indiana University Press, 1990.
 - Roads, Curtis, and Alberto de Campo. "Pulsar Generator" (2000).
 - Rohrhuber, Julian, et al. "Algorithms Today: Notes on Language Design for Just In Time Programming." ICMC 2005.
+
+### Related Software Projects
+- **IanniX**: Open-source graphical sequencer (https://www.iannix.org)
+- **UPISketch**: Mobile UPIC app for iOS/Windows (http://www.centre-iannis-xenakis.org/upisketch)
+- **Smallfish**: Interactive music generation (https://zkm.de/en/publication/small-fish)
