@@ -248,9 +248,23 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 pages[index].duration = duration.max(1);  // Minimum 1 second
                 pages[index].modified = Date.localtime.stamp;
 
-                // Update UI state if this is the current page
+                // Update UI state and NumberBox if this is the current page
                 if(index == currentPageIndex and: { ~nUPIC[\ui][\state].notNil }) {
                     ~nUPIC[\ui][\state][\playDuration] = duration;
+
+                    // Update duration NumberBox widget
+                    if(~nUPIC[\ui][\state][\controls].notNil and: {
+                        ~nUPIC[\ui][\state][\controls][\durationNumberBox].notNil
+                    }) {
+                        {
+                            ~nUPIC[\ui][\state][\controls][\durationNumberBox].value = duration;
+                        }.defer;
+                    };
+
+                    // Refresh display to update page indicator
+                    if(~nUPIC[\ui][\refreshDisplay].notNil) {
+                        { ~nUPIC[\ui][\refreshDisplay].value }.defer;
+                    };
                 };
             };
         },
