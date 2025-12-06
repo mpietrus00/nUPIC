@@ -45,7 +45,7 @@
 
         if(pageManager.notNil) {
             seq.do { |pageIdx|
-                var dur = pageManager.getDuration.value(pageIdx);
+                var dur = pageManager[\getDuration].value(pageIdx);
                 totalDur = totalDur + dur;
                 seqLabels.add(pageLabels[pageIdx]);
             };
@@ -63,7 +63,7 @@
 
     // Helper to sync matrix to page manager sequence
     var syncMatrixToSequence = {
-        var seq = pageManager.sequence;
+        var seq = pageManager[\sequence];
 
         // Clear all buttons first
         4.do { |row|
@@ -90,7 +90,7 @@
     var syncSequenceFromMatrix = {
         var seq = getSequenceFromMatrix.value;
         if(pageManager.notNil) {
-            pageManager.setSequence.value(seq);
+            pageManager[\setSequence].value(seq);
         };
         updateDurationDisplay.value;
     };
@@ -102,7 +102,7 @@
     };
 
     // Ensure pages are initialized
-    pageManager.ensureInitialized.value;
+    pageManager[\ensureInitialized].value;
 
     // Create window
     win = Window("nUPIC Page Sequence Editor", Rect(100, 450, width, height));

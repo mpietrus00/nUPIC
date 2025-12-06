@@ -652,9 +652,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Page indicator (show current page if pages system is active)
     if(~nUPIC[\pages].notNil and: { ~nUPIC[\pages][\manager].notNil }) {
         var mgr = ~nUPIC[\pages][\manager];
-        var pageIdx = mgr.getCurrentIndex.value;
-        var pageCount = mgr.count.value;
-        var page = mgr.getCurrent.value;
+        var pageIdx = mgr[\getCurrentIndex].value;
+        var pageCount = mgr[\count].value;
+        var page = mgr[\getCurrent].value;
         if(page.notNil) {
             var pageText = "Page %/% : % (% sec)".format(
                 pageIdx + 1,

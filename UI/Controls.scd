@@ -1160,11 +1160,11 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         { char == $, } {
             if(~nUPIC[\pages][\manager].notNil) {
                 var mgr = ~nUPIC[\pages][\manager];
-                var currentIdx = mgr.getCurrentIndex.value;
+                var currentIdx = mgr[\getCurrentIndex].value;
                 if(currentIdx > 0) {
                     var newIdx = currentIdx - 1;
-                    mgr.syncFromData.value;
-                    mgr.switchTo.value(newIdx);
+                    mgr[\syncFromData].value;
+                    mgr[\switchTo].value(newIdx);
                     // Update page tabs
                     if(~nUPIC[\ui][\updatePageTabs].notNil) {
                         ~nUPIC[\ui][\updatePageTabs].value(newIdx);
@@ -1179,12 +1179,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         { char == $. } {
             if(~nUPIC[\pages][\manager].notNil) {
                 var mgr = ~nUPIC[\pages][\manager];
-                var currentIdx = mgr.getCurrentIndex.value;
-                var pageCount = mgr.count.value;
+                var currentIdx = mgr[\getCurrentIndex].value;
+                var pageCount = mgr[\count].value;
                 if(currentIdx < (pageCount - 1)) {
                     var newIdx = currentIdx + 1;
-                    mgr.syncFromData.value;
-                    mgr.switchTo.value(newIdx);
+                    mgr[\syncFromData].value;
+                    mgr[\switchTo].value(newIdx);
                     // Update page tabs
                     if(~nUPIC[\ui][\updatePageTabs].notNil) {
                         ~nUPIC[\ui][\updatePageTabs].value(newIdx);

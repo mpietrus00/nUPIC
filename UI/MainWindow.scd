@@ -148,8 +148,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 // Switch to this page
                 if(~nUPIC[\pages].notNil and: { ~nUPIC[\pages][\manager].notNil }) {
                     var mgr = ~nUPIC[\pages][\manager];
-                    mgr.syncFromData.value;  // Save current page data
-                    mgr.switchTo.value(i);   // Switch to new page
+                    mgr[\syncFromData].value;  // Save current page data
+                    mgr[\switchTo].value(i);   // Switch to new page
 
                     // Update tab button states
                     pageTabButtons.do { |tb, j|
