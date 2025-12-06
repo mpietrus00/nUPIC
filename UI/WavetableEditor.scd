@@ -1,79 +1,147 @@
 // Wavetable Editor UI for nUPIC
 // Visual editor for creating and modifying wavetables
-// Each arc has its own wavetable
+// Supports tabbed interface for editing multiple arcs simultaneously
 
 (
 ~nUPIC = ~nUPIC ?? ();
 ~nUPIC[\wavetableEditor] = ~nUPIC[\wavetableEditor] ?? ();
 
 ~nUPIC[\wavetableEditor][\open] = { |arcIndex = nil|
-    var win, drawView, controlView, wavetableData, isDrawing = false;
-    var width = 350, height = 200;
-    var controlHeight = 35;  // Single row for controls
+    var win, tabView, drawView, controlView;
+    var width = 400, height = 200;
+    var tabHeight = 25;
+    var controlHeight = 35;
     var numSamples = 2048;
+    var isDrawing = false;
     var lastX, lastY;
     var buttons = ();
     var xPos;
-    var currentIndex;
-    var titleText;
     var data = ~nUPIC[\data];
     var trajCount = ~nUPIC[\arcs][\count].value;
-    var presetMenu, presetLabel, presetNames;
+    var presetMenu, presetNames;
 
-    // Determine which arc to edit
+    // Tab management
+    var arcIndices = List.new;
+    var tabButtons = List.new;
+    var wavetableCache = IdentityDictionary.new;
+    var activeTabIndex = 0;
+
+    // Helper to get current arc index
+    var getCurrentArcIndex = { arcIndices[activeTabIndex] };
+
+    // Helper to get current wavetable data
+    var getCurrentWavetable = {
+        var idx = getCurrentArcIndex.value;
+        if(wavetableCache[idx].isNil) {
+            wavetableCache[idx] = ~nUPIC[\arcs][\getWavetable].value(idx) ?? {
+                Array.fill(2048, { |i| sin(2pi * i / 2048) })
+            };
+        };
+        wavetableCache[idx];
+    };
+
+    // Helper to set current wavetable data
+    var setCurrentWavetable = { |newData|
+        var idx = getCurrentArcIndex.value;
+        wavetableCache[idx] = newData;
+        ~nUPIC[\arcs][\setWavetable].value(idx, newData);
+    };
+
+    // Determine which arcs to edit
     if(arcIndex.notNil) {
-        currentIndex = arcIndex;
+        // Single arc specified
+        arcIndices.add(arcIndex);
     } {
-        // Use first selected arc, or nil if none
+        // Use all selected arcs
         if(data.notNil and: { data[\selectedArcs].notNil } and: { data[\selectedArcs].size > 0 }) {
-            currentIndex = data[\selectedArcs].asArray.sort[0];
-        } {
-            currentIndex = nil;
+            arcIndices = data[\selectedArcs].asArray.sort.asList;
         };
     };
 
-    // Check if we have a valid arc
-    if(currentIndex.isNil or: { trajCount == 0 } or: { currentIndex >= trajCount }) {
-        "No arc selected. Draw a arc first, select it, then open the wavetable editor.".warn;
+    // Check if we have valid arcs
+    if(arcIndices.size == 0 or: { trajCount == 0 }) {
+        "No arc selected. Draw an arc first, select it, then open the wavetable editor.".warn;
         ^nil;
     };
 
-    // Get wavetable data for this arc
-    wavetableData = ~nUPIC[\arcs][\getWavetable].value(currentIndex);
-    if(wavetableData.isNil) {
-        // Create default sine wavetable and store it
-        wavetableData = Array.fill(2048, { |i|
-            sin(2pi * i / 2048)
-        });
-        // Ensure storage exists
-        if(data[\wavetables].isNil) { data[\wavetables] = List.new };
-        if(data[\wavetableBuffers].isNil) { data[\wavetableBuffers] = List.new };
-        // Pad with nil if needed
-        while { data[\wavetables].size <= currentIndex } {
-            data[\wavetables].add(nil);
-            data[\wavetableBuffers].add(nil);
+    // Filter out invalid indices
+    arcIndices = arcIndices.select { |idx| idx < trajCount };
+    if(arcIndices.size == 0) {
+        "Selected arcs are invalid.".warn;
+        ^nil;
+    };
+
+    // Pre-load wavetable data for all arcs
+    arcIndices.do { |idx|
+        var wt = ~nUPIC[\arcs][\getWavetable].value(idx);
+        if(wt.isNil) {
+            wt = Array.fill(2048, { |i| sin(2pi * i / 2048) });
+            // Ensure storage exists
+            if(data[\wavetables].isNil) { data[\wavetables] = List.new };
+            if(data[\wavetableBuffers].isNil) { data[\wavetableBuffers] = List.new };
+            while { data[\wavetables].size <= idx } {
+                data[\wavetables].add(nil);
+                data[\wavetableBuffers].add(nil);
+            };
+            data[\wavetables][idx] = wt;
+            if(Server.default.serverRunning) {
+                data[\wavetableBuffers][idx] = Buffer.loadCollection(Server.default, wt);
+            };
         };
-        data[\wavetables][currentIndex] = wavetableData;
-        if(Server.default.serverRunning) {
-            data[\wavetableBuffers][currentIndex] = Buffer.loadCollection(Server.default, wavetableData);
+        wavetableCache[idx] = wt;
+    };
+
+    // Calculate window dimensions
+    if(arcIndices.size > 1) {
+        // Add space for tabs
+        height = height + tabHeight;
+    };
+
+    // Create window
+    win = Window("nUPIC Wavetable Editor", Rect(100, 100, width, height + controlHeight));
+    win.background = Color.new(205/255, 250/255, 205/255); // B&K green
+
+    // Tab bar (only if multiple arcs)
+    if(arcIndices.size > 1) {
+        var tabWidth, tabStartY;
+        tabView = CompositeView(win, Rect(0, 0, width, tabHeight));
+        tabView.background = Color.new(180/255, 230/255, 180/255);
+
+        tabWidth = (width / arcIndices.size).min(80);
+        tabStartY = 2;
+
+        // Create tab buttons
+        arcIndices.do { |arcIdx, i|
+            var btn = Button(tabView, Rect(i * tabWidth + 2, tabStartY, tabWidth - 4, tabHeight - 4))
+                .states_([
+                    ["Arc " ++ arcIdx, Color.black, Color.gray(0.85)],
+                    ["Arc " ++ arcIdx, Color.white, Color.blue(0.7)]
+                ])
+                .font_(Font("Arial", 10, true))
+                .value_(if(i == 0, 1, 0))
+                .action_({ |btn|
+                    // Switch to this tab
+                    activeTabIndex = i;
+                    // Update all tab button states
+                    tabButtons.do { |tb, j|
+                        tb.value = if(j == i, 1, 0);
+                    };
+                    // Refresh drawing
+                    drawView.refresh;
+                });
+            tabButtons.add(btn);
         };
     };
 
-    // Create title
-    titleText = "nUPIC Wavetable Editor - Arc " ++ currentIndex;
-
-    // Create window with B&K green
-    win = Window(titleText, Rect(100, 100, width, height + controlHeight));
-    win.background = Color.new(205/255, 250/255, 205/255); // B&K green
-
     // Drawing area
-    drawView = UserView(win, Rect(10, 10, width - 20, height - 20));
+    drawView = UserView(win, Rect(10, if(arcIndices.size > 1, tabHeight + 10, 10), width - 20, 200 - 20));
     drawView.background = Color.white;
 
     // Draw function
     drawView.drawFunc = {
+        var wavetableData = getCurrentWavetable.value;
         var step = (width - 20) / numSamples;
-        var centerY = (height - 20) / 2;
+        var centerY = (200 - 20) / 2;
         var dashLen = 4, gapLen = 4;
         var x = 0;
 
@@ -93,14 +161,14 @@
         4.do { |i|
             var lineX = (i + 1) * ((width - 20) / 4);
             var y = 0;
-            while { y < (height - 20) } {
-                Pen.line(Point(lineX, y), Point(lineX, (y + dashLen).min(height - 20)));
+            while { y < (200 - 20) } {
+                Pen.line(Point(lineX, y), Point(lineX, (y + dashLen).min(200 - 20)));
                 Pen.stroke;
                 y = y + dashLen + gapLen;
             };
         };
 
-        // Draw wavetable - all points connected
+        // Draw wavetable
         Pen.strokeColor = Color.blue;
         Pen.width = 1.5;
 
@@ -113,22 +181,26 @@
         };
 
         Pen.stroke;
-    };
 
-    // Helper function to update wavetable in manager
-    ~nUPIC[\wavetableEditor][\updateWavetable] = {
-        ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
+        // Show current arc label in corner
+        Pen.stringAtPoint(
+            "Arc " ++ getCurrentArcIndex.value,
+            Point(5, 5),
+            Font("Arial", 10, true),
+            Color.gray(0.4)
+        );
     };
 
     // Mouse interaction for drawing
     drawView.mouseDownAction = { |view, x, y|
         var index, value;
+        var wavetableData = getCurrentWavetable.value;
         isDrawing = true;
         lastX = x;
         lastY = y;
 
         index = (x / ((width - 20) / numSamples)).asInteger.clip(0, numSamples - 1);
-        value = ((((height - 20) / 2) - y) / ((height - 20) / 2) / 0.9).clip(-1, 1);
+        value = ((((200 - 20) / 2) - y) / ((200 - 20) / 2) / 0.9).clip(-1, 1);
         wavetableData[index] = value;
 
         drawView.refresh;
@@ -136,11 +208,12 @@
 
     drawView.mouseMoveAction = { |view, x, y|
         var startIndex, endIndex, startValue, endValue, numSteps;
+        var wavetableData = getCurrentWavetable.value;
         if(isDrawing) {
             startIndex = (lastX / ((width - 20) / numSamples)).asInteger.clip(0, numSamples - 1);
             endIndex = (x / ((width - 20) / numSamples)).asInteger.clip(0, numSamples - 1);
-            startValue = ((((height - 20) / 2) - lastY) / ((height - 20) / 2) / 0.9).clip(-1, 1);
-            endValue = ((((height - 20) / 2) - y) / ((height - 20) / 2) / 0.9).clip(-1, 1);
+            startValue = ((((200 - 20) / 2) - lastY) / ((200 - 20) / 2) / 0.9).clip(-1, 1);
+            endValue = ((((200 - 20) / 2) - y) / ((200 - 20) / 2) / 0.9).clip(-1, 1);
 
             if(startIndex != endIndex) {
                 numSteps = (endIndex - startIndex).abs;
@@ -165,10 +238,10 @@
     drawView.mouseUpAction = { |view, x, y|
         isDrawing = false;
         // Update the arc's wavetable
-        ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
+        setCurrentWavetable.value(getCurrentWavetable.value);
     };
 
-    // Control area with light B&K green
+    // Control area
     controlView = CompositeView(win, Rect(0, height, width, controlHeight));
     controlView.background = Color.new(190/255, 240/255, 190/255);
 
@@ -191,17 +264,17 @@
                 if(~nUPIC[\wavetablePresets][\wavFiles].includes(selectedName)) {
                     ~nUPIC[\wavetablePresets][\getWavData].value(selectedName, { |loadedData|
                         if(loadedData.notNil) {
-                            wavetableData = loadedData;
+                            setCurrentWavetable.value(loadedData);
+                            wavetableCache[getCurrentArcIndex.value] = loadedData;
                             { drawView.refresh }.defer;
-                            ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
                         };
                     });
                 } {
                     var presetData = ~nUPIC[\wavetablePresets][\get].value(selectedName.asSymbol);
                     if(presetData.notNil) {
-                        wavetableData = presetData;
+                        setCurrentWavetable.value(presetData);
+                        wavetableCache[getCurrentArcIndex.value] = presetData;
                         drawView.refresh;
-                        ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
                     };
                 };
             };
@@ -213,25 +286,27 @@
         .states_([["rev", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 9))
         .action_({
-            wavetableData = wavetableData.reverse;
+            var wt = getCurrentWavetable.value.reverse;
+            setCurrentWavetable.value(wt);
+            wavetableCache[getCurrentArcIndex.value] = wt;
             drawView.refresh;
-            ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
         });
 
     buttons[\invert] = Button(controlView, Rect(xPos + 35, 5, 32, 22))
         .states_([["inv", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 9))
         .action_({
-            wavetableData = wavetableData.neg;
+            var wt = getCurrentWavetable.value.neg;
+            setCurrentWavetable.value(wt);
+            wavetableCache[getCurrentArcIndex.value] = wt;
             drawView.refresh;
-            ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
         });
 
     buttons[\smooth] = Button(controlView, Rect(xPos + 70, 5, 32, 22))
         .states_([["smo", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 9))
         .action_({
-            var smoothed = wavetableData.copy;
+            var smoothed = getCurrentWavetable.value.copy;
             3.do {
                 smoothed = smoothed.collect { |val, i|
                     var prev = smoothed[(i - 1) % numSamples];
@@ -239,20 +314,22 @@
                     (prev + (val * 2) + next) / 4;
                 };
             };
-            wavetableData = smoothed;
+            setCurrentWavetable.value(smoothed);
+            wavetableCache[getCurrentArcIndex.value] = smoothed;
             drawView.refresh;
-            ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
         });
 
     buttons[\normalize] = Button(controlView, Rect(xPos + 105, 5, 32, 22))
         .states_([["nrm", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 9))
         .action_({
-            var maxVal = wavetableData.abs.maxItem;
+            var wt = getCurrentWavetable.value;
+            var maxVal = wt.abs.maxItem;
             if(maxVal > 0) {
-                wavetableData = wavetableData / maxVal;
+                wt = wt / maxVal;
+                setCurrentWavetable.value(wt);
+                wavetableCache[getCurrentArcIndex.value] = wt;
                 drawView.refresh;
-                ~nUPIC[\arcs][\setWavetable].value(currentIndex, wavetableData);
             };
         });
 
@@ -260,7 +337,7 @@
         .states_([["test", Color.black, Color.gray(0.9)]])
         .font_(Font("Arial", 9))
         .action_({
-            var buffer = ~nUPIC[\arcs][\getWavetableBuffer].value(currentIndex);
+            var buffer = ~nUPIC[\arcs][\getWavetableBuffer].value(getCurrentArcIndex.value);
             if(buffer.notNil) {
                 fork {
                     var synth = Synth(\upicWavetable, [\freq, 440, \amp, 0.2, \gate, 1, \bufnum, buffer.bufnum]);
@@ -271,17 +348,34 @@
             };
         });
 
+    // Apply to All button (only if multiple arcs)
+    if(arcIndices.size > 1) {
+        buttons[\applyAll] = Button(controlView, Rect(xPos + 180, 5, 50, 22))
+            .states_([["all", Color.white, Color.new(0.2, 0.5, 0.2)]])
+            .font_(Font("Arial", 9, true))
+            .action_({
+                var currentWt = getCurrentWavetable.value;
+                arcIndices.do { |idx|
+                    wavetableCache[idx] = currentWt.copy;
+                    ~nUPIC[\arcs][\setWavetable].value(idx, currentWt.copy);
+                };
+                "Applied wavetable to all % arcs".format(arcIndices.size).postln;
+            });
+    };
+
     // Store window reference
     ~nUPIC[\wavetableEditor][\window] = win;
-    ~nUPIC[\wavetableEditor][\currentIndex] = currentIndex;
+    ~nUPIC[\wavetableEditor][\arcIndices] = arcIndices;
+    ~nUPIC[\wavetableEditor][\activeTabIndex] = activeTabIndex;
 
     win.onClose = {
         ~nUPIC[\wavetableEditor][\window] = nil;
-        ~nUPIC[\wavetableEditor][\currentIndex] = nil;
+        ~nUPIC[\wavetableEditor][\arcIndices] = nil;
+        ~nUPIC[\wavetableEditor][\activeTabIndex] = nil;
     };
 
     win.front;
 };
 
-"Wavetable Editor loaded (per-arc)".postln;
+"Wavetable Editor loaded (tabbed multi-arc support)".postln;
 )
