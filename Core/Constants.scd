@@ -13,7 +13,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     maxUndoSteps: 50,
     
     // UI dimensions
-    defaultWidth: 1200,
+    defaultWidth: 1300,
     defaultHeight: 670,  // Increased by 20px for better proportions
     controlPanelHeight: 32,  // Reduced from 240 for compact controls
     
