@@ -378,14 +378,29 @@
                 // Get the original arc's position and size
                 oldArc = ~nUPIC[\data][\arcs][arcIdx];
                 if(oldArc.notNil and: { oldArc.size > 0 }) {
+                    var oldMinY, oldMaxY, newMinY, newMaxY, newStartX, newEndX;
                     startX = oldArc.collect({ |pt| pt.x }).minItem;
                     endX = oldArc.collect({ |pt| pt.x }).maxItem;
+                    oldMinY = oldArc.collect({ |pt| pt.y }).minItem;
+                    oldMaxY = oldArc.collect({ |pt| pt.y }).maxItem;
                     arcWidth = (endX - startX).max(50);  // Minimum width of 50
 
-                    // Convert wavetable to arc points at the same location/size
-                    newPoints = ~nUPIC[\data][\convertWavetableToArc].value(wt, startX, arcWidth);
+                    "→arc DEBUG: Original arc % has % points".format(arcIdx, oldArc.size).postln;
+                    "→arc DEBUG: Original X range: % to % (width: %)".format(startX.round(0.1), endX.round(0.1), arcWidth.round(0.1)).postln;
+                    "→arc DEBUG: Original Y range: % to % (height: %)".format(oldMinY.round(0.1), oldMaxY.round(0.1), (oldMaxY - oldMinY).round(0.1)).postln;
+
+                    // Convert wavetable to arc points at the same location/size, preserving Y bounds
+                    newPoints = ~nUPIC[\data][\convertWavetableToArc].value(wt, startX, arcWidth, oldMinY, oldMaxY);
 
                     if(newPoints.notNil) {
+                        newStartX = newPoints.collect({ |pt| pt.x }).minItem;
+                        newEndX = newPoints.collect({ |pt| pt.x }).maxItem;
+                        newMinY = newPoints.collect({ |pt| pt.y }).minItem;
+                        newMaxY = newPoints.collect({ |pt| pt.y }).maxItem;
+                        "→arc DEBUG: New arc has % points".format(newPoints.size).postln;
+                        "→arc DEBUG: New X range: % to % (width: %)".format(newStartX.round(0.1), newEndX.round(0.1), (newEndX - newStartX).round(0.1)).postln;
+                        "→arc DEBUG: New Y range: % to % (height: %)".format(newMinY.round(0.1), newMaxY.round(0.1), (newMaxY - newMinY).round(0.1)).postln;
+
                         ~nUPIC[\data][\arcs][arcIdx] = newPoints;
                         "Arc % shape replaced with wavetable (x: %, width: %)".format(arcIdx, startX.round(0.1), arcWidth.round(0.1)).postln;
                         // Refresh the main canvas to show the updated arc

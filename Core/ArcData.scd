@@ -681,18 +681,25 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
         // Wavetable-to-Arc Conversion (Proposal 1.2)
         // Converts a wavetable to an arc shape on the canvas
         // The waveform shape becomes a frequency contour (micro becomes macro)
-        convertWavetableToArc: { |wavetableData, startX = 100, width = 600|
+        // Optional minY/maxY parameters preserve original arc's Y bounds
+        convertWavetableToArc: { |wavetableData, startX = 100, width = 600, minY = nil, maxY = nil|
             var state = ~nUPIC[\ui][\state];
             var constants = ~nUPIC[\constants];
             var viewHeight = state[\viewHeight] ? 800;
             var zoomFreqMin = state[\zoomFreqMin] ? (constants[\freqMin] ? 20);
             var zoomFreqMax = state[\zoomFreqMax] ? (constants[\freqMax] ? 7500);
             var arcPoints, numPoints, step;
+            var useFullRange, targetMinY, targetMaxY;
 
             if(wavetableData.notNil and: { wavetableData.size > 0 }) {
                 // Determine number of arc points (downsample for reasonable arc)
                 numPoints = 200.min(wavetableData.size);
                 step = wavetableData.size / numPoints;
+
+                // Use provided Y bounds or default to full view height
+                useFullRange = minY.isNil or: { maxY.isNil };
+                targetMinY = minY ? 0;
+                targetMaxY = maxY ? viewHeight;
 
                 arcPoints = List.new;
 
@@ -700,11 +707,20 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                     var sampleIdx = (i * step).round.asInteger.clip(0, wavetableData.size - 1);
                     var sampleVal = wavetableData[sampleIdx];  // -1 to 1
                     var x = startX + (i / (numPoints - 1) * width);
+                    var y, freq;
 
-                    // Map wavetable value (-1 to 1) to frequency (using log scale)
-                    var normalizedVal = (sampleVal + 1) / 2;  // 0 to 1
-                    var freq = zoomFreqMin * ((zoomFreqMax / zoomFreqMin) ** normalizedVal);
-                    var y = freq.explin(zoomFreqMin, zoomFreqMax, viewHeight, 0);
+                    if(useFullRange) {
+                        // Map wavetable value (-1 to 1) to frequency (using log scale)
+                        var normalizedVal = (sampleVal + 1) / 2;  // 0 to 1
+                        freq = zoomFreqMin * ((zoomFreqMax / zoomFreqMin) ** normalizedVal);
+                        y = freq.explin(zoomFreqMin, zoomFreqMax, viewHeight, 0);
+                    } {
+                        // Map wavetable value (-1 to 1) to the original arc's Y bounds
+                        // sampleVal=-1 -> targetMaxY (low freq), sampleVal=1 -> targetMinY (high freq)
+                        y = sampleVal.linlin(-1, 1, targetMaxY, targetMinY);
+                        // Calculate frequency from Y using exponential mapping
+                        freq = y.linexp(0, viewHeight, zoomFreqMax, zoomFreqMin);
+                    };
 
                     arcPoints.add((x: x, y: y, freq: freq));
                 };
