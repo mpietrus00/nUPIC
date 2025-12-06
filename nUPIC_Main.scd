@@ -173,6 +173,12 @@ if(thisProcess.nowExecutingPath.notNil) {
                 "Updating SynthDef menu with available synths...".postln;
                 ~nUPIC[\ui][\updateSynthDefMenusAfterLoad].value;
             };
+
+            // Auto-open Page Sequencer with Main UI
+            if(~nUPIC[\pageSequencer].notNil and: { ~nUPIC[\pageSequencer][\open].notNil }) {
+                "Launching Page Sequencer...".postln;
+                { ~nUPIC[\pageSequencer][\open].value }.defer(0.5);
+            };
         } {
             "GUI modules not loaded - using command-line mode".postln;
         };
