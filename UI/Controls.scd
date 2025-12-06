@@ -970,6 +970,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 if(state[\controls][\eraseModeButton].notNil) {
                     state[\controls][\eraseModeButton].value = 0;
                 };
+                // Switch from DRAG mode to FWD when entering select mode
+                if(state[\playbackDirection] == \drag) {
+                    state[\playbackDirection] = \forward;
+                    if(state[\controls][\directionMenu].notNil) {
+                        state[\controls][\directionMenu].value = 0; // FWD
+                    };
+                };
                 "Select mode ON - click trajectories to select".postln;
             } {
                 // Clear arc selections when switching to draw mode
@@ -2106,6 +2113,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             if(state[\selectMode]) {
                 state[\eraseMode] = false;
                 if(eraseModeButton.notNil) { eraseModeButton.value = 0 };
+                // Switch from DRAG mode to FWD when entering select mode
+                if(state[\playbackDirection] == \drag) {
+                    state[\playbackDirection] = \forward;
+                    if(state[\controls][\directionMenu].notNil) {
+                        state[\controls][\directionMenu].value = 0; // FWD
+                    };
+                };
                 "Select mode ON".postln;
             } {
                 if(data.notNil and: { data[\selectedArcs].notNil }) {

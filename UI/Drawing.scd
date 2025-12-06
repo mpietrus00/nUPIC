@@ -651,14 +651,18 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     
     // Show current mode
     modeText = if(state[\isPlaying]) { "PLAYING" } {
-        if(state[\eraseMode]) { "ERASE MODE" } {
-            if(state[\selectMode]) { "SELECT MODE" } { "DRAW MODE" }
+        if(state[\playbackDirection] == \drag) { "DRAG MODE" } {
+            if(state[\eraseMode]) { "ERASE MODE" } {
+                if(state[\selectMode]) { "SELECT MODE" } { "DRAW MODE" }
+            }
         }
     };
-    
+
     modeColor = if(state[\isPlaying]) { Color.green } {
-        if(state[\eraseMode]) { Color.red } {
-            if(state[\selectMode]) { Color.blue } { Color.gray }
+        if(state[\playbackDirection] == \drag) { Color.magenta } {
+            if(state[\eraseMode]) { Color.red } {
+                if(state[\selectMode]) { Color.blue } { Color.gray }
+            }
         }
     };
     
