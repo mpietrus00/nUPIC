@@ -3,6 +3,22 @@
 
 This document outlines implementation proposals for extending nUPIC in alignment with the original UPIC system, based on the ZKM publication "From Xenakis's UPIC to Graphic Notation Today."
 
+**Source Document:** `Research/pdf_from_xenakiss_upic_to_graphic_notation_today_zkm.pdf` (extracted text: `.txt`)
+
+**Last Updated:** December 2024
+
+---
+
+## Executive Summary
+
+The Pietruszewski paper identifies the UPIC as an "epistemic tool" - a system that not only produces sound but embodies a particular theory of composition. Key concepts to integrate into nUPIC:
+
+1. **Multitemporal Paradigm** - Seamless work across micro, meso, and macro timescales
+2. **Transparent Stratification** - Pendular differentiation and reintegration of materials at all levels
+3. **Outside-of-Time → In-Time** - Shapes exist abstractly until temporalized by duration assignment
+4. **Artifact as Knowledge Carrier** - The instrument encapsulates and transmits compositional theory
+5. **Embodied + Hermeneutic Interface** - Balancing gestural drawing with interpretive data display
+
 ---
 
 ## 1. Multitemporal/Multiscale Composition
@@ -329,6 +345,254 @@ data[\arcDurations] = List.new;  // Per-arc duration overrides
 
 ---
 
+## 9. Pulsar Synthesis Integration
+
+### Source Reference
+> "The technique generates a complex hybrid of sounds across the perceptual time span between infrasonic pulsations and audio frequencies, giving rise to a broad family of musical structures: singular impulses, sequences, continuous tones, time-varying phrases, and beating textures." (Page 3)
+
+> "Through its inherently multiscale character, pulsar synthesis proposes a unique view on rhythm moving beyond a linear series of points and intervals tied to a time grid, and introduces a notion of rhythm as a continuously flowing temporal substrate." (Page 3)
+
+### Current nUPIC State
+- Wavetable synthesis using standard oscillator approach
+- No grain/pulsar-based synthesis mode
+
+### Proposal 9.1: Pulsar Synthesis Mode
+**Description:** Add a pulsar synthesis engine as an alternative to continuous wavetable synthesis, enabling exploration of the micro-to-macro rhythm continuum.
+
+**Implementation:**
+```supercollider
+// New SynthDef for pulsar synthesis
+SynthDef(\upicPulsar, { |out=0, freq=440, pulsarRate=100, duty=0.5, amp=0.1|
+    var pulsaret = Osc.ar(\pulsaretBuf.kr, freq);
+    var envelope = Osc.ar(\envBuf.kr, pulsarRate);
+    var train = pulsaret * envelope;
+    Out.ar(out, train * amp);
+});
+
+~nUPIC[\pulsar][\setPulsarRate] = { |arcIndex, rate|
+    // rate in Hz: infrasonic (0.25-20) to audio (20-642)
+    data[\arcPulsarRates][arcIndex] = rate;
+};
+```
+
+**Files to create:**
+- `Audio/PulsarSynthDefs.scd` - Pulsar synthesis engine
+- `UI/PulsarEditor.scd` - Pulsaret waveform editor
+
+### Proposal 9.2: Arc-to-Pulsar-Train Mapping
+**Description:** Map arc shapes to pulsar train parameters, where Y-axis controls pitch and X-axis evolution controls pulsar rate.
+
+---
+
+## 10. Embodied + Hermeneutic Interface Design
+
+### Source Reference
+> "Don Ihde conceptualized a variety of phenomenological modalities of instruments... embodied relations, where the instrument acts as an extension of the body and amplification of the senses; and hermeneutic relations, where the instrument provides us with data which we have to interpret." (Page 9)
+
+> "The drawing board featured in the early version of the UPIC system... had a calibrated area of 60 cm high by 75 cm wide." (Page 10, footnote 38)
+
+### Current nUPIC State
+- Mouse-based drawing interface
+- Limited haptic/embodied feedback
+- Basic visual feedback during playback
+
+### Proposal 10.1: Enhanced Gestural Input
+**Description:** Support for drawing tablets and touch input to restore the embodied, gestural quality of the original UPIC drawing board.
+
+**Implementation:**
+```supercollider
+~nUPIC[\input][\enablePressureSensitivity] = {
+    // Map pen pressure to line thickness or amplitude
+};
+
+~nUPIC[\input][\enableTilt] = {
+    // Map pen tilt to frequency range or timbre parameter
+};
+```
+
+### Proposal 10.2: Hermeneutic Display Overlays
+**Description:** Add interpretive overlays showing spectral analysis, waveform previews, and temporal markers during drawing.
+
+**Implementation:**
+- Real-time spectrogram overlay option
+- Waveform preview when hovering over arc
+- Temporal grid with musical subdivisions
+
+**Files to modify:**
+- `UI/Drawing.scd` - Add overlay rendering
+- `UI/Controls.scd` - Toggle for overlay modes
+
+---
+
+## 11. Dual Graphical/Textual Interface
+
+### Source Reference
+> "A coupling between graphic and textual interfaces allows for powerful control of visual and formalized compositional models." (Page 6)
+
+> "The underlying Just-In-Time programming paradigm used in the development of the program means that all objects can be redefined in real time." (Page 6)
+
+### Current nUPIC State
+- Primarily graphical interface
+- Limited programmatic API access
+- No live coding integration
+
+### Proposal 11.1: Live Coding Console
+**Description:** Embed a SuperCollider code console within nUPIC for real-time programmatic manipulation of arcs and parameters.
+
+**Implementation:**
+```supercollider
+~nUPIC[\console][\open] = {
+    // Open embedded SC code editor
+    // All ~nUPIC functions accessible
+    // Changes reflect immediately in GUI
+};
+```
+
+### Proposal 11.2: Script Recording
+**Description:** Record GUI actions as executable SuperCollider code for reproducibility and batch processing.
+
+**Implementation:**
+```supercollider
+~nUPIC[\scripting][\startRecording] = {
+    // Begin capturing all UI actions as code
+};
+
+~nUPIC[\scripting][\stopRecording] = {
+    // Return recorded code as string
+};
+
+// Example output:
+// ~nUPIC[\arcs][\create].value((x: 100, y: 200, freq: 440));
+// ~nUPIC[\arcs][\setAmplitude].value(0, 0.8);
+```
+
+---
+
+## 12. Transparent Stratification System
+
+### Source Reference
+> "The UPIC might be described as a system of 'transparent stratification' rendering entirely open for a pendular process of differentiation and reintegration of sound materials and forms at all the levels of temporal organization." (Page 4)
+
+### Current nUPIC State
+- Single-layer arc canvas
+- No hierarchical organization of materials
+
+### Proposal 12.1: Layered Composition View
+**Description:** Implement a layer system where each temporal scale (micro/meso/macro) has its own canvas, with visibility into adjacent scales.
+
+**Implementation:**
+```supercollider
+~nUPIC[\layers] = IdentityDictionary.new;
+~nUPIC[\layers][\scales] = [\micro, \meso, \macro];
+
+~nUPIC[\layers][\setActive] = { |scale|
+    // Switch editing context to specified scale
+    // Other scales visible but dimmed
+};
+
+~nUPIC[\layers][\linkAcrossScales] = { |microArc, mesoArc, macroArc|
+    // Create bidirectional links between representations
+    // Changes at one scale propagate to others
+};
+```
+
+### Proposal 12.2: Scale Navigator
+**Description:** Visual timeline showing the current zoom level relative to micro/meso/macro scales, with click-to-zoom navigation.
+
+---
+
+## Development Roadmap
+
+### Phase 1: Core UPIC Alignment (Foundation)
+**Goal:** Achieve feature parity with essential UPIC capabilities
+
+| Priority | Proposal | Effort | Dependencies |
+|----------|----------|--------|--------------|
+| 1 | 3.1 Time Compression/Expansion | Medium | None |
+| 2 | 3.2 Frequency Compression/Expansion | Medium | None |
+| 3 | 2.1 Per-Arc Duration | Medium | None |
+| 4 | 1.1 Arc-to-Wavetable Conversion | High | Wavetable system |
+| 5 | 4.1 Playback Direction Control | Low | Playback system |
+
+### Phase 2: Enhanced Workflow
+**Goal:** Streamline compositional workflow
+
+| Priority | Proposal | Effort | Dependencies |
+|----------|----------|--------|--------------|
+| 6 | 6.1 Timbre Presets | Medium | None |
+| 7 | 3.3 Interactive Transform Mode | High | 3.1, 3.2 |
+| 8 | 4.2 Playhead Position Control | Low | 4.1 |
+| 9 | 10.2 Hermeneutic Display Overlays | Medium | None |
+
+### Phase 3: Advanced Temporal Features
+**Goal:** Enable full multiscale composition
+
+| Priority | Proposal | Effort | Dependencies |
+|----------|----------|--------|--------------|
+| 10 | 2.2 Page/Section System | High | 2.1 |
+| 11 | 5.1 Temporal Zoom/Scale Bridging | High | 1.1, 1.2 |
+| 12 | 12.1 Layered Composition View | High | 2.2 |
+| 13 | 12.2 Scale Navigator | Medium | 12.1 |
+
+### Phase 4: Synthesis Extensions
+**Goal:** Expand synthesis capabilities
+
+| Priority | Proposal | Effort | Dependencies |
+|----------|----------|--------|--------------|
+| 14 | 9.1 Pulsar Synthesis Mode | High | Audio system |
+| 15 | 9.2 Arc-to-Pulsar-Train Mapping | Medium | 9.1 |
+| 16 | 8.1 Full GENDYN Extension | Medium | Existing GENDYN |
+
+### Phase 5: Interface & Scripting
+**Goal:** Professional workflow integration
+
+| Priority | Proposal | Effort | Dependencies |
+|----------|----------|--------|--------------|
+| 17 | 11.1 Live Coding Console | High | None |
+| 18 | 11.2 Script Recording | Medium | 11.1 |
+| 19 | 10.1 Enhanced Gestural Input | Medium | Platform support |
+| 20 | 7.1 State Morphing | High | 6.1 |
+
+### Phase 6: Experimental Features
+**Goal:** Push beyond historical UPIC
+
+| Priority | Proposal | Effort | Dependencies |
+|----------|----------|--------|--------------|
+| 21 | 5.2 Fractal/Recursive Arc Structure | Very High | 12.1 |
+
+---
+
+## Implementation Notes
+
+### Key Files for Modification
+```
+Core/
+├── ArcData.scd          # Arc storage, per-arc properties
+├── Constants.scd        # System configuration
+├── Model/ArcModel.scd   # Arc data structures
+
+Audio/
+├── upicWavetable.scd    # Main synthesis
+├── SynthDefs.scd        # Additional synths
+└── [NEW] PulsarSynthDefs.scd
+
+UI/
+├── MainWindow.scd       # Main interface layout
+├── Controls.scd         # Keyboard/button handlers
+├── MouseHandlers.scd    # Drawing interaction
+├── WavetableEditor.scd  # Waveform editing
+└── [NEW] PulsarEditor.scd
+└── [NEW] ScaleNavigator.scd
+```
+
+### Testing Strategy
+Each proposal should include:
+1. Unit tests for new functions (in `tests/`)
+2. Visual verification script
+3. Audio output validation
+
+---
+
 ## References
 
 All quotations from:
@@ -338,3 +602,6 @@ Additional references cited in the source:
 - Roads, Curtis. *Microsound*. Cambridge, MA: MIT Press, 2004.
 - Xenakis, Iannis. *Formalized Music*. Hillsdale, NY: Pendragon Press, 1992.
 - Marino, Gerard, Marie-Helene Serra, and Jean-Michel Raczinski. "The UPIC System: Origins and Innovations." *Perspectives of New Music* 31 (1993): 258-270.
+- Ihde, Don. *Technology and the Lifeworld: From Garden to Earth*. Indiana University Press, 1990.
+- Roads, Curtis, and Alberto de Campo. "Pulsar Generator" (2000).
+- Rohrhuber, Julian, et al. "Algorithms Today: Notes on Language Design for Just In Time Programming." ICMC 2005.
