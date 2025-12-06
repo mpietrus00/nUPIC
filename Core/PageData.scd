@@ -198,6 +198,11 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                     };
                 };
 
+                // Update page tabs
+                if(~nUPIC[\ui][\updatePageTabs].notNil) {
+                    { ~nUPIC[\ui][\updatePageTabs].value(currentPageIndex) }.defer;
+                };
+
                 // Refresh display
                 if(~nUPIC[\ui][\refreshDisplay].notNil) {
                     { ~nUPIC[\ui][\refreshDisplay].value }.defer;
