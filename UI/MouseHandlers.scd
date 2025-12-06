@@ -1078,11 +1078,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var data = ~nUPIC[\data];
     var constants = ~nUPIC[\constants];
     var currentTime, currentDuration;
+    var debugCount = state[\scrubDebugCount] ? 0;
 
     if(state.isNil or: { data.isNil } or: { state[\isScrubbing].not }) { ^nil };
     if(state[\scrubSynths].isNil) { ^nil };
 
-    // Calculate time position from mouse X
+    // Calculate time position from mouse X (normalized 0-1, then scaled to duration)
     currentDuration = state[\playDuration] ? 10;
     currentTime = (x / width) * currentDuration;
     currentTime = currentTime.clip(0, currentDuration);
@@ -1096,15 +1097,21 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var synth = state[\scrubSynths][i];
 
             if(synth.notNil and: { traj.size > 1 }) {
-                var canvasWidth = constants[\defaultWidth] ? 1200;
                 var firstPoint = traj[0];
                 var lastPoint = traj.last;
                 var arcStartTime, arcEndTime, arcDuration;
 
-                // Calculate arc time range
-                arcStartTime = (firstPoint.x / canvasWidth) * currentDuration;
-                arcEndTime = (lastPoint.x / canvasWidth) * currentDuration;
+                // Calculate arc time range using same width as mouse coordinate
+                // Arc X coordinates are stored in view pixels, same as mouse X
+                arcStartTime = (firstPoint.x / width) * currentDuration;
+                arcEndTime = (lastPoint.x / width) * currentDuration;
                 arcDuration = arcEndTime - arcStartTime;
+
+                // Debug output every 30 calls
+                if(debugCount % 30 == 0) {
+                    ("Scrub: mouseX=" ++ x.round(1) ++ " width=" ++ width ++ " time=" ++ currentTime.round(0.1) ++
+                     " arcStart=" ++ arcStartTime.round(0.1) ++ " arcEnd=" ++ arcEndTime.round(0.1)).postln;
+                };
 
                 // Check if current time is within arc's time range
                 if(currentTime >= arcStartTime and: { currentTime <= arcEndTime } and: { arcDuration > 0 }) {
@@ -1128,7 +1135,11 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                         i < data[\amplitudeEnvelopes].size
                     } and: { data[\amplitudeEnvelopes][i].notNil }) {
                         var ampEnv = data[\amplitudeEnvelopes][i];
-                        amp = ~nUPIC[\ui][\interpolateAmplitudeAt].value(ampEnv, currentTime, canvasWidth, currentDuration) ? 0.3;
+                        amp = ~nUPIC[\ui][\interpolateAmplitudeAt].value(ampEnv, currentTime, width, currentDuration) ? 0.3;
+                    };
+
+                    if(debugCount % 30 == 0) {
+                        ("  -> IN RANGE: freq=" ++ freq.round(1) ++ " amp=" ++ amp.round(0.01)).postln;
                     };
 
                     synth.set(\freq, freq, \amp, amp * 0.5, \pan, 0);
@@ -1139,6 +1150,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
         };
     };
+
+    state[\scrubDebugCount] = debugCount + 1;
 
     // Refresh display to show playback position
     { state[\drawView].refresh }.defer;
