@@ -332,6 +332,42 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     ~nUPIC[\wavetableEditor][\open].value(index);
 };
 
+// Convert arc shape to wavetable (Proposal 1.1)
+// The arc's frequency contour becomes a waveform shape
+~nUPIC[\arcs][\convertToWavetable] = { |index|
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { data[\convertArcToWavetable].notNil }) {
+        data[\convertArcToWavetable].value(index)
+    } { nil };
+};
+
+// Apply arc shape as wavetable to the same arc
+~nUPIC[\arcs][\applyShapeAsWavetable] = { |index|
+    var wavetable = ~nUPIC[\arcs][\convertToWavetable].value(index);
+    if(wavetable.notNil) {
+        ~nUPIC[\arcs][\setWavetable].value(index, wavetable);
+        ("Arc " ++ index ++ " shape applied as its wavetable").postln;
+        true
+    } { false };
+};
+
+// Create new arc from wavetable data (Proposal 1.2)
+// The waveform shape becomes a frequency contour
+~nUPIC[\arcs][\createFromWavetable] = { |wavetableData, startX = 100, width = 600|
+    var data = ~nUPIC[\data];
+    if(data.notNil and: { data[\createArcFromWavetable].notNil }) {
+        var newIndex = data[\createArcFromWavetable].value(wavetableData, startX, width);
+        if(newIndex.notNil) {
+            ("Created arc " ++ newIndex ++ " from wavetable").postln;
+            // Refresh display
+            if(~nUPIC[\ui][\refreshDisplay].notNil) {
+                ~nUPIC[\ui][\refreshDisplay].value;
+            };
+        };
+        newIndex
+    } { nil };
+};
+
 // Copy wavetable from one arc to another
 ~nUPIC[\arcs][\copyWavetable] = { |fromIndex, toIndex|
     var data = ~nUPIC[\data];

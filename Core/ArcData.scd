@@ -609,6 +609,102 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
             };
         },
 
+        // Arc-to-Wavetable Conversion (Proposal 1.1)
+        // Converts an arc's frequency contour to a wavetable waveform
+        // The arc shape becomes the waveform shape (macro becomes micro)
+        convertArcToWavetable: { |index|
+            var traj, freqs, minFreq, maxFreq, wavetable;
+
+            if(index >= 0 and: { index < trajectories.size }) {
+                traj = trajectories[index];
+
+                // Extract frequencies from arc points
+                freqs = traj.collect { |pt|
+                    if(pt.isKindOf(Event)) { pt.freq } { nil }
+                }.reject { |f| f.isNil };
+
+                if(freqs.size > 1) {
+                    minFreq = freqs.minItem;
+                    maxFreq = freqs.maxItem;
+
+                    // Normalize frequencies to -1 to 1 range
+                    // Map: minFreq -> -1, maxFreq -> 1
+                    if(maxFreq > minFreq) {
+                        freqs = freqs.collect { |f|
+                            f.linlin(minFreq, maxFreq, -1, 1)
+                        };
+                    } {
+                        // All same frequency - create DC line at 0
+                        freqs = freqs.collect { 0 };
+                    };
+
+                    // Resample to 2048 samples using linear interpolation
+                    wavetable = Array.fill(numWavetableSamples, { |i|
+                        var pos = i / (numWavetableSamples - 1) * (freqs.size - 1);
+                        var idx1 = pos.floor.asInteger.clip(0, freqs.size - 2);
+                        var idx2 = (idx1 + 1).clip(0, freqs.size - 1);
+                        var t = pos - idx1;
+                        freqs[idx1].blend(freqs[idx2], t)
+                    });
+
+                    wavetable
+                } {
+                    nil  // Not enough points
+                }
+            } {
+                nil  // Invalid index
+            }
+        },
+
+        // Wavetable-to-Arc Conversion (Proposal 1.2)
+        // Converts a wavetable to an arc shape on the canvas
+        // The waveform shape becomes a frequency contour (micro becomes macro)
+        convertWavetableToArc: { |wavetableData, startX = 100, width = 600|
+            var state = ~nUPIC[\ui][\state];
+            var constants = ~nUPIC[\constants];
+            var viewHeight = state[\viewHeight] ? 800;
+            var zoomFreqMin = state[\zoomFreqMin] ? (constants[\freqMin] ? 20);
+            var zoomFreqMax = state[\zoomFreqMax] ? (constants[\freqMax] ? 7500);
+            var arcPoints, numPoints, step;
+
+            if(wavetableData.notNil and: { wavetableData.size > 0 }) {
+                // Determine number of arc points (downsample for reasonable arc)
+                numPoints = 200.min(wavetableData.size);
+                step = wavetableData.size / numPoints;
+
+                arcPoints = List.new;
+
+                numPoints.do { |i|
+                    var sampleIdx = (i * step).round.asInteger.clip(0, wavetableData.size - 1);
+                    var sampleVal = wavetableData[sampleIdx];  // -1 to 1
+                    var x = startX + (i / (numPoints - 1) * width);
+
+                    // Map wavetable value (-1 to 1) to frequency (using log scale)
+                    var normalizedVal = (sampleVal + 1) / 2;  // 0 to 1
+                    var freq = zoomFreqMin * ((zoomFreqMax / zoomFreqMin) ** normalizedVal);
+                    var y = freq.explin(zoomFreqMin, zoomFreqMax, viewHeight, 0);
+
+                    arcPoints.add((x: x, y: y, freq: freq));
+                };
+
+                arcPoints
+            } {
+                nil
+            }
+        },
+
+        // Create arc from wavetable and add it to the canvas
+        createArcFromWavetable: { |wavetableData, startX = 100, width = 600|
+            var arcPoints = this.convertWavetableToArc(wavetableData, startX, width);
+            if(arcPoints.notNil) {
+                // Add the arc with the same wavetable it was derived from
+                var newIndex = this.addArc(arcPoints, \upicWavetable, nil, nil, wavetableData.copy);
+                newIndex
+            } {
+                nil
+            }
+        },
+
         // Statistics
         getStats: {
             (

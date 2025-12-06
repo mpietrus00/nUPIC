@@ -8,7 +8,7 @@
 
 ~nUPIC[\wavetableEditor][\open] = { |arcIndex = nil|
     var win, tabView, drawView, controlView;
-    var width = 400, height = 200;
+    var width = 480, height = 200;
     var tabHeight = 25;
     var controlHeight = 35;
     var numSamples = 2048;
@@ -348,9 +348,40 @@
             };
         });
 
+    // Arc-to-Wavetable conversion: use arc shape as wavetable
+    buttons[\fromArc] = Button(controlView, Rect(xPos + 180, 5, 38, 22))
+        .states_([["arc→", Color.white, Color.new(0.5, 0.3, 0.6)]])
+        .font_(Font("Arial", 9, true))
+        .action_({
+            var arcIdx = getCurrentArcIndex.value;
+            var wt = ~nUPIC[\arcs][\convertToWavetable].value(arcIdx);
+            if(wt.notNil) {
+                setCurrentWavetable.value(wt);
+                wavetableCache[arcIdx] = wt;
+                drawView.refresh;
+                "Arc % shape applied as wavetable".format(arcIdx).postln;
+            } {
+                "Could not convert arc % to wavetable".format(arcIdx).warn;
+            };
+        });
+
+    // Wavetable-to-Arc conversion: create new arc from wavetable shape
+    buttons[\toArc] = Button(controlView, Rect(xPos + 222, 5, 38, 22))
+        .states_([["→arc", Color.white, Color.new(0.3, 0.5, 0.6)]])
+        .font_(Font("Arial", 9, true))
+        .action_({
+            var wt = getCurrentWavetable.value;
+            var newIdx = ~nUPIC[\arcs][\createFromWavetable].value(wt, 100, 600);
+            if(newIdx.notNil) {
+                "Created arc % from wavetable".format(newIdx).postln;
+            } {
+                "Could not create arc from wavetable".warn;
+            };
+        });
+
     // Apply to All button (only if multiple arcs)
     if(arcIndices.size > 1) {
-        buttons[\applyAll] = Button(controlView, Rect(xPos + 180, 5, 50, 22))
+        buttons[\applyAll] = Button(controlView, Rect(xPos + 268, 5, 32, 22))
             .states_([["all", Color.white, Color.new(0.2, 0.5, 0.2)]])
             .font_(Font("Arial", 9, true))
             .action_({
