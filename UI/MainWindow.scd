@@ -134,15 +134,16 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     // Store window reference
     ~nUPIC[\ui][\state][\window] = window;
 
-    // Create page tab bar (A, B, C, D)
+    // Create page tab bar (A, B, C, D) - full width, narrower buttons
     pageTabButtons = List.new;
-    ["A", "B", "C", "D"].do { |label, i|
-        var tabBtn = Button(window, Rect(allMargin + (i * 60), allMargin, 55, pageTabHeight - 5))
+    ["_a", "_b", "_c", "_d"].do { |label, i|
+        var tabWidth = (width - (allMargin * 2) - 12) / 4;  // Divide available width by 4
+        var tabBtn = Button(window, Rect(allMargin + (i * (tabWidth + 3)), allMargin, tabWidth, pageTabHeight - 5))
             .states_([
                 [label, Color.black, Color.gray(0.85)],  // Unselected
-                [label, Color.white, Color.blue(0.7)]    // Selected
+                [label, Color.white, Color.new(0.2, 0.5, 0.2)]  // Selected - B&K green
             ])
-            .font_(Font("Arial", 14, true))
+            .font_(Font("Arial", 11))
             .value_(if(i == 0) { 1 } { 0 })  // First tab selected by default
             .action_({ |btn|
                 // Switch to this page

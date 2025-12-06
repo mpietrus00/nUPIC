@@ -12,7 +12,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     var maxPages = 24;  // Original UPIC limit
     var defaultDuration = 60;  // 1 minute default (original UPIC page limit)
     var createEmptyPageData;  // Forward declaration
-    var defaultPageLabels = ["A", "B", "C", "D"];  // Default page labels
+    var defaultPageLabels = ["_a", "_b", "_c", "_d"];  // Default page labels
 
     // Initialize
     pages = List.new;

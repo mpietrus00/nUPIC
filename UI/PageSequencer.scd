@@ -8,13 +8,14 @@
 
 ~nUPIC[\pageSequencer][\open] = {
     var win, matrixView, controlView;
-    var width = 700, height = 280;
-    var matrixWidth = 640, matrixHeight = 180;
-    var controlHeight = 50;
-    var labelWidth = 40;
-    var cellWidth = 48, cellHeight = 38;
+    var width = 700, height = 260;
+    var matrixWidth = 660, matrixHeight = 160;
+    var controlHeight = 45;
+    var labelWidth = 35;
+    var cellWidth = 50, cellHeight = 32;
     var numSlots = 12;
-    var pageLabels = ["A", "B", "C", "D"];
+    var pageLabels = ["_a", "_b", "_c", "_d"];
+    var bkGreen = Color.new(205/255, 250/255, 205/255);  // B&K green
     var pageManager = ~nUPIC[\pages][\manager];
     var matrixButtons = Array2D.new(4, numSlots);  // 4 rows (pages) x 12 columns (slots)
     var totalDurationText;
@@ -51,13 +52,13 @@
             };
         };
 
-        totalDurationText.string = "Total: % min % sec".format(
+        totalDurationText.string = "_total: %m %s".format(
             (totalDur / 60).floor.asInteger,
             (totalDur % 60).round(0.1)
         );
 
-        sequenceDisplayText.string = "Sequence: " ++ if(seqLabels.size > 0) {
-            seqLabels.join(" → ")
+        sequenceDisplayText.string = "_sequence: " ++ if(seqLabels.size > 0) {
+            seqLabels.join(" > ")
         } { "(empty)" };
     };
 
@@ -106,51 +107,51 @@
 
     // Create window
     win = Window("nUPIC Page Sequence Editor", Rect(100, 450, width, height));
-    win.background = Color.gray(0.9);
+    win.background = bkGreen;
 
     // Title
-    StaticText(win, Rect(10, 5, width - 20, 20))
-        .string_("Page Sequence Matrix - Click cells to build sequence")
-        .font_(Font("Arial", 12, true))
+    StaticText(win, Rect(10, 5, width - 20, 18))
+        .string_("_page_sequence")
+        .font_(Font("Arial", 10))
         .align_(\center);
 
     // === MATRIX VIEW ===
-    matrixView = CompositeView(win, Rect(10, 30, matrixWidth, matrixHeight));
+    matrixView = CompositeView(win, Rect(10, 25, matrixWidth, matrixHeight));
     matrixView.background = Color.white;
 
     // Column headers (slot numbers 1-12)
     numSlots.do { |col|
-        StaticText(matrixView, Rect(labelWidth + (col * cellWidth), 0, cellWidth, 20))
-            .string_((col + 1).asString)
-            .font_(Font("Arial", 10, true))
+        StaticText(matrixView, Rect(labelWidth + (col * cellWidth), 0, cellWidth, 16))
+            .string_("_" ++ (col + 1).asString)
+            .font_(Font("Arial", 9))
             .align_(\center);
     };
 
     // Row labels and matrix buttons
     4.do { |row|
-        var yPos = 25 + (row * cellHeight);
+        var yPos = 18 + (row * cellHeight);
         var pageColor = [
-            Color.red(0.7),     // A - Red
-            Color.green(0.7),   // B - Green
-            Color.blue(0.7),    // C - Blue
-            Color.yellow(0.7)   // D - Yellow
+            Color.new(0.6, 0.3, 0.3),   // _a - muted red
+            Color.new(0.3, 0.5, 0.3),   // _b - muted green
+            Color.new(0.3, 0.3, 0.6),   // _c - muted blue
+            Color.new(0.5, 0.5, 0.3)    // _d - muted yellow
         ][row];
 
-        // Row label (A, B, C, D)
-        StaticText(matrixView, Rect(5, yPos + 5, labelWidth - 5, cellHeight - 10))
+        // Row label (_a, _b, _c, _d)
+        StaticText(matrixView, Rect(2, yPos + 4, labelWidth - 2, cellHeight - 8))
             .string_(pageLabels[row])
-            .font_(Font("Arial", 16, true))
+            .font_(Font("Arial", 10))
             .align_(\center)
-            .background_(pageColor.alpha_(0.3));
+            .background_(pageColor.alpha_(0.2));
 
         // Matrix cells for this row
         numSlots.do { |col|
-            var btn = Button(matrixView, Rect(labelWidth + (col * cellWidth) + 2, yPos + 2, cellWidth - 4, cellHeight - 4))
+            var btn = Button(matrixView, Rect(labelWidth + (col * cellWidth) + 1, yPos + 1, cellWidth - 2, cellHeight - 2))
                 .states_([
-                    ["", Color.black, Color.gray(0.95)],  // Empty slot
+                    ["", Color.black, Color.gray(0.92)],  // Empty slot
                     [pageLabels[row], Color.white, pageColor]  // Page assigned
                 ])
-                .font_(Font("Arial", 12, true))
+                .font_(Font("Arial", 9))
                 .action_({ |b|
                     // Toggle this cell
                     if(b.value == 1) {
@@ -169,23 +170,23 @@
     };
 
     // === CONTROL PANEL ===
-    controlView = CompositeView(win, Rect(0, height - controlHeight - 5, width, controlHeight));
-    controlView.background = Color.gray(0.8);
+    controlView = CompositeView(win, Rect(0, height - controlHeight, width, controlHeight));
+    controlView.background = bkGreen;
 
     // Total duration display
-    totalDurationText = StaticText(controlView, Rect(10, 5, 150, 20))
-        .string_("Total: 0 min 0 sec")
-        .font_(Font("Arial", 11, true));
+    totalDurationText = StaticText(controlView, Rect(10, 3, 140, 18))
+        .string_("_total: 0m 0s")
+        .font_(Font("Arial", 9));
 
     // Sequence display
-    sequenceDisplayText = StaticText(controlView, Rect(10, 25, 400, 20))
-        .string_("Sequence: (empty)")
-        .font_(Font("Monaco", 10));
+    sequenceDisplayText = StaticText(controlView, Rect(10, 22, 380, 18))
+        .string_("_sequence: (empty)")
+        .font_(Font("Monaco", 9));
 
     // Clear Sequence button
-    Button(controlView, Rect(420, 8, 80, 30))
-        .states_([["Clear All", Color.white, Color.red(0.6)]])
-        .font_(Font("Arial", 10, true))
+    Button(controlView, Rect(400, 5, 65, 28))
+        .states_([["_clear", Color.black, Color.gray(0.85)]])
+        .font_(Font("Arial", 9))
         .action_({
             4.do { |row|
                 numSlots.do { |col|
@@ -197,10 +198,10 @@
             syncSequenceFromMatrix.value;
         });
 
-    // Fill with A button (quick preset)
-    Button(controlView, Rect(505, 8, 60, 30))
-        .states_([["Fill A", Color.black, Color.red(0.5)]])
-        .font_(Font("Arial", 10, true))
+    // Fill with _a button (quick preset)
+    Button(controlView, Rect(470, 5, 55, 28))
+        .states_([["_fill_a", Color.black, Color.gray(0.85)]])
+        .font_(Font("Arial", 9))
         .action_({
             numSlots.do { |col|
                 4.do { |row|
@@ -213,12 +214,12 @@
         });
 
     // Play Sequence button
-    Button(controlView, Rect(570, 8, 70, 30))
+    Button(controlView, Rect(530, 5, 55, 28))
         .states_([
-            ["Play Seq", Color.white, Color.green(0.6)],
-            ["Stop", Color.white, Color.red(0.7)]
+            ["_play", Color.black, Color.gray(0.85)],
+            ["_stop", Color.white, Color.new(0.5, 0.3, 0.3)]
         ])
-        .font_(Font("Arial", 10, true))
+        .font_(Font("Arial", 9))
         .action_({ |btn|
             if(btn.value == 1) {
                 // Start sequence playback
@@ -239,9 +240,9 @@
         });
 
     // Refresh button (sync from page manager)
-    Button(controlView, Rect(645, 8, 45, 30))
-        .states_([["Sync", Color.black, Color.cyan(0.7)]])
-        .font_(Font("Arial", 10, true))
+    Button(controlView, Rect(590, 5, 45, 28))
+        .states_([["_sync", Color.black, Color.gray(0.85)]])
+        .font_(Font("Arial", 9))
         .action_({
             syncMatrixToSequence.value;
         });
