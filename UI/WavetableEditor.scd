@@ -365,21 +365,28 @@
             };
         });
 
-    // Wavetable-to-Arc conversion: create new arc from wavetable shape
+    // Wavetable-to-Arc conversion: replace current arc's shape with wavetable
     buttons[\toArc] = Button(controlView, Rect(xPos + 222, 5, 38, 22))
         .states_([["→arc", Color.white, Color.new(0.3, 0.5, 0.6)]])
         .font_(Font("Arial", 9, true))
         .action_({
             var wt = getCurrentWavetable.value;
-            var newIdx = ~nUPIC[\arcs][\createFromWavetable].value(wt, 100, 600);
-            if(newIdx.notNil) {
-                "Created arc % from wavetable - refreshing display".format(newIdx).postln;
-                // Refresh the main canvas to show the new arc
-                if(~nUPIC[\ui][\refreshDisplay].notNil) {
-                    { ~nUPIC[\ui][\refreshDisplay].value }.defer;
+            var arcIdx = getCurrentArcIndex.value;
+            var newPoints = ~nUPIC[\data][\convertWavetableToArc].value(wt, 100, 600);
+            if(newPoints.notNil and: { arcIdx.notNil }) {
+                // Replace the arc's points with the wavetable shape
+                if(~nUPIC[\data][\arcs].notNil and: { arcIdx < ~nUPIC[\data][\arcs].size }) {
+                    ~nUPIC[\data][\arcs][arcIdx] = newPoints;
+                    "Arc % shape replaced with wavetable".format(arcIdx).postln;
+                    // Refresh the main canvas to show the updated arc
+                    if(~nUPIC[\ui][\refreshDisplay].notNil) {
+                        { ~nUPIC[\ui][\refreshDisplay].value }.defer;
+                    };
+                } {
+                    "Invalid arc index: %".format(arcIdx).warn;
                 };
             } {
-                "Could not create arc from wavetable".warn;
+                "Could not convert wavetable to arc".warn;
             };
         });
 
