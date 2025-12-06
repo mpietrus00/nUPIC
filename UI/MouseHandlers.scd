@@ -910,6 +910,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     var data = ~nUPIC[\data];
     var constants = ~nUPIC[\constants];
     var transformedCount = 0;
+    var viewHeight, zoomFreqMax, zoomFreqMin;
 
     if(state.isNil or: { data.isNil } or: { data[\selectedArcs].isNil }) {
         "No arcs selected for frequency transformation".postln;
@@ -922,21 +923,23 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
 
     // Get view parameters for Y recalculation
-    var viewHeight = state[\viewHeight] ? 800;
-    var zoomFreqMax = state[\zoomFreqMax] ? (constants[\freqMax] ? 7500);
-    var zoomFreqMin = state[\zoomFreqMin] ? (constants[\freqMin] ? 20);
+    viewHeight = state[\viewHeight] ? 800;
+    zoomFreqMax = state[\zoomFreqMax] ? (constants[\freqMax] ? 7500);
+    zoomFreqMin = state[\zoomFreqMin] ? (constants[\freqMin] ? 20);
 
     data[\selectedArcs].do { |trajIndex|
         if(trajIndex < data[\arcs].size) {
             var traj = data[\arcs][trajIndex];
-            var freqs = traj.collect { |pt|
+            var freqs, logFreqs, logCenter;
+
+            freqs = traj.collect { |pt|
                 if(pt.isKindOf(Event)) { pt.freq } { nil }
             }.reject { |f| f.isNil };
 
             if(freqs.size > 0) {
                 // Calculate geometric mean (center in log space)
-                var logFreqs = freqs.collect { |f| f.log };
-                var logCenter = logFreqs.sum / logFreqs.size;
+                logFreqs = freqs.collect { |f| f.log };
+                logCenter = logFreqs.sum / logFreqs.size;
 
                 data[\arcs][trajIndex] = traj.collect { |point|
                     if(point.isKindOf(Event)) {
