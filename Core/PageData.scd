@@ -385,16 +385,16 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     )
 }.value;
 
-// Convenience accessors
-~nUPIC[\pages][\current] = { ~nUPIC[\pages][\manager].getCurrent.value };
-~nUPIC[\pages][\count] = { ~nUPIC[\pages][\manager].count.value };
-~nUPIC[\pages][\create] = { |label, duration| ~nUPIC[\pages][\manager].create.value(label, duration) };
-~nUPIC[\pages][\delete] = { |index| ~nUPIC[\pages][\manager].delete.value(index) };
-~nUPIC[\pages][\duplicate] = { |index| ~nUPIC[\pages][\manager].duplicate.value(index) };
-~nUPIC[\pages][\switchTo] = { |index| ~nUPIC[\pages][\manager].switchTo.value(index) };
-~nUPIC[\pages][\setLabel] = { |index, label| ~nUPIC[\pages][\manager].setLabel.value(index, label) };
-~nUPIC[\pages][\setDuration] = { |index, duration| ~nUPIC[\pages][\manager].setDuration.value(index, duration) };
-~nUPIC[\pages][\getDuration] = { |index| ~nUPIC[\pages][\manager].getDuration.value(index) };
+// Convenience accessors - use bracket notation to avoid Collection method conflicts
+~nUPIC[\pages][\current] = { ~nUPIC[\pages][\manager][\getCurrent].value };
+~nUPIC[\pages][\count] = { ~nUPIC[\pages][\manager][\count].value };
+~nUPIC[\pages][\create] = { |label, duration| ~nUPIC[\pages][\manager][\create].value(label, duration) };
+~nUPIC[\pages][\delete] = { |index| ~nUPIC[\pages][\manager][\delete].value(index) };
+~nUPIC[\pages][\duplicate] = { |index| ~nUPIC[\pages][\manager][\duplicate].value(index) };
+~nUPIC[\pages][\switchTo] = { |index| ~nUPIC[\pages][\manager][\switchTo].value(index) };
+~nUPIC[\pages][\setLabel] = { |index, label| ~nUPIC[\pages][\manager][\setLabel].value(index, label) };
+~nUPIC[\pages][\setDuration] = { |index, duration| ~nUPIC[\pages][\manager][\setDuration].value(index, duration) };
+~nUPIC[\pages][\getDuration] = { |index| ~nUPIC[\pages][\manager][\getDuration].value(index) };
 
 "nUPIC Page Data Management loaded".postln;
 "  - Up to 24 pages per project".postln;

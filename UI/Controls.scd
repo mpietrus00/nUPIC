@@ -65,8 +65,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
 
             // Update current page's duration if page system is active
             if(~nUPIC[\pages][\manager].notNil) {
-                var pageIdx = ~nUPIC[\pages][\manager].getCurrentIndex.value;
-                ~nUPIC[\pages][\manager].setDuration.value(pageIdx, newDuration);
+                var pageIdx = ~nUPIC[\pages][\manager][\getCurrentIndex].value;
+                ~nUPIC[\pages][\manager][\setDuration].value(pageIdx, newDuration);
             };
 
             // Update zoom system when duration changes
@@ -1307,6 +1307,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 ~nUPIC[\defaults][\setValue].value(\playDuration, newDuration);
             };
 
+            // Update current page's duration if page system is active
+            if(~nUPIC[\pages][\manager].notNil) {
+                var pageIdx = ~nUPIC[\pages][\manager][\getCurrentIndex].value;
+                ~nUPIC[\pages][\manager][\setDuration].value(pageIdx, newDuration);
+            };
+
             if(~nUPIC[\ui][\onDurationChange].notNil) {
                 ~nUPIC[\ui][\onDurationChange].value;
             };
@@ -2090,6 +2096,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             // Update reactive defaults
             if(~nUPIC[\defaults].notNil and: { ~nUPIC[\defaults][\setValue].notNil }) {
                 ~nUPIC[\defaults][\setValue].value(\playDuration, newDuration);
+            };
+
+            // Update current page's duration if page system is active
+            if(~nUPIC[\pages][\manager].notNil) {
+                var pageIdx = ~nUPIC[\pages][\manager][\getCurrentIndex].value;
+                ~nUPIC[\pages][\manager][\setDuration].value(pageIdx, newDuration);
             };
 
             if(~nUPIC[\ui][\onDurationChange].notNil) {
