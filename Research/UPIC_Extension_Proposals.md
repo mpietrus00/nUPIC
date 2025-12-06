@@ -189,32 +189,27 @@ data[\arcDurations] = List.new;  // Per-arc duration overrides
 > "The reading position and direction on a page and between pages can be variable, too." (Page 3)
 
 ### Current nUPIC State
-- Playback always proceeds left-to-right
-- Fixed start position (leftmost point of each arc)
+- **IMPLEMENTED** - Playback direction and start position now available
+- Direction options: Forward (FWD), Reverse (REV), Palindrome (PAL)
+- Start position slider allows playback from any point (0-100%)
 
-### Proposal 4.1: Playback Direction Control
+### Proposal 4.1: Playback Direction Control ✓ IMPLEMENTED
 **Description:** Allow arcs to be played in reverse or with variable direction.
 
-**Implementation:**
-```supercollider
-~nUPIC[\arcs][\setPlayDirection] = { |arcIndex, direction|
-    // direction: \forward, \reverse, \palindrome
-    data[\arcPlayDirections][arcIndex] = direction;
-};
-```
+**Implementation:** (in `UI/MainWindow.scd` and `UI/Controls.scd`)
+- State variables: `state[\playbackDirection]`, `state[\palindromePhase]`
+- UI: Direction popup menu (FWD/REV/PAL) in control panel
+- Forward: plays 0 → duration
+- Reverse: plays duration → 0
+- Palindrome: plays 0 → duration → 0 (ping-pong, loops)
 
-### Proposal 4.2: Playhead Position Control
+### Proposal 4.2: Playhead Position Control ✓ IMPLEMENTED
 **Description:** Allow setting arbitrary start position for playback.
 
-**Implementation:**
-```supercollider
-~nUPIC[\ui][\setPlayheadPosition] = { |normalizedX|
-    // 0.0 = start, 1.0 = end
-    state[\playheadStart] = normalizedX;
-};
-```
-
-**UI Enhancement:** Clickable timeline ruler above canvas to set playhead position.
+**Implementation:** (in `UI/MainWindow.scd` and `UI/Controls.scd`)
+- State variable: `state[\playbackStartPosition]` (0.0 to 1.0)
+- UI: Start position slider in control panel
+- Combined with direction for flexible playback starting point
 
 ---
 
@@ -799,7 +794,7 @@ Squibbs identifies these morphological types in Mycènes Alpha:
 | 2 | 3.2 Frequency Compression/Expansion | Medium | ✓ DONE |
 | 3 | 2.1 Per-Arc Duration | Medium | Pending |
 | 4 | 1.1 Arc-to-Wavetable Conversion | High | Pending |
-| 5 | 4.1 Playback Direction Control | Low | Pending |
+| 5 | 4.1 Playback Direction Control | Low | ✓ Implemented |
 
 ### Phase 2: Enhanced Workflow
 **Goal:** Streamline compositional workflow
@@ -808,7 +803,7 @@ Squibbs identifies these morphological types in Mycènes Alpha:
 |----------|----------|--------|--------------|
 | 6 | 6.1 Timbre Presets | Medium | None |
 | 7 | 3.3 Interactive Transform Mode | High | 3.1, 3.2 |
-| 8 | 4.2 Playhead Position Control | Low | 4.1 |
+| 8 | 4.2 Playhead Position Control | Low | ✓ Implemented |
 | 9 | 10.2 Hermeneutic Display Overlays | Medium | None |
 
 ### Phase 3: Advanced Temporal Features

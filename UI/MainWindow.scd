@@ -103,6 +103,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             isPlaying: false,
             playbackPosition: 0,
             playbackTask: nil,
+            playbackDirection: \forward,  // \forward, \reverse, or \palindrome
+            playbackStartPosition: 0.0,   // Normalized start position (0.0 to 1.0)
+            palindromePhase: \forward,    // For palindrome mode: track current phase
 
             // Audio state
             synths: List.new,
@@ -426,18 +429,84 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             0.1.wait;
 
             // Playback loop with dual-rate updates
-            state[\playbackPosition] = 0;
+            // Initialize based on playback direction and start position
+            {
+                var playDirection = state[\playbackDirection] ? \forward;
+                var startPos = state[\playbackStartPosition] ? 0.0;
+                var initTime;
+
+                // Calculate initial playback time based on direction and start position
+                case
+                { playDirection == \forward } {
+                    initTime = startPos * state[\playDuration];
+                    state[\palindromePhase] = \forward;
+                }
+                { playDirection == \reverse } {
+                    // For reverse, start from end minus start position offset
+                    initTime = state[\playDuration] - (startPos * state[\playDuration]);
+                    state[\palindromePhase] = \reverse;
+                }
+                { playDirection == \palindrome } {
+                    initTime = startPos * state[\playDuration];
+                    state[\palindromePhase] = \forward;  // Start going forward
+                };
+
+                state[\playbackPosition] = initTime;
+                ("Playback starting - Direction: " ++ playDirection ++ ", Start: " ++ initTime.round(0.01) ++ "s").postln;
+            }.value;
+
             startTime = Main.elapsedTime;  // Record actual start time for sync
-            
-            while { state[\playbackPosition] < state[\playDuration] and: { state[\isPlaying] } } {
+
+            // Main playback loop - continues while playing and within valid range
+            while { state[\isPlaying] and: {
+                var playDirection = state[\playbackDirection] ? \forward;
+                case
+                { playDirection == \forward } { state[\playbackPosition] < state[\playDuration] }
+                { playDirection == \reverse } { state[\playbackPosition] > 0 }
+                { playDirection == \palindrome } { true }  // Palindrome continues until stopped
+                { true }  // Default
+            } } {
                 var actualElapsedTime = Main.elapsedTime - startTime;  // Real elapsed time
-                var currentTime = actualElapsedTime;  // Use real time for audio sync
+                var currentTime;  // Will be calculated based on direction
                 var shouldUpdateUI = (actualElapsedTime - lastUIUpdateTime) >= uiFrameTime;
                 var currentDuration = state[\playDuration];  // Read current duration each frame
                 var activeSynthCount = 0;  // Count synths that are actively playing
-                
-                // Update visual playback position to match actual time
-                state[\playbackPosition] = actualElapsedTime;
+                var playDirection = state[\playbackDirection] ? \forward;
+                var startPos = state[\playbackStartPosition] ? 0.0;
+
+                // Calculate currentTime based on playback direction
+                case
+                { playDirection == \forward } {
+                    // Forward: start at startPos, increase time
+                    currentTime = (startPos * currentDuration) + actualElapsedTime;
+                    state[\playbackPosition] = currentTime;
+                }
+                { playDirection == \reverse } {
+                    // Reverse: start at end minus startPos offset, decrease time
+                    currentTime = currentDuration - (startPos * currentDuration) - actualElapsedTime;
+                    currentTime = currentTime.max(0);  // Don't go below 0
+                    state[\playbackPosition] = currentTime;
+                }
+                { playDirection == \palindrome } {
+                    // Palindrome: alternate between forward and reverse
+                    var cycleTime = actualElapsedTime % (currentDuration * 2);  // Full cycle = 2x duration
+                    var phase = state[\palindromePhase] ? \forward;
+
+                    if(cycleTime < currentDuration) {
+                        // First half: forward
+                        currentTime = (startPos * currentDuration) + cycleTime;
+                        if(currentTime >= currentDuration) {
+                            currentTime = currentDuration - (currentTime - currentDuration);
+                            state[\palindromePhase] = \reverse;
+                        };
+                    } {
+                        // Second half: reverse
+                        currentTime = currentDuration - (cycleTime - currentDuration);
+                        state[\palindromePhase] = \reverse;
+                    };
+                    currentTime = currentTime.clip(0, currentDuration);
+                    state[\playbackPosition] = currentTime;
+                };
 
                 // Debug: print duration changes
                 if((frameCount % 60 == 0) and: { frameCount > 0 }) {
