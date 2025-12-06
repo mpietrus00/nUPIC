@@ -154,7 +154,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             var lastY = -1000;   // Track last position to match label filtering
             
             gridFreqs.do { |freq|
-                var y = freq.linlin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
+                var y = freq.explin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
                 
                 // Use same filtering logic as labels to ensure 1:1 correspondence
                 if(y >= 15 and: { y <= (height - 15) } and: { (y - lastY).abs >= minSpacing }) {
@@ -386,15 +386,15 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         
         screenY = originalY - viewportY;
         
-        // Calculate frequency-mapped Y coordinate
+        // Calculate frequency-mapped Y coordinate (exponential mapping for perceptual scaling)
         if(point.isKindOf(Event)) {
-            y = point.freq.linlin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0).clip(0, height);
+            y = point.freq.explin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0).clip(0, height);
         } {
             // Old format - recalculate frequency from y using zoom-aware ranges
             var zoomFreqMax = state[\zoomFreqMax] ? (constants[\freqMax] ? 7500);
             var zoomFreqMin = state[\zoomFreqMin] ? (constants[\freqMin] ? 20);
-            freq = point.y.linlin(0, height, zoomFreqMax, zoomFreqMin);
-            y = freq.linlin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0).clip(0, height);
+            freq = point.y.linexp(0, height, zoomFreqMax, zoomFreqMin);
+            y = freq.explin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0).clip(0, height);
         };
         
         // Check if point is visible within current viewport (using frequency-mapped coordinates)
@@ -533,7 +533,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     if(currentTraj[0].isKindOf(Event)) {
         // Use spatial coordinate system for zoom-aware drawing
         var firstPoint = currentTraj[0];
-        var firstY = firstPoint.freq.linlin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
+        var firstY = firstPoint.freq.explin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
         var firstX;
         
         // Convert spatial coordinate to screen coordinate using spatial zoom system
@@ -553,7 +553,7 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             Pen.moveTo(Point(firstX, firstY));
             
             currentTraj.do { |point|
-                var y = point.freq.linlin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
+                var y = point.freq.explin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
                 var x;
                 
                 // Convert each point using spatial coordinate system
@@ -750,18 +750,18 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     };
 };
 
-// Helper function for coordinate conversions
+// Helper function for coordinate conversions (exponential for perceptual frequency)
 ~nUPIC[\ui][\screenToFreq] = { |y, height|
     var state = ~nUPIC[\ui][\state];
     if(state.notNil) {
-        y.linlin(height, 0, state[\zoomFreqMin], state[\zoomFreqMax])
+        y.linexp(height, 0, state[\zoomFreqMin], state[\zoomFreqMax])
     } { nil };
 };
 
 ~nUPIC[\ui][\freqToScreen] = { |freq, height|
     var state = ~nUPIC[\ui][\state];
     if(state.notNil) {
-        freq.linlin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0)
+        freq.explin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0)
     } { nil };
 };
 
@@ -849,9 +849,9 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 var lastY = -1000;   // Track last label position to avoid overlaps
                 
                 gridFreqs.do { |freq|
-                    var y = freq.linlin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
+                    var y = freq.explin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
                     var labelText;
-                    
+
                     // Only draw if within bounds and not too close to previous label
                     // Same filtering logic as grid to ensure perfect 1:1 correspondence
                     if(y >= 15 and: { y <= (height - 15) } and: { (y - lastY).abs >= minSpacing }) {
@@ -878,7 +878,8 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             // Fallback: simple frequency grid - use exactly 8 lines
             8.do { |i|
                 var y = (i + 1) * (height / 9);  // 8 divisions = 9 segments
-                var freq = y.linlin(0, height, state[\zoomFreqMax], state[\zoomFreqMin]);
+                // Use exponential mapping for perceptual frequency
+                var freq = y.linexp(0, height, state[\zoomFreqMax], state[\zoomFreqMin]);
                 var labelText = freq.round(0.1).asString ++ "Hz";
                 
                 Pen.stringAtPoint(

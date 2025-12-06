@@ -64,12 +64,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                             };
                             
                             if(point.isKindOf(Event)) {
-                                pointY = point.freq.linlin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
+                                // Use exponential mapping for perceptual frequency
+                                pointY = point.freq.explin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
                             } {
                                 var constants = ~nUPIC[\constants];
-                                var freq = point.y.linlin(0, height, 
+                                var freq = point.y.linexp(0, height,
                                     constants[\freqMax] ? 7500, constants[\freqMin] ? 20);
-                                pointY = freq.linlin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
+                                pointY = freq.explin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
                             };
                             
                             // Check if click is near this point
@@ -473,12 +474,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
             };
             
             if(point.isKindOf(Event)) {
-                pointY = point.freq.linlin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
+                // Use exponential mapping for perceptual frequency
+                pointY = point.freq.explin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
             } {
-                var freq = point.y.linlin(0, height, constants[\freqMax] ? 7500, constants[\freqMin] ? 20);
-                pointY = freq.linlin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
+                var freq = point.y.linexp(0, height, constants[\freqMax] ? 7500, constants[\freqMin] ? 20);
+                pointY = freq.explin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
             };
-            
+
             // Check if point is within erase radius
             if((displayX - x).abs < eraseRadius and: { (pointY - y).abs < eraseRadius }) {
                 // This point should be erased
@@ -602,12 +604,13 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 };
                 
                 if(point.isKindOf(Event)) {
-                    pointY = point.freq.linlin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
+                    // Use exponential mapping for perceptual frequency
+                    pointY = point.freq.explin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
                 } {
-                    var freq = point.y.linlin(0, height, constants[\freqMax] ? 7500, constants[\freqMin] ? 20);
-                    pointY = freq.linlin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
+                    var freq = point.y.linexp(0, height, constants[\freqMax] ? 7500, constants[\freqMin] ? 20);
+                    pointY = freq.explin(state[\zoomFreqMin], state[\zoomFreqMax], height, 0);
                 };
-                
+
                 // Check if point is within selection rectangle
                 if(selectionRect.containsPoint(Point(displayX, pointY))) {
                     arcInSelection = true;
