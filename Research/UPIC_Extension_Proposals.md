@@ -139,51 +139,46 @@ data[\arcDurations] = List.new;  // Per-arc duration overrides
 > "An example of all these procedures can be found in Xenakis's UPIC composition (1978), which consists of arborescent shapes, cut and pasted, compressed and stretched in time and frequency." (Page 3)
 
 ### Current nUPIC State
-- Basic arc transformations exist (`modulateFreq`, `resample`)
-- No explicit time/frequency compression/stretch functions
-- No visual interface for these operations
+- **IMPLEMENTED** - Time and frequency compression/expansion now available
+- Keyboard shortcuts: `[` / `]` for time, `{` / `}` for frequency
+- Functions work on all selected arcs simultaneously
 
-### Proposal 3.1: Time Compression/Expansion
-**Description:** Add functions to compress or expand an arc's temporal extent while maintaining frequency relationships.
+### Proposal 3.1: Time Compression/Expansion ✓ IMPLEMENTED
+**Description:** Compress or expand an arc's temporal extent while maintaining frequency relationships.
 
-**Implementation:**
+**Implementation:** (in `UI/MouseHandlers.scd`)
 ```supercollider
-~nUPIC[\arcs][\compressTime] = { |arcIndex, factor|
-    // factor < 1 = compress, factor > 1 = expand
-    var points = ~nUPIC[\arcs][\getPoints].value(arcIndex);
-    var centerX = points.collect(_.x).mean;
-    var newPoints = points.collect { |pt|
-        (x: centerX + ((pt.x - centerX) * factor), y: pt.y, freq: pt.freq)
-    };
-    ~nUPIC[\arcs][\setPoints].value(arcIndex, newPoints);
-};
-
-~nUPIC[\arcs][\expandTime] = { |arcIndex, factor|
-    ~nUPIC[\arcs][\compressTime].value(arcIndex, factor);
+~nUPIC[\ui][\compressTimeSelected] = { |factor|
+    // factor < 1 = compress (shorter), factor > 1 = expand (longer)
+    // Scales around arc center, also transforms amplitude envelopes
 };
 ```
 
-### Proposal 3.2: Frequency Compression/Expansion
-**Description:** Scale frequency content of an arc by a factor (transposition with glide preservation).
+**Keyboard Shortcuts:**
+- `[` - Compress time by 10%
+- `]` - Expand time by 10%
 
-**Implementation:**
+### Proposal 3.2: Frequency Compression/Expansion ✓ IMPLEMENTED
+**Description:** Scale frequency content using log-space transformation around geometric mean (preserves glissando character).
+
+**Implementation:** (in `UI/MouseHandlers.scd`)
 ```supercollider
-~nUPIC[\arcs][\scaleFrequency] = { |arcIndex, factor|
-    var points = ~nUPIC[\arcs][\getPoints].value(arcIndex);
-    var newPoints = points.collect { |pt|
-        var newFreq = (pt.freq * factor).clip(20, 7500);
-        var newY = newFreq.explin(20, 7500, viewHeight, 0);
-        (x: pt.x, y: newY, freq: newFreq)
-    };
-    ~nUPIC[\arcs][\setPoints].value(arcIndex, newPoints);
+~nUPIC[\ui][\compressFrequencySelected] = { |factor|
+    // factor < 1 = compress (narrower range), factor > 1 = expand (wider)
+    // Uses log-space scaling to preserve musical intervals
 };
 ```
+
+**Keyboard Shortcuts:**
+- `{` (Shift+[) - Compress frequency range by 10%
+- `}` (Shift+]) - Expand frequency range by 10%
 
 ### Proposal 3.3: Interactive Transform Mode
+**Status:** Pending
 **Description:** UI mode where dragging selected arcs scales them in time (horizontal) or frequency (vertical).
 
 **Files to modify:**
-- `UI/Controls.scd` - Add Transform mode toggle (T key)
+- `UI/Controls.scd` - Add Transform mode toggle
 - `UI/MouseHandlers.scd` - Implement drag-to-scale behavior
 
 ---
@@ -798,13 +793,13 @@ Squibbs identifies these morphological types in Mycènes Alpha:
 ### Phase 1: Core UPIC Alignment (Foundation)
 **Goal:** Achieve feature parity with essential UPIC capabilities
 
-| Priority | Proposal | Effort | Dependencies |
-|----------|----------|--------|--------------|
-| 1 | 3.1 Time Compression/Expansion | Medium | None |
-| 2 | 3.2 Frequency Compression/Expansion | Medium | None |
-| 3 | 2.1 Per-Arc Duration | Medium | None |
-| 4 | 1.1 Arc-to-Wavetable Conversion | High | Wavetable system |
-| 5 | 4.1 Playback Direction Control | Low | Playback system |
+| Priority | Proposal | Effort | Status |
+|----------|----------|--------|--------|
+| 1 | 3.1 Time Compression/Expansion | Medium | ✓ DONE |
+| 2 | 3.2 Frequency Compression/Expansion | Medium | ✓ DONE |
+| 3 | 2.1 Per-Arc Duration | Medium | Pending |
+| 4 | 1.1 Arc-to-Wavetable Conversion | High | Pending |
+| 5 | 4.1 Playback Direction Control | Low | Pending |
 
 ### Phase 2: Enhanced Workflow
 **Goal:** Streamline compositional workflow

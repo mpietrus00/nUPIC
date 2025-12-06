@@ -842,8 +842,138 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
     reversedCount
 };
 
+// Time Compression/Expansion for selected trajectories
+// factor < 1 = compress (shorter), factor > 1 = expand (longer)
+~nUPIC[\ui][\compressTimeSelected] = { |factor|
+    var state = ~nUPIC[\ui][\state];
+    var data = ~nUPIC[\data];
+    var constants = ~nUPIC[\constants];
+    var transformedCount = 0;
+
+    if(state.isNil or: { data.isNil } or: { data[\selectedArcs].isNil }) {
+        "No arcs selected for time transformation".postln;
+        ^0;
+    };
+
+    if(data[\selectedArcs].size == 0) {
+        "No arcs selected".postln;
+        ^0;
+    };
+
+    data[\selectedArcs].do { |trajIndex|
+        if(trajIndex < data[\arcs].size) {
+            var traj = data[\arcs][trajIndex];
+            var xValues = traj.collect { |pt| pt.x };
+            var centerX = (xValues.minItem + xValues.maxItem) / 2;
+
+            // Transform arc points
+            data[\arcs][trajIndex] = traj.collect { |point|
+                if(point.isKindOf(Event)) {
+                    var newX = centerX + ((point.x - centerX) * factor);
+                    (x: newX, y: point.y, freq: point.freq)
+                } {
+                    Point(centerX + ((point.x - centerX) * factor), point.y)
+                };
+            };
+
+            // Also scale amplitude envelope
+            if(data[\amplitudeEnvelopes].notNil and: {
+                trajIndex < data[\amplitudeEnvelopes].size
+            } and: { data[\amplitudeEnvelopes][trajIndex].notNil }) {
+                var ampEnv = data[\amplitudeEnvelopes][trajIndex];
+                var ampXValues = ampEnv.collect { |pt| pt.x };
+                var ampCenterX = (ampXValues.minItem + ampXValues.maxItem) / 2;
+                data[\amplitudeEnvelopes][trajIndex] = ampEnv.collect { |ampPoint|
+                    (x: ampCenterX + ((ampPoint.x - ampCenterX) * factor), amp: ampPoint.amp)
+                };
+            };
+
+            transformedCount = transformedCount + 1;
+        };
+    };
+
+    if(factor < 1) {
+        ("Compressed time by " ++ ((1 - factor) * 100).round(1) ++ "% for " ++ transformedCount ++ " arcs").postln;
+    } {
+        ("Expanded time by " ++ ((factor - 1) * 100).round(1) ++ "% for " ++ transformedCount ++ " arcs").postln;
+    };
+
+    ~nUPIC[\ui][\refreshDisplay].value;
+    transformedCount
+};
+
+// Frequency Compression/Expansion for selected trajectories
+// factor < 1 = compress (narrower range), factor > 1 = expand (wider range)
+// Uses log-space scaling around geometric mean to preserve glissando character
+~nUPIC[\ui][\compressFrequencySelected] = { |factor|
+    var state = ~nUPIC[\ui][\state];
+    var data = ~nUPIC[\data];
+    var constants = ~nUPIC[\constants];
+    var transformedCount = 0;
+
+    if(state.isNil or: { data.isNil } or: { data[\selectedArcs].isNil }) {
+        "No arcs selected for frequency transformation".postln;
+        ^0;
+    };
+
+    if(data[\selectedArcs].size == 0) {
+        "No arcs selected".postln;
+        ^0;
+    };
+
+    // Get view parameters for Y recalculation
+    var viewHeight = state[\viewHeight] ? 800;
+    var zoomFreqMax = state[\zoomFreqMax] ? (constants[\freqMax] ? 7500);
+    var zoomFreqMin = state[\zoomFreqMin] ? (constants[\freqMin] ? 20);
+
+    data[\selectedArcs].do { |trajIndex|
+        if(trajIndex < data[\arcs].size) {
+            var traj = data[\arcs][trajIndex];
+            var freqs = traj.collect { |pt|
+                if(pt.isKindOf(Event)) { pt.freq } { nil }
+            }.reject { |f| f.isNil };
+
+            if(freqs.size > 0) {
+                // Calculate geometric mean (center in log space)
+                var logFreqs = freqs.collect { |f| f.log };
+                var logCenter = logFreqs.sum / logFreqs.size;
+
+                data[\arcs][trajIndex] = traj.collect { |point|
+                    if(point.isKindOf(Event)) {
+                        // Scale in log space around center
+                        var logFreq = point.freq.log;
+                        var newLogFreq = logCenter + ((logFreq - logCenter) * factor);
+                        var newFreq = newLogFreq.exp.clip(
+                            constants[\freqMin] ? 20,
+                            constants[\freqMax] ? 7500
+                        );
+                        // Recalculate Y position from new frequency
+                        var newY = newFreq.explin(zoomFreqMin, zoomFreqMax, viewHeight, 0);
+                        (x: point.x, y: newY, freq: newFreq)
+                    } {
+                        point;
+                    };
+                };
+
+                transformedCount = transformedCount + 1;
+            };
+        };
+    };
+
+    if(factor < 1) {
+        ("Compressed frequency range by " ++ ((1 - factor) * 100).round(1) ++ "% for " ++ transformedCount ++ " arcs").postln;
+    } {
+        ("Expanded frequency range by " ++ ((factor - 1) * 100).round(1) ++ "% for " ++ transformedCount ++ " arcs").postln;
+    };
+
+    ~nUPIC[\ui][\refreshDisplay].value;
+    transformedCount
+};
+
 "nUPIC Mouse Handlers loaded".postln;
 "Additional functions available:".postln;
 "  ~nUPIC[\\ui][\\reverseArcDirection].value(index) - Reverse specific arc".postln;
 "  ~nUPIC[\\ui][\\reverseSelectedTrajectories].value - Reverse all selected trajectories".postln;
+"  ~nUPIC[\\ui][\\compressTimeSelected].value(factor) - Time compress/expand selected (0.9=compress, 1.1=expand)".postln;
+"  ~nUPIC[\\ui][\\compressFrequencySelected].value(factor) - Freq compress/expand selected (0.9=compress, 1.1=expand)".postln;
 )

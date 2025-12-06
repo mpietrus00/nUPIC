@@ -1118,6 +1118,22 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
                 gridButton.value = 1 - gridButton.value;
                 gridButton.doAction;
             };
+        }
+        // [ - compress time (make selected arcs shorter)
+        { char == $[ } {
+            ~nUPIC[\ui][\compressTimeSelected].value(0.9);  // 10% compression
+        }
+        // ] - expand time (make selected arcs longer)
+        { char == $] } {
+            ~nUPIC[\ui][\compressTimeSelected].value(1.1);  // 10% expansion
+        }
+        // { (Shift+[) - compress frequency range (narrower pitch span)
+        { char == ${ } {
+            ~nUPIC[\ui][\compressFrequencySelected].value(0.9);  // 10% compression
+        }
+        // } (Shift+]) - expand frequency range (wider pitch span)
+        { char == $} } {
+            ~nUPIC[\ui][\compressFrequencySelected].value(1.1);  // 10% expansion
         };
     };
     
@@ -1169,7 +1185,12 @@ if(~nUPIC[\ui].isNil) { ~nUPIC[\ui] = IdentityDictionary.new };
         "• +/-: Time zoom in/out\n" ++
         "• R: Reset zoom\n" ++
         "• ESC: Emergency stop\n" ++
-        "• H: Show this help")
+        "• H: Show this help\n\n" ++
+        "ARC TRANSFORMATIONS:\n" ++
+        "• [: Compress time (make arcs shorter)\n" ++
+        "• ]: Expand time (make arcs longer)\n" ++
+        "• {: Compress frequency (narrower pitch span)\n" ++
+        "• }: Expand frequency (wider pitch span)")
         .font_(Font("Arial", 12))
         .stringColor_(Color.black);
     

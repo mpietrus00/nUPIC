@@ -368,6 +368,91 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
                 };
             };
         },
+
+        // Time Compression/Expansion (Proposal 3.1)
+        // Scales selected arcs temporally around their center point
+        // factor < 1 = compress (shorter), factor > 1 = expand (longer)
+        compressTimeSelected: { |factor|
+            selectedTrajectories.do { |i|
+                if(i < trajectories.size) {
+                    var traj = trajectories[i];
+                    var xValues = traj.collect { |pt| pt.x };
+                    var centerX = (xValues.minItem + xValues.maxItem) / 2;
+
+                    trajectories[i] = traj.collect { |point|
+                        if(point.isKindOf(Event)) {
+                            var newX = centerX + ((point.x - centerX) * factor);
+                            (x: newX, y: point.y, freq: point.freq)
+                        } {
+                            Point(centerX + ((point.x - centerX) * factor), point.y)
+                        };
+                    };
+
+                    // Also scale amplitude envelope
+                    if(amplitudeEnvelopes[i].notNil) {
+                        var ampEnv = amplitudeEnvelopes[i];
+                        var ampXValues = ampEnv.collect { |pt| pt.x };
+                        var ampCenterX = (ampXValues.minItem + ampXValues.maxItem) / 2;
+                        amplitudeEnvelopes[i] = ampEnv.collect { |ampPoint|
+                            (x: ampCenterX + ((ampPoint.x - ampCenterX) * factor), amp: ampPoint.amp)
+                        };
+                    };
+
+                    // Also scale spatial envelope
+                    if(spatialEnvelopes[i].notNil) {
+                        var spatEnv = spatialEnvelopes[i];
+                        var spatXValues = spatEnv.collect { |pt| pt.x };
+                        var spatCenterX = (spatXValues.minItem + spatXValues.maxItem) / 2;
+                        spatialEnvelopes[i] = spatEnv.collect { |spatialPoint|
+                            (x: spatCenterX + ((spatialPoint.x - spatCenterX) * factor), channel: spatialPoint.channel)
+                        };
+                    };
+                };
+            };
+        },
+
+        // Frequency Compression/Expansion (Proposal 3.2)
+        // Scales frequency content around geometric mean (log-space center)
+        // factor < 1 = compress (narrower range), factor > 1 = expand (wider range)
+        // Preserves the "character" of glissandi while changing their extent
+        compressFrequencySelected: { |factor|
+            selectedTrajectories.do { |i|
+                if(i < trajectories.size) {
+                    var traj = trajectories[i];
+                    var freqs = traj.collect { |pt|
+                        if(pt.isKindOf(Event)) { pt.freq } { nil }
+                    }.reject { |f| f.isNil };
+
+                    if(freqs.size > 0) {
+                        // Calculate geometric mean (center in log space)
+                        var logFreqs = freqs.collect { |f| f.log };
+                        var logCenter = logFreqs.sum / logFreqs.size;
+                        var centerFreq = logCenter.exp;
+
+                        // Get view height for Y recalculation
+                        var state = ~nUPIC[\ui][\state];
+                        var constants = ~nUPIC[\constants];
+                        var viewHeight = state[\viewHeight] ? 800;
+                        var zoomFreqMax = state[\zoomFreqMax] ? (constants[\freqMax] ? 7500);
+                        var zoomFreqMin = state[\zoomFreqMin] ? (constants[\freqMin] ? 20);
+
+                        trajectories[i] = traj.collect { |point|
+                            if(point.isKindOf(Event)) {
+                                // Scale in log space around center
+                                var logFreq = point.freq.log;
+                                var newLogFreq = logCenter + ((logFreq - logCenter) * factor);
+                                var newFreq = newLogFreq.exp.clip(20, 7500);
+                                // Recalculate Y position from new frequency
+                                var newY = newFreq.explin(zoomFreqMin, zoomFreqMax, viewHeight, 0);
+                                (x: point.x, y: newY, freq: newFreq)
+                            } {
+                                point;
+                            };
+                        };
+                    };
+                };
+            };
+        },
         
         // Utility functions
         size: { trajectories.size },
