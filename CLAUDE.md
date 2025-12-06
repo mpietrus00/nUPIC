@@ -108,3 +108,16 @@ Test files are in the `tests/` directory. Individual test scripts:
 3. Arrays use square brackets: `[1, 2, 3]`
 4. Symbols use backslash prefix: `\symbolName`
 5. Comments: `//` for single line, `/* */` for multi-line
+
+## PDF Processing Workflow
+
+Use `pdftotext` via Bash to extract PDF content:
+
+```bash
+# Extract PDF to text file
+pdftotext document.pdf document.txt
+```
+
+- Extract PDF to `.txt` file first before processing
+- Process the text file instead of the PDF directly
+- Keep extracted `.txt` files alongside PDFs for future reference
