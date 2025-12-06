@@ -373,7 +373,11 @@
             var wt = getCurrentWavetable.value;
             var newIdx = ~nUPIC[\arcs][\createFromWavetable].value(wt, 100, 600);
             if(newIdx.notNil) {
-                "Created arc % from wavetable".format(newIdx).postln;
+                "Created arc % from wavetable - refreshing display".format(newIdx).postln;
+                // Refresh the main canvas to show the new arc
+                if(~nUPIC[\ui][\refreshDisplay].notNil) {
+                    { ~nUPIC[\ui][\refreshDisplay].value }.defer;
+                };
             } {
                 "Could not create arc from wavetable".warn;
             };

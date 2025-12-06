@@ -42,6 +42,7 @@ if(~nUPIC.isNil) { ~nUPIC = IdentityDictionary.new };
     (
         // Data access
         trajectories: trajectories,
+        arcs: trajectories,  // Alias for compatibility with UI code
         amplitudeEnvelopes: amplitudeEnvelopes,
         spatialEnvelopes: spatialEnvelopes,
         arcSynthDefs: arcSynthDefs,
