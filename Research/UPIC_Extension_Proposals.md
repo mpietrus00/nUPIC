@@ -61,32 +61,26 @@ The original UPIC A had these constraints that inform our design:
 - Wavetables are 2048 samples at fixed resolution
 - No mechanism to treat arc shapes as microstructure elements
 
-### Proposal 1.1: Arc-to-Waveform Conversion
+### Proposal 1.1: Arc-to-Waveform Conversion ✓ IMPLEMENTED
 **Description:** Allow any drawn arc to be converted into a wavetable waveform, enabling macro-scale shapes to become micro-scale timbral characteristics.
 
-**Implementation:**
+**Implementation:** (in `Core/ArcData.scd` and `Core/Constants.scd`)
 ```supercollider
-~nUPIC[\arcs][\convertToWavetable] = { |arcIndex|
-    // Resample arc frequency contour to 2048 samples
-    // Normalize to -1 to 1 range
-    // Load into wavetable buffer
-};
+~nUPIC[\arcs][\convertToWavetable].value(arcIndex);  // Returns wavetable array
+~nUPIC[\arcs][\applyShapeAsWavetable].value(arcIndex);  // Apply to same arc
 ```
 
-**Files to modify:**
-- `Core/ArcData.scd` - Add conversion function
-- `UI/WavetableEditor.scd` - Add "from arc" button
+**UI:** "arc→" button in WavetableEditor converts current arc's shape to its wavetable
 
-### Proposal 1.2: Waveform-to-Arc Expansion
+### Proposal 1.2: Waveform-to-Arc Expansion ✓ IMPLEMENTED
 **Description:** Expand a wavetable's pressure-time curve into a drawable arc at meso/macro scale.
 
-**Implementation:**
+**Implementation:** (in `Core/ArcData.scd` and `Core/Constants.scd`)
 ```supercollider
-~nUPIC[\wavetablePresets][\expandToArc] = { |wavetableName, duration|
-    // Map 2048 samples to arc points over specified duration
-    // Create new arc from waveform shape
-};
+~nUPIC[\arcs][\createFromWavetable].value(wavetableData, startX, width);
 ```
+
+**UI:** "→arc" button in WavetableEditor creates new arc from current wavetable shape
 
 ---
 
@@ -796,8 +790,9 @@ Squibbs identifies these morphological types in Mycènes Alpha:
 | 1 | 3.1 Time Compression/Expansion | Medium | ✓ DONE |
 | 2 | 3.2 Frequency Compression/Expansion | Medium | ✓ DONE |
 | 3 | 2.1 Per-Arc Duration | Medium | Pending |
-| 4 | 1.1 Arc-to-Wavetable Conversion | High | Pending |
-| 5 | 4.1 Playback Direction Control | Low | ✓ Implemented |
+| 4 | 1.1 Arc-to-Wavetable Conversion | High | ✓ DONE |
+| 5 | 1.2 Wavetable-to-Arc Conversion | Medium | ✓ DONE |
+| 6 | 4.1 Playback Direction Control | Low | ✓ DONE |
 
 ### Phase 2: Enhanced Workflow
 **Goal:** Streamline compositional workflow
